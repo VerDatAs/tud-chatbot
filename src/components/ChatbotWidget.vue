@@ -1,28 +1,20 @@
 <script>
 export default {
   props: {
-    pluginPath: String,
+    pluginPath: String
   },
   methods: {
     fadeIn() {
-      document.getElementById("chatbotWidget").classList.add("animate__fadeInRight");
-      // setTimeout(() => {
-      //   document
-      //     .getElementById("chatbotWidget")
-      //     .classList.remove("animate__fadeInRight");
-      // }, 500);
+      document
+        .getElementById("chatbotWidget")
+        .classList.add("animate__fadeInRight");
     },
     fadeOut() {
       document
         .getElementById("chatbotWidget")
         .classList.add("animate__fadeOutRight");
-      // setTimeout(() => {
-      //   document
-      //     .getElementById("chatbotWidget")
-      //     .classList.remove("animate__fadeOutRight");
-      // }, 500);
-    },
-  },
+    }
+  }
 };
 </script>
 
@@ -41,6 +33,7 @@ export default {
 #chatbotWidget {
   margin-right: 40px;
   margin-bottom: 40px;
+  max-width: 60px;
   padding: 10px;
   background: #333;
   border-radius: 15px;

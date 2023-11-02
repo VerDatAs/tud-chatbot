@@ -5,11 +5,11 @@ export default {
   data: () => ({
     chatbotDialogVisible: false,
     pluginPath:
-      "./Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/VerDatAsBot",
+      "./Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/VerDatAsBot"
   }),
   components: {
     ChatbotDialog,
-    ChatbotWidget,
+    ChatbotWidget
   },
   created() {
     this.initChatbotApp();
@@ -39,11 +39,11 @@ export default {
           // The ref must exist before it is addressed
           setTimeout(() => {
             this.$refs.chatbotWidget.fadeIn();
-          }, 1)
+          }, 1);
         }, 300);
       }
-    },
-  },
+    }
+  }
 };
 </script>
 
@@ -57,6 +57,7 @@ export default {
     />
     <ChatbotDialog
       ref="chatbotDialog"
+      :pluginPath="pluginPath"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       v-else
     />
@@ -66,5 +67,7 @@ export default {
 <style lang="scss" scoped>
 main {
   outline: none;
+  font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
+  font-size: 14px;
 }
 </style>
