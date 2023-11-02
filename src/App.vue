@@ -1,11 +1,15 @@
 <script>
 import ChatbotDialog from "./components/ChatbotDialog.vue";
 import ChatbotWidget from "./components/ChatbotWidget.vue";
+import axios from "axios";
+
 export default {
   data: () => ({
     chatbotDialogVisible: false,
     pluginPath:
-      "./Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/VerDatAsBot"
+      "./Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/VerDatAsBot",
+    adminToken: "",
+    userIdOrActorAccountName: "tommy1910"
   }),
   components: {
     ChatbotDialog,
@@ -15,11 +19,22 @@ export default {
     this.initChatbotApp();
   },
   methods: {
-    initChatbotApp() {
+    async initChatbotApp() {
       document.addEventListener("init-path", (event) => {
         // https://github.com/vaadin/vaadin-upload/issues/138#issuecomment-266773430
         console.log("init-path", event);
         this.pluginPath = event.detail;
+      });
+      await this.getAdminToken();
+    },
+    async getAdminToken() {
+      const authUrl = "http://localhost:8080/api/v1/auth/login";
+      const request = {
+        actorAccountName: "root",
+        password: "root"
+      };
+      axios.post(authUrl, request).then((adminData) => {
+        this.adminToken = adminData.data.token;
       });
     },
     updateChatbotDialogVisible(dialogVisible) {
@@ -57,6 +72,8 @@ export default {
     />
     <ChatbotDialog
       ref="chatbotDialog"
+      :adminToken="adminToken"
+      :userIdOrActorAccountName="userIdOrActorAccountName"
       :pluginPath="pluginPath"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       v-else
