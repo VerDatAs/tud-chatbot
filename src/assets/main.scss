@@ -1,0 +1,7 @@
+@import 'animate.css/animate.css';
+
+.animate__animated {
+  &.animate__fadeInRight, &.animate__fadeOutRight {
+    --animate-duration: 0.3s;
+  }
+}
