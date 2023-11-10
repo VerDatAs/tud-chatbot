@@ -4,6 +4,7 @@ import ChatbotIcon from './ChatbotIcon.vue';
 export default {
   data: () => ({
     messageToSend: '',
+    messageUpdate: false,
     hasScrolled: false,
     wasScrolledAutomatically: false
   }),
@@ -14,27 +15,47 @@ export default {
   components: {
     ChatbotIcon
   },
+  computed: {
+    hasScrolledButReceivedNewMessages() {
+      return this.hasScrolled && this.messageUpdate;
+    }
+  },
   mounted() {
     this.initChatbotDialog();
   },
   methods: {
     initChatbotDialog() {
-      document.getElementById('dialogContainer').onscroll = () => {
+      const dialogContainer = document.getElementById('dialogContainer');
+      dialogContainer.onscroll = () => {
         console.log('hasScrolled');
+        // avoid setting hasScrolled for situations, in which the dialog was scrolled automatically
         if (!this.wasScrolledAutomatically) {
           this.hasScrolled = true;
         }
-      };
-      document.getElementById('messageInput').addEventListener('keydown', e => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          this.sendMessage();
+        // reset hasScrolled, if the user manually scrolls to the bottom
+        if (this.hasScrolled && dialogContainer.scrollTop === (dialogContainer.scrollHeight - dialogContainer.offsetHeight)) {
+          this.hasScrolled = false;
+          this.messageUpdate = false;
         }
-      });
+      };
     },
     closeChatbotDialog() {
       this.$emit('closeChatbotDialog');
     },
-    sendMessage() {
+    isIncomingMessage(message) {
+      const incomingParameters = ['message'];
+      const parameterKeyArray = message?.parameters?.map((param) => param.key) || []
+      return parameterKeyArray.some(item => incomingParameters.includes(item))
+    },
+    sendMessage(event) {
+      if (event) {
+        event.preventDefault();
+      }
+      // check message with removed linebreaks and trimmed whitespaces to be empty
+      if (this.messageToSend.replace(/(\r\n|\n|\r)/gm, '').trimEnd() === '') {
+        this.messageToSend = '';
+        return;
+      }
       const messageToSend = {
         incoming: false,
         message: this.messageToSend,
@@ -59,7 +80,14 @@ export default {
             this.wasScrolledAutomatically = false;
           }, 250);
         }, 100);
+      } else {
+        this.messageUpdate = true;
       }
+    },
+    scrollDown() {
+      this.hasScrolled = false;
+      this.messageUpdate = false;
+      this.updateScroll();
     },
     fadeIn() {
       document.getElementById('chatbotDialog').classList.add('animate__fadeInRight');
@@ -80,24 +108,29 @@ export default {
       <span class="closeBtn" @click="closeChatbotDialog()">&times;</span>
     </div>
     <div id="dialogContainer">
-      <template v-for="message in messageHistory">
-        <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="message.incoming">
-          <ChatbotIcon :botImagePath="botImagePath" />
+      <div class="scrolledButNewMessages" v-if="hasScrolledButReceivedNewMessages" @click="scrollDown">
+        New messages available!
+      </div>
+      <div id="messageHistory" :style="hasScrolledButReceivedNewMessages ? 'margin-top: 50px;' : ''">
+        <template v-for="message in messageHistory">
+          <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="isIncomingMessage(message)">
+            <ChatbotIcon :botImagePath="botImagePath" />
+            <span>
+            {{ message.parameters.find((param) => param.key === 'message').value }}
+          </span>
+          </div>
+          <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
           <span>
             {{ message.message }}
           </span>
-        </div>
-        <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
-          <span>
-            {{ message.message }}
-          </span>
-        </div>
-      </template>
+          </div>
+        </template>
+      </div>
     </div>
-    <div class="dialogInput">
+    <div id="dialogInput">
       <div class="inputContainer">
-        <form @submit="sendMessage()">
-          <textarea id="messageInput" v-model="messageToSend" placeholder="Sag etwas zu VERI."></textarea>
+        <form @submit="sendMessage($event)">
+          <textarea id="messageInput" v-model="messageToSend" placeholder="Sag etwas zu VERI." @keyup.enter.exact="sendMessage(null)"></textarea>
           <button type="submit" class="sendBtn">Senden</button>
         </form>
       </div>
@@ -118,7 +151,7 @@ export default {
     position: relative;
     padding: 12px 15px 12px 15px;
     border-bottom: 1px solid #ddd;
-    max-height: 62px;
+    height: 56px;
 
     .headerName,
     .headerDescription {
@@ -152,9 +185,22 @@ export default {
     padding: 15px;
     // header height - footer height
     // TODO: Fix height to work without fixed heights
-    max-height: calc(100% - 62px - 80px);
+    max-height: calc(100% - 56px - 80px);
+    position: relative;
     overflow-x: hidden;
     overflow-y: auto;
+
+    .scrolledButNewMessages {
+      position: absolute;
+      top: 0;
+      left: 0;
+      padding: 10px;
+      width: 100%;
+      text-align: center;
+      background: #eee;
+      text-decoration: underline;
+      cursor: pointer;
+    }
 
     .message {
       position: relative;
@@ -200,7 +246,7 @@ export default {
     }
   }
 
-  .dialogInput {
+  #dialogInput {
     position: absolute;
     bottom: 0;
     width: 100%;
@@ -214,8 +260,8 @@ export default {
 
       textarea {
         padding: 5px 10px;
-        height: 40px;
-        width: calc(100% - 20px);
+        height: 48px;
+        width: 100%;
         border: none;
         resize: none;
       }

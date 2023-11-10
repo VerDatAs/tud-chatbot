@@ -1,5 +1,9 @@
 @import 'animate.css/animate.css';
 
+* {
+  box-sizing: border-box;
+}
+
 .animate__animated {
   &.animate__fadeInRight,
   &.animate__fadeOutRight {

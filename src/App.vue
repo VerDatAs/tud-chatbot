@@ -3,6 +3,8 @@ import ChatbotDialog from './components/ChatbotDialog.vue';
 import ChatbotWidget from './components/ChatbotWidget.vue';
 import axios from 'axios';
 
+// Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
+// Define constants for bytes used throughout the code.
 const BYTES = {
   // LINEFEED byte (octet 10)
   LF: '\x0A',
@@ -21,7 +23,8 @@ export default {
     userToken: '',
     webSocket: null,
     messageToSend: '',
-    messageHistory: []
+    messageHistory: [],
+    pongInterval: null
   }),
   components: {
     ChatbotDialog,
@@ -49,8 +52,17 @@ export default {
         console.log('init-path', event);
         this.pluginPath = event.detail;
       });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          console.log('tab gets visible again', this.webSocket.readyState);
+          if (this.webSocket.readyState !== 1) {
+            this.initWebSocketConnection();
+          }
+        }
+      });
       await this.getAdminToken();
       await this.initWebSocketConnection();
+      this.showInitialBotMessage();
     },
     async initWebSocketConnection() {
       console.log('initWebSocketConnection');
@@ -66,7 +78,7 @@ export default {
       const webSocketURL = 'ws://' + this.backendUrl.split('http://')?.[1] + '/api/v1/websocket';
       this.webSocket = new WebSocket(webSocketURL);
 
-      // Use code provided by Robert Peine on verdatas-backend README
+      // Use code provided by Robert Peine from verdatas-backend README
       this.webSocket.onopen = (event) => {
         this.webSocket.send('CONNECT\ntoken:' + this.userToken + '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0');
         // there is only one destination that needs to be subscribed: /user/queue/chat
@@ -78,23 +90,35 @@ export default {
         // extract content between \n\n and \0
         const message = event.data.substring(event.data.indexOf('\n\n') + 2, event.data.lastIndexOf('\0'));
         // verdatas-backend sends JSON data in body of STOMP messages that can be deserialized
+        // If no message ('') is received, it is the connect message
         if (!message) {
-          console.log('skip connect message');
-        } else if (message === BYTES.LF) {
-          // console.log('ping message received');
-          this.webSocket.send(BYTES.LF);
-        } else {
-          const messageToPush = {
-            incoming: true,
-            message: JSON.parse(message).msg,
-            timestamp: parseInt(event.timeStamp)
-          };
-          this.messageHistory.push(messageToPush);
+          console.log('Connected message. Initialize pong message interval.');
+          this.initializePongMessageInterval();
+        }
+        // If BYTES.LF is received, it is a ping message
+        // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/client.js#L74
+        else if (message === BYTES.LF) {
+          console.log('Ping message received.');
+        }
+        // Other, "real" messages
+        else {
+          this.messageHistory.push(JSON.parse(message));
           this.updateDialogScroll();
           // console.log('other message', messageToPush);
         }
       };
-      this.showInitialBotMessage();
+
+      this.webSocket.onclose = (event) => {
+        console.log('WebSocket closed. Clear pong interval.', this.pongInterval);
+        clearInterval(this.pongInterval);
+      };
+    },
+    initializePongMessageInterval() {
+      // Send pong every 3 seconds, as it is done in the stomp-websocket library
+      this.pongInterval = setInterval(() => {
+        this.webSocket.send(BYTES.LF);
+        console.log('Pong message sent.');
+      }, 3000);
     },
     /**
      * Helper function to simulate the behavior of the Bot sending an initial introduc
@@ -130,10 +154,47 @@ export default {
         'Content-Type': 'application/json;charset=UTF-8',
         Authorization: 'Bearer ' + this.adminToken
       };
-      const authUrl = 'http://localhost:8080/api/v1/users/' + this.userIdOrActorAccountName + '/chatbot-messages';
+      const authUrl = 'http://localhost:8080/api/v1/assistance/sendAssistanceTest';
       const request = {
-        type: 'informational_feedback',
-        message: messageToSend
+        "assistance": [
+          {
+            "aId": "2EA95788-7ABA-4DDD-B3BA-E7EB574685BD",
+            "userId": this.userIdOrActorAccountName,
+            "typeKey": "offer_help_options",
+            "timestamp": "2023-06-27T10:12:53.000000+02:00",
+            "assistanceState": "initiated",
+            "assistanceObjects": [
+              {
+                "userId": this.userIdOrActorAccountName,
+                "aoId": "BC2340BA-1623-41F8-9C0D-B4373956E6EC",
+                "timestamp": "2023-06-27T10:12:53.000000+02:00",
+                "parameters": [
+                  {
+                    "key": "message",
+                    "value": messageToSend
+                  },
+                  {
+                    "key": "options",
+                    "value": [
+                      {
+                        "key": "example_solution",
+                        "value": "Lösungsbeispiel anzeigen"
+                      },
+                      {
+                        "key": "group_formation",
+                        "value": "Gruppe bilden"
+                      },
+                      {
+                        "key": "cancel",
+                        "value": "Hilfe ablehnen"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       };
       axios.post(authUrl, request, { headers: authHeader }).then((data) => {
         console.log(data);
