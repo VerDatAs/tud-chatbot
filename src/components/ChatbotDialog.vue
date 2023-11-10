@@ -4,11 +4,12 @@ import ChatbotIcon from './ChatbotIcon.vue';
 export default {
   data: () => ({
     messageToSend: '',
-    hasScrolled: false
+    hasScrolled: false,
+    wasScrolledAutomatically: false
   }),
   props: {
     messageHistory: Array,
-    pluginPath: String
+    botImagePath: String
   },
   components: {
     ChatbotIcon
@@ -20,8 +21,15 @@ export default {
     initChatbotDialog() {
       document.getElementById('dialogContainer').onscroll = () => {
         console.log('hasScrolled');
-        this.hasScrolled = true;
+        if (!this.wasScrolledAutomatically) {
+          this.hasScrolled = true;
+        }
       };
+      document.getElementById('messageInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          this.sendMessage();
+        }
+      });
     },
     closeChatbotDialog() {
       this.$emit('closeChatbotDialog');
@@ -42,22 +50,22 @@ export default {
     // Retrieved from https://stackoverflow.com/a/18614545
     updateScroll() {
       console.log('updateScroll');
-      // if (!this.hasScrolled) {
-      setTimeout(() => {
-        const element = document.getElementById('dialogContainer');
-        element.scrollTop = element.scrollHeight;
-      }, 100);
-      // }
+      if (!this.hasScrolled) {
+        setTimeout(() => {
+          const element = document.getElementById('dialogContainer');
+          element.scrollTop = element.scrollHeight;
+          this.wasScrolledAutomatically = true;
+          setTimeout(() => {
+            this.wasScrolledAutomatically = false;
+          }, 250);
+        }, 100);
+      }
     },
     fadeIn() {
-      document
-        .getElementById('chatbotDialog')
-        .classList.add('animate__fadeInRight');
+      document.getElementById('chatbotDialog').classList.add('animate__fadeInRight');
     },
     fadeOut() {
-      document
-        .getElementById('chatbotDialog')
-        .classList.add('animate__fadeOutRight');
+      document.getElementById('chatbotDialog').classList.add('animate__fadeOutRight');
     }
   }
 };
@@ -65,8 +73,8 @@ export default {
 
 <template>
   <div id="chatbotDialog" class="animate__animated">
-    <div class="dialogHeader">
-      <ChatbotIcon :pluginPath="pluginPath" :headerIcon="true" />
+    <div id="dialogHeader">
+      <ChatbotIcon :botImagePath="botImagePath" :headerIcon="true" />
       <span class="headerName">VERI</span>
       <span class="headerDescription">Supporting lecturers</span>
       <span class="closeBtn" @click="closeChatbotDialog()">&times;</span>
@@ -74,7 +82,7 @@ export default {
     <div id="dialogContainer">
       <template v-for="message in messageHistory">
         <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="message.incoming">
-          <ChatbotIcon :pluginPath="pluginPath" />
+          <ChatbotIcon :botImagePath="botImagePath" />
           <span>
             {{ message.message }}
           </span>
@@ -88,29 +96,29 @@ export default {
     </div>
     <div class="dialogInput">
       <div class="inputContainer">
-        <textarea
-          v-model="messageToSend"
-          placeholder="Sag etwas zu VERI."
-        ></textarea>
-        <button class="sendBtn" @click="sendMessage()">Senden</button>
+        <form @submit="sendMessage()">
+          <textarea id="messageInput" v-model="messageToSend" placeholder="Sag etwas zu VERI."></textarea>
+          <button type="submit" class="sendBtn">Senden</button>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 #chatbotDialog {
   position: relative;
   width: 360px;
   height: calc(100vh - 60px);
+  border-top: 1px solid #ddd;
   border-left: 1px solid #ddd;
   background: #fff;
 
-  .dialogHeader {
+  #dialogHeader {
     position: relative;
-    padding: 12px 35px 12px 15px;
+    padding: 12px 15px 12px 15px;
     border-bottom: 1px solid #ddd;
-    height: 62px;
+    max-height: 62px;
 
     .headerName,
     .headerDescription {
@@ -144,7 +152,7 @@ export default {
     padding: 15px;
     // header height - footer height
     // TODO: Fix height to work without fixed heights
-    height: calc(100% - 62px - 80px);
+    max-height: calc(100% - 62px - 80px);
     overflow-x: hidden;
     overflow-y: auto;
 

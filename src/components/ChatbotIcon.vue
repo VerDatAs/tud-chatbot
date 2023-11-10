@@ -1,7 +1,7 @@
 <script>
 export default {
   props: {
-    pluginPath: String,
+    botImagePath: String,
     headerIcon: {
       type: Boolean,
       default: false
@@ -12,16 +12,11 @@ export default {
 
 <template>
   <div class="chatbotIcon" :class="headerIcon ? 'headerIcon' : 'dialogIcon'">
-    <img
-      :src="this.pluginPath + '/templates/veri.png'"
-      width="25"
-      height="25"
-      alt="Chatbot Icon"
-    />
+    <img :src="this.botImagePath" width="25" height="25" alt="Chatbot Icon" />
   </div>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .chatbotIcon {
   position: absolute;
   padding: 5px;

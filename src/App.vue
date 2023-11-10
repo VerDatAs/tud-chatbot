@@ -14,8 +14,7 @@ export default {
   data: () => ({
     chatbotDialogVisible: false,
     backendUrl: 'http://localhost:8080',
-    pluginPath:
-      './Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/VerDatAsBot',
+    pluginPath: '',
     // WebSocket connection and message sending
     adminToken: '',
     userIdOrActorAccountName: 'ca1910',
@@ -28,11 +27,23 @@ export default {
     ChatbotDialog,
     ChatbotWidget
   },
+  computed: {
+    botImagePath() {
+      return this.pluginPath + (!this.isRunLocally ? '/templates' : '') + '/veri.png';
+    },
+    isRunLocally() {
+      return process.env.NODE_ENV === 'development';
+    }
+  },
   created() {
     this.initChatbotApp();
   },
   methods: {
     async initChatbotApp() {
+      // Define default variables, e.g., the pluginPath
+      this.pluginPath = this.isRunLocally
+        ? ''
+        : './Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/VerDatAsBot';
       document.addEventListener('init-path', (event) => {
         // https://github.com/vaadin/vaadin-upload/issues/138#issuecomment-266773430
         console.log('init-path', event);
@@ -52,30 +63,20 @@ export default {
         return;
       }
       this.userToken = userData.data.token;
-      const webSocketURL =
-        'ws://' + this.backendUrl.split('http://')?.[1] + '/api/v1/websocket';
+      const webSocketURL = 'ws://' + this.backendUrl.split('http://')?.[1] + '/api/v1/websocket';
       this.webSocket = new WebSocket(webSocketURL);
 
       // Use code provided by Robert Peine on verdatas-backend README
       this.webSocket.onopen = (event) => {
-        this.webSocket.send(
-          'CONNECT\ntoken:' +
-            this.userToken +
-            '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0'
-        );
+        this.webSocket.send('CONNECT\ntoken:' + this.userToken + '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0');
         // there is only one destination that needs to be subscribed: /user/queue/chat
-        this.webSocket.send(
-          'SUBSCRIBE\nid:sub-0\ndestination:/user/queue/chat\n\n\0'
-        );
+        this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:/user/queue/chat\n\n\0');
       };
 
       this.webSocket.onmessage = (event) => {
         // console.log('incoming message event', event);
         // extract content between \n\n and \0
-        const message = event.data.substring(
-          event.data.indexOf('\n\n') + 2,
-          event.data.lastIndexOf('\0')
-        );
+        const message = event.data.substring(event.data.indexOf('\n\n') + 2, event.data.lastIndexOf('\0'));
         // verdatas-backend sends JSON data in body of STOMP messages that can be deserialized
         if (!message) {
           console.log('skip connect message');
@@ -93,7 +94,12 @@ export default {
           // console.log('other message', messageToPush);
         }
       };
-
+      this.showInitialBotMessage();
+    },
+    /**
+     * Helper function to simulate the behavior of the Bot sending an initial introduc
+     */
+    showInitialBotMessage() {
       setTimeout(() => {
         // TODO: Open dialog automatically, when hasJustLoggedIn
         this.updateChatbotDialogVisible(true);
@@ -124,10 +130,7 @@ export default {
         'Content-Type': 'application/json;charset=UTF-8',
         Authorization: 'Bearer ' + this.adminToken
       };
-      const authUrl =
-        'http://localhost:8080/api/v1/users/' +
-        this.userIdOrActorAccountName +
-        '/chatbot-messages';
+      const authUrl = 'http://localhost:8080/api/v1/users/' + this.userIdOrActorAccountName + '/chatbot-messages';
       const request = {
         type: 'informational_feedback',
         message: messageToSend
@@ -169,17 +172,17 @@ export default {
 </script>
 
 <template>
-  <main>
+  <main :style="isRunLocally ? 'position: fixed; bottom: 0; right: 0; z-index: 998;' : ''">
     <ChatbotWidget
       ref="chatbotWidget"
-      :pluginPath="pluginPath"
+      :botImagePath="botImagePath"
       @click="updateChatbotDialogVisible(!chatbotDialogVisible)"
       v-if="!chatbotDialogVisible"
     />
     <ChatbotDialog
       ref="chatbotDialog"
       :messageHistory="messageHistory"
-      :pluginPath="pluginPath"
+      :botImagePath="botImagePath"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       @updateMessageHistory="updateMessageHistory"
       v-else
