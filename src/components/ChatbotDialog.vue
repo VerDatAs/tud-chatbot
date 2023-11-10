@@ -1,89 +1,27 @@
 <script>
 import ChatbotIcon from './ChatbotIcon.vue';
-import axios from 'axios';
-
-const BYTES = {
-  // LINEFEED byte (octet 10)
-  LF: '\x0A',
-  // NULL byte (octet 0)
-  NULL: '\x00'
-};
 
 export default {
   data: () => ({
     messageToSend: '',
-    messageHistory: [],
-    userToken: '',
-    webSocket: null
+    hasScrolled: false
   }),
   props: {
-    adminToken: String,
-    backendUrl: String,
-    userIdOrActorAccountName: String,
+    messageHistory: Array,
     pluginPath: String
   },
   components: {
     ChatbotIcon
   },
-  async created() {
-    await this.initChatbotDialog();
+  mounted() {
+    this.initChatbotDialog();
   },
   methods: {
-    async initChatbotDialog() {
-      console.log('initChatbotDialog');
-      const authUrl = this.backendUrl + '/api/v1/auth/login';
-      const request = {
-        actorAccountName: 'ca1910'
+    initChatbotDialog() {
+      document.getElementById('dialogContainer').onscroll = () => {
+        console.log('hasScrolled');
+        this.hasScrolled = true;
       };
-      const userData = await axios.post(authUrl, request);
-      if (!userData.data) {
-        return;
-      }
-      this.userToken = userData.data.token;
-      const webSocketURL =
-        'ws://' + this.backendUrl.split('http://')?.[1] + '/api/v1/websocket';
-      this.webSocket = new WebSocket(webSocketURL);
-
-      // Use code provided by Robert Peine on verdatas-backend README
-      this.webSocket.onopen = (event) => {
-        this.webSocket.send(
-          'CONNECT\ntoken:' +
-            this.userToken +
-            '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0'
-        );
-        // there is only one destination that needs to be subscribed: /user/queue/chat
-        this.webSocket.send(
-          'SUBSCRIBE\nid:sub-0\ndestination:/user/queue/chat\n\n\0'
-        );
-      };
-
-      this.webSocket.onmessage = (event) => {
-        console.log('incoming message event', event);
-        // extract content between \n\n and \0
-        const message = event.data.substring(
-          event.data.indexOf('\n\n') + 2,
-          event.data.lastIndexOf('\0')
-        );
-        // verdatas-backend sends JSON data in body of STOMP messages that can be deserialized
-        if (!message) {
-          console.log('skip connect message');
-        } else if (message === BYTES.LF) {
-          console.log('ping message received');
-          this.webSocket.send(BYTES.LF);
-        } else {
-          const messageToPush = {
-            incoming: true,
-            message: JSON.parse(message).msg,
-            timestamp: parseInt(event.timeStamp)
-          };
-          this.messageHistory.push(messageToPush);
-          console.log('other message', messageToPush);
-        }
-      };
-
-      setTimeout(() => {
-        this.generateMessageFromBackend(true);
-      }, 1000);
     },
     closeChatbotDialog() {
       this.$emit('closeChatbotDialog');
@@ -94,34 +32,22 @@ export default {
         message: this.messageToSend,
         timestamp: Math.round(Date.now() / 1000)
       };
-      this.messageHistory.push(messageToSend);
+      // TODO: Send message via WebSocket (input as Prop)
+      this.$emit('updateMessageHistory', messageToSend);
+      // Reset message input
       setTimeout(() => {
         this.messageToSend = '';
-        setTimeout(() => {
-          this.generateMessageFromBackend(false);
-        }, 500);
       }, 50);
     },
-    generateMessageFromBackend(initialMessage) {
-      const optionsToChoose = ['Stein', 'Schere', 'Papier'];
-      const messageToSend = initialMessage
-        ? 'Hallo, mein Name ist Veri. Ich werde deinen Lernprozess unterstützen! Du kannst aber auch Stein, Schere, Papier mit mir spielen.'
-        : optionsToChoose[Math.floor(Math.random() * optionsToChoose.length)];
-      const authHeader = {
-        'Content-Type': 'application/json;charset=UTF-8',
-        Authorization: 'Bearer ' + this.adminToken
-      };
-      const authUrl =
-        'http://localhost:8080/api/v1/users/' +
-        this.userIdOrActorAccountName +
-        '/chatbot-messages';
-      const request = {
-        type: 'informational_feedback',
-        message: messageToSend
-      };
-      axios.post(authUrl, request, { headers: authHeader }).then((data) => {
-        console.log(data);
-      });
+    // Retrieved from https://stackoverflow.com/a/18614545
+    updateScroll() {
+      console.log('updateScroll');
+      // if (!this.hasScrolled) {
+      setTimeout(() => {
+        const element = document.getElementById('dialogContainer');
+        element.scrollTop = element.scrollHeight;
+      }, 100);
+      // }
     },
     fadeIn() {
       document
@@ -145,14 +71,18 @@ export default {
       <span class="headerDescription">Supporting lecturers</span>
       <span class="closeBtn" @click="closeChatbotDialog()">&times;</span>
     </div>
-    <div class="dialogContainer">
+    <div id="dialogContainer">
       <template v-for="message in messageHistory">
-        <div class="message messageIncoming" v-if="message.incoming">
+        <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="message.incoming">
           <ChatbotIcon :pluginPath="pluginPath" />
-          <span>{{ message.message }}</span>
+          <span>
+            {{ message.message }}
+          </span>
         </div>
-        <div class="message messageOutgoing" v-else>
-          <span>{{ message.message }}</span>
+        <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
+          <span>
+            {{ message.message }}
+          </span>
         </div>
       </template>
     </div>
@@ -210,11 +140,13 @@ export default {
     }
   }
 
-  .dialogContainer {
+  #dialogContainer {
     padding: 15px;
     // header height - footer height
+    // TODO: Fix height to work without fixed heights
     height: calc(100% - 62px - 80px);
-    overflow-y: scroll;
+    overflow-x: hidden;
+    overflow-y: auto;
 
     .message {
       position: relative;
@@ -273,8 +205,9 @@ export default {
       padding: 15px 100px 15px 15px;
 
       textarea {
-        height: 43px;
-        width: 100%;
+        padding: 5px 10px;
+        height: 40px;
+        width: calc(100% - 20px);
         border: none;
         resize: none;
       }
