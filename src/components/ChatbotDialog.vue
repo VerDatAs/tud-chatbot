@@ -1,97 +1,137 @@
 <script>
-import ChatbotIcon from "./ChatbotIcon.vue";
-import axios from "axios";
+import ChatbotIcon from './ChatbotIcon.vue';
+import axios from 'axios';
+
+const BYTES = {
+  // LINEFEED byte (octet 10)
+  LF: '\x0A',
+  // NULL byte (octet 0)
+  NULL: '\x00'
+};
 
 export default {
   data: () => ({
-    userToken: "",
+    messageToSend: '',
+    messageHistory: [],
+    userToken: '',
     webSocket: null
   }),
   props: {
     adminToken: String,
+    backendUrl: String,
     userIdOrActorAccountName: String,
     pluginPath: String
   },
   components: {
     ChatbotIcon
   },
-  created() {
-    this.initChatbotDialog();
+  async created() {
+    await this.initChatbotDialog();
   },
   methods: {
-    initChatbotDialog() {
-      console.log("initChatbotDialog");
-      const authUrl = "http://localhost:8080/api/v1/auth/login";
+    async initChatbotDialog() {
+      console.log('initChatbotDialog');
+      const authUrl = this.backendUrl + '/api/v1/auth/login';
       const request = {
-        actorAccountName: "tommy1910"
+        actorAccountName: 'ca1910'
       };
-      axios.post(authUrl, request).then((userData) => {
-        this.userToken = userData.data.token;
-        const webSocketURL = "ws://localhost:8080/api/v1/websocket";
-        this.webSocket = new WebSocket("ws://localhost:8080/api/v1/websocket");
-        this.webSocket.addEventListener("open", (event) => {
-          this.webSocket.send(
-            "CONNECT\ntoken:" +
-              this.userToken +
-              "\naccept-version:1.2\nheart-beat:3000,3000\n\n\0"
-          );
-          this.webSocket.send(
-            "SUBSCRIBE\nid:sub-0\ndestination:/user/queue/chat\n\n\0"
-          );
-        });
-        this.webSocket.addEventListener("message", (data, isBinary) => {
-          const message = data.data;
+      const userData = await axios.post(authUrl, request);
+      if (!userData.data) {
+        return;
+      }
+      this.userToken = userData.data.token;
+      const webSocketURL =
+        'ws://' + this.backendUrl.split('http://')?.[1] + '/api/v1/websocket';
+      this.webSocket = new WebSocket(webSocketURL);
 
-          const BYTES = {
-            // LINEFEED byte (octet 10)
-            LF: "\x0A",
-            // NULL byte (octet 0)
-            NULL: "\x00"
+      // Use code provided by Robert Peine on verdatas-backend README
+      this.webSocket.onopen = (event) => {
+        this.webSocket.send(
+          'CONNECT\ntoken:' +
+            this.userToken +
+            '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0'
+        );
+        // there is only one destination that needs to be subscribed: /user/queue/chat
+        this.webSocket.send(
+          'SUBSCRIBE\nid:sub-0\ndestination:/user/queue/chat\n\n\0'
+        );
+      };
+
+      this.webSocket.onmessage = (event) => {
+        console.log('incoming message event', event);
+        // extract content between \n\n and \0
+        const message = event.data.substring(
+          event.data.indexOf('\n\n') + 2,
+          event.data.lastIndexOf('\0')
+        );
+        // verdatas-backend sends JSON data in body of STOMP messages that can be deserialized
+        if (!message) {
+          console.log('skip connect message');
+        } else if (message === BYTES.LF) {
+          console.log('ping message received');
+          this.webSocket.send(BYTES.LF);
+        } else {
+          const messageToPush = {
+            incoming: true,
+            message: JSON.parse(message).msg,
+            timestamp: parseInt(event.timeStamp)
           };
+          this.messageHistory.push(messageToPush);
+          console.log('other message', messageToPush);
+        }
+      };
 
-          console.log("message received", message);
-
-          // Ping message incoming
-          if (message === BYTES.LF || message === "\n") {
-            console.log("ping received");
-            this.webSocket.send(BYTES.LF);
-            return;
-          }
-          console.log("other message");
-        });
-      });
+      setTimeout(() => {
+        this.generateMessageFromBackend(true);
+      }, 1000);
     },
     closeChatbotDialog() {
-      this.$emit("closeChatbotDialog");
+      this.$emit('closeChatbotDialog');
     },
     sendMessage() {
+      const messageToSend = {
+        incoming: false,
+        message: this.messageToSend,
+        timestamp: Math.round(Date.now() / 1000)
+      };
+      this.messageHistory.push(messageToSend);
+      setTimeout(() => {
+        this.messageToSend = '';
+        setTimeout(() => {
+          this.generateMessageFromBackend(false);
+        }, 500);
+      }, 50);
+    },
+    generateMessageFromBackend(initialMessage) {
+      const optionsToChoose = ['Stein', 'Schere', 'Papier'];
+      const messageToSend = initialMessage
+        ? 'Hallo, mein Name ist Veri. Ich werde deinen Lernprozess unterstützen! Du kannst aber auch Stein, Schere, Papier mit mir spielen.'
+        : optionsToChoose[Math.floor(Math.random() * optionsToChoose.length)];
       const authHeader = {
-        "Content-Type": "application/json;charset=UTF-8",
-        Authorization: "Bearer " + this.adminToken
+        'Content-Type': 'application/json;charset=UTF-8',
+        Authorization: 'Bearer ' + this.adminToken
       };
       const authUrl =
-        "http://localhost:8080/api/v1/users/" +
+        'http://localhost:8080/api/v1/users/' +
         this.userIdOrActorAccountName +
-        "/chatbot-messages";
+        '/chatbot-messages';
       const request = {
-        type: "informational_feedback",
-        message: "Test 1234!"
+        type: 'informational_feedback',
+        message: messageToSend
       };
-      axios
-        .post(authUrl, request, { headers: authHeader })
-        .then((adminData) => {
-          this.adminToken = adminData.data.token;
-        });
+      axios.post(authUrl, request, { headers: authHeader }).then((data) => {
+        console.log(data);
+      });
     },
     fadeIn() {
       document
-        .getElementById("chatbotDialog")
-        .classList.add("animate__fadeInRight");
+        .getElementById('chatbotDialog')
+        .classList.add('animate__fadeInRight');
     },
     fadeOut() {
       document
-        .getElementById("chatbotDialog")
-        .classList.add("animate__fadeOutRight");
+        .getElementById('chatbotDialog')
+        .classList.add('animate__fadeOutRight');
     }
   }
 };
@@ -106,43 +146,22 @@ export default {
       <span class="closeBtn" @click="closeChatbotDialog()">&times;</span>
     </div>
     <div class="dialogContainer">
-      <div class="message messageIncoming">
-        <ChatbotIcon :pluginPath="pluginPath" />
-        <span>Test</span>
-      </div>
-      <div class="message messageOutgoing">
-        <span>Test2</span>
-      </div>
-      <div class="message messageIncoming">
-        <ChatbotIcon :pluginPath="pluginPath" />
-        <span>Test3</span>
-      </div>
-      <div class="message messageIncoming">
-        <ChatbotIcon :pluginPath="pluginPath" />
-        <span>Test</span>
-      </div>
-      <div class="message messageOutgoing">
-        <span>Test2</span>
-      </div>
-      <div class="message messageIncoming">
-        <ChatbotIcon :pluginPath="pluginPath" />
-        <span>Test3</span>
-      </div>
-      <div class="message messageIncoming">
-        <ChatbotIcon :pluginPath="pluginPath" />
-        <span>Test</span>
-      </div>
-      <div class="message messageOutgoing">
-        <span>Test2</span>
-      </div>
-      <div class="message messageIncoming">
-        <ChatbotIcon :pluginPath="pluginPath" />
-        <span>Test3</span>
-      </div>
+      <template v-for="message in messageHistory">
+        <div class="message messageIncoming" v-if="message.incoming">
+          <ChatbotIcon :pluginPath="pluginPath" />
+          <span>{{ message.message }}</span>
+        </div>
+        <div class="message messageOutgoing" v-else>
+          <span>{{ message.message }}</span>
+        </div>
+      </template>
     </div>
     <div class="dialogInput">
       <div class="inputContainer">
-        <textarea placeholder="Sag etwas zu VERI."></textarea>
+        <textarea
+          v-model="messageToSend"
+          placeholder="Sag etwas zu VERI."
+        ></textarea>
         <button class="sendBtn" @click="sendMessage()">Senden</button>
       </div>
     </div>

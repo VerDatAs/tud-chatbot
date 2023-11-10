@@ -6,13 +6,13 @@ export default {
   methods: {
     fadeIn() {
       document
-        .getElementById("chatbotWidget")
-        .classList.add("animate__fadeInRight");
+        .getElementById('chatbotWidget')
+        .classList.add('animate__fadeInRight');
     },
     fadeOut() {
       document
-        .getElementById("chatbotWidget")
-        .classList.add("animate__fadeOutRight");
+        .getElementById('chatbotWidget')
+        .classList.add('animate__fadeOutRight');
     }
   }
 };
