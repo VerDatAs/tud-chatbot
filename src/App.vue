@@ -156,37 +156,37 @@ export default {
       };
       const authUrl = 'http://localhost:8080/api/v1/assistance/sendAssistanceTest';
       const request = {
-        "assistance": [
+        assistance: [
           {
-            "aId": "2EA95788-7ABA-4DDD-B3BA-E7EB574685BD",
-            "userId": this.userIdOrActorAccountName,
-            "typeKey": "offer_help_options",
-            "timestamp": "2023-06-27T10:12:53.000000+02:00",
-            "assistanceState": "initiated",
-            "assistanceObjects": [
+            aId: '2EA95788-7ABA-4DDD-B3BA-E7EB574685BD',
+            userId: this.userIdOrActorAccountName,
+            typeKey: 'offer_help_options',
+            timestamp: '2023-06-27T10:12:53.000000+02:00',
+            assistanceState: 'initiated',
+            assistanceObjects: [
               {
-                "userId": this.userIdOrActorAccountName,
-                "aoId": "BC2340BA-1623-41F8-9C0D-B4373956E6EC",
-                "timestamp": "2023-06-27T10:12:53.000000+02:00",
-                "parameters": [
+                userId: this.userIdOrActorAccountName,
+                aoId: 'BC2340BA-1623-41F8-9C0D-B4373956E6EC',
+                timestamp: '2023-06-27T10:12:53.000000+02:00',
+                parameters: [
                   {
-                    "key": "message",
-                    "value": messageToSend
+                    key: 'message',
+                    value: messageToSend
                   },
                   {
-                    "key": "options",
-                    "value": [
+                    key: 'options',
+                    value: [
                       {
-                        "key": "example_solution",
-                        "value": "Lösungsbeispiel anzeigen"
+                        key: 'example_solution',
+                        value: 'Lösungsbeispiel anzeigen'
                       },
                       {
-                        "key": "group_formation",
-                        "value": "Gruppe bilden"
+                        key: 'group_formation',
+                        value: 'Gruppe bilden'
                       },
                       {
-                        "key": "cancel",
-                        "value": "Hilfe ablehnen"
+                        key: 'cancel',
+                        value: 'Hilfe ablehnen'
                       }
                     ]
                   }

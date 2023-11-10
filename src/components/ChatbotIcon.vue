@@ -21,6 +21,9 @@ export default {
   position: absolute;
   padding: 5px;
   border-radius: 25px;
+  // define fixed height and width for local development
+  height: 35px;
+  width: 35px;
   background: #ccc;
 
   &.headerIcon {

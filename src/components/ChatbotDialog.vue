@@ -33,7 +33,10 @@ export default {
           this.hasScrolled = true;
         }
         // reset hasScrolled, if the user manually scrolls to the bottom
-        if (this.hasScrolled && dialogContainer.scrollTop === (dialogContainer.scrollHeight - dialogContainer.offsetHeight)) {
+        if (
+          this.hasScrolled &&
+          dialogContainer.scrollTop === dialogContainer.scrollHeight - dialogContainer.offsetHeight
+        ) {
           this.hasScrolled = false;
           this.messageUpdate = false;
         }
@@ -44,8 +47,8 @@ export default {
     },
     isIncomingMessage(message) {
       const incomingParameters = ['message'];
-      const parameterKeyArray = message?.parameters?.map((param) => param.key) || []
-      return parameterKeyArray.some(item => incomingParameters.includes(item))
+      const parameterKeyArray = message?.parameters?.map((param) => param.key) || [];
+      return parameterKeyArray.some((item) => incomingParameters.includes(item));
     },
     sendMessage(event) {
       if (event) {
@@ -57,9 +60,14 @@ export default {
         return;
       }
       const messageToSend = {
-        incoming: false,
-        message: this.messageToSend,
-        timestamp: Math.round(Date.now() / 1000)
+        aId: '2EA95788-7ABA-4DDD-B3BA-E7EB344685BD',
+        aoId: 'BC2340BA-1623-41F8-9BVD-B4373956E6EC',
+        parameters: [
+          {
+            key: 'message_response',
+            value: this.messageToSend
+          }
+        ]
       };
       // TODO: Send message via WebSocket (input as Prop)
       this.$emit('updateMessageHistory', messageToSend);
@@ -116,13 +124,13 @@ export default {
           <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="isIncomingMessage(message)">
             <ChatbotIcon :botImagePath="botImagePath" />
             <span>
-            {{ message.parameters.find((param) => param.key === 'message').value }}
-          </span>
+              {{ message.parameters.find((param) => param.key === 'message').value }}
+            </span>
           </div>
           <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
-          <span>
-            {{ message.message }}
-          </span>
+            <span>
+              {{ message.parameters.find((param) => param.key === 'message_response').value }}
+            </span>
           </div>
         </template>
       </div>
@@ -130,7 +138,12 @@ export default {
     <div id="dialogInput">
       <div class="inputContainer">
         <form @submit="sendMessage($event)">
-          <textarea id="messageInput" v-model="messageToSend" placeholder="Sag etwas zu VERI." @keyup.enter.exact="sendMessage(null)"></textarea>
+          <textarea
+            id="messageInput"
+            v-model="messageToSend"
+            placeholder="Sag etwas zu VERI."
+            @keyup.enter.exact="sendMessage(null)"
+          ></textarea>
           <button type="submit" class="sendBtn">Senden</button>
         </form>
       </div>
@@ -198,6 +211,7 @@ export default {
       width: 100%;
       text-align: center;
       background: #eee;
+      border-bottom: 1px solid #ddd;
       text-decoration: underline;
       cursor: pointer;
     }
