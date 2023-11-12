@@ -2,6 +2,7 @@
 import ChatbotDialog from './components/ChatbotDialog.vue';
 import ChatbotWidget from './components/ChatbotWidget.vue';
 import { Message } from './components/types/message';
+import { useDisplayStore } from './stores/display';
 import { useMessageHistoryStore } from './stores/messageHistory';
 import axios from 'axios';
 
@@ -16,7 +17,6 @@ const BYTES = {
 
 export default {
   data: () => ({
-    chatbotDialogVisible: false as boolean,
     backendUrl: 'http://localhost:8080' as string,
     pluginPath: '' as string,
     // WebSocket connection and message sending
@@ -25,8 +25,9 @@ export default {
     userToken: '' as string,
     // TODO: Fix type
     webSocket: null as any,
+    displayStore: useDisplayStore(),
     messageToSend: '' as string,
-    messageHistory: useMessageHistoryStore(),
+    messageHistoryStore: useMessageHistoryStore(),
     pongInterval: 0 as number
   }),
   components: {
@@ -65,7 +66,7 @@ export default {
       });
       await this.getAdminToken();
       await this.initWebSocketConnection();
-      if (this.messageHistory.items.length === 0) {
+      if (this.messageHistoryStore.items.length === 0) {
         this.greetUserMessage(true);
       } else {
         this.greetUserMessage(false);
@@ -111,7 +112,7 @@ export default {
         // Other, "real" messages
         else {
           const messageToPush: Message = JSON.parse(message);
-          this.messageHistory.addItem(messageToPush);
+          this.messageHistoryStore.addItem(messageToPush);
           this.updateDialogScroll();
           // console.log('other message', messageToPush);
         }
@@ -212,14 +213,14 @@ export default {
       });
     },
     updateMessageHistory(messageSent: Message) {
-      this.messageHistory.addItem(messageSent);
+      this.messageHistoryStore.addItem(messageSent);
       this.updateDialogScroll();
     },
     updateChatbotDialogVisible(dialogVisible: boolean) {
       if (dialogVisible) {
         (this.$refs.chatbotWidget as typeof ChatbotWidget).fadeOut();
         setTimeout(() => {
-          this.chatbotDialogVisible = dialogVisible;
+          this.displayStore.dialogOpen = dialogVisible;
           // The ref must exist before it is addressed
           setTimeout(() => {
             (this.$refs.chatbotDialog as typeof ChatbotDialog).fadeIn();
@@ -228,7 +229,7 @@ export default {
       } else {
         (this.$refs.chatbotDialog as typeof ChatbotDialog).fadeOut();
         setTimeout(() => {
-          this.chatbotDialogVisible = dialogVisible;
+          this.displayStore.dialogOpen = dialogVisible;
           // The ref must exist before it is addressed
           setTimeout(() => {
             (this.$refs.chatbotWidget as typeof ChatbotWidget).fadeIn();
@@ -245,15 +246,15 @@ export default {
     <ChatbotWidget
       ref="chatbotWidget"
       :botImagePath="botImagePath"
-      @click="updateChatbotDialogVisible(!chatbotDialogVisible)"
-      v-if="!chatbotDialogVisible"
+      @click="updateChatbotDialogVisible(!displayStore.dialogOpen)"
+      v-if="!displayStore.dialogOpen"
     />
     <ChatbotDialog
       ref="chatbotDialog"
-      :messageHistory="messageHistory.items"
+      :messageHistory="messageHistoryStore.items"
       :botImagePath="botImagePath"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
-      @resetMessageHistory="messageHistory.clearItems()"
+      @resetMessageHistory="messageHistoryStore.clearItems()"
       @updateMessageHistory="updateMessageHistory"
       v-else
     />
