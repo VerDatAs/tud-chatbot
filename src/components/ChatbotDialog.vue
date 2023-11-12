@@ -58,6 +58,12 @@ export default {
       if (event) {
         event.preventDefault();
       }
+      // TODO: This does not work with ENTER, if the second condition is not set
+      if (this.messageToSend === 'RESET' || this.messageToSend === 'RESET\n') {
+        this.$emit('resetMessageHistory');
+        this.messageToSend = '';
+        return;
+      }
       // check message with removed linebreaks and trimmed whitespaces to be empty
       if (this.messageToSend.replace(/(\r\n|\n|\r)/gm, '').trimEnd() === '') {
         this.messageToSend = '';

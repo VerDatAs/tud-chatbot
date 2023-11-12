@@ -1,8 +1,9 @@
 <script lang="ts">
 import ChatbotDialog from './components/ChatbotDialog.vue';
 import ChatbotWidget from './components/ChatbotWidget.vue';
-import axios from 'axios';
 import { Message } from './components/types/message';
+import { useMessageHistoryStore } from './stores/messageHistory';
+import axios from 'axios';
 
 // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
 // Define constants for bytes used throughout the code.
@@ -25,7 +26,7 @@ export default {
     // TODO: Fix type
     webSocket: null as any,
     messageToSend: '' as string,
-    messageHistory: [] as Message[],
+    messageHistory: useMessageHistoryStore(),
     pongInterval: 0 as number
   }),
   components: {
@@ -64,7 +65,11 @@ export default {
       });
       await this.getAdminToken();
       await this.initWebSocketConnection();
-      this.showInitialBotMessage();
+      if (this.messageHistory.items.length === 0) {
+        this.greetUserMessage(true);
+      } else {
+        this.greetUserMessage(false);
+      }
     },
     async initWebSocketConnection() {
       console.log('initWebSocketConnection');
@@ -106,7 +111,7 @@ export default {
         // Other, "real" messages
         else {
           const messageToPush: Message = JSON.parse(message);
-          this.messageHistory.push(messageToPush);
+          this.messageHistory.addItem(messageToPush);
           this.updateDialogScroll();
           // console.log('other message', messageToPush);
         }
@@ -127,14 +132,14 @@ export default {
       }, 3000);
     },
     /**
-     * Helper function to simulate the behavior of the Bot sending an initial introduc
+     * Helper function to simulate the behavior of the Bot sending a greeting message
      */
-    showInitialBotMessage() {
+    greetUserMessage(isInitialLogin: boolean) {
       setTimeout(() => {
         // TODO: Open dialog automatically, when hasJustLoggedIn
         this.updateChatbotDialogVisible(true);
         setTimeout(() => {
-          this.generateMessageFromBackend(true);
+          this.generateMessageFromBackend(isInitialLogin);
         }, 500);
       }, 500);
     },
@@ -153,10 +158,9 @@ export default {
       (this.$refs.chatbotDialog as typeof ChatbotDialog).updateScroll();
     },
     generateMessageFromBackend(initialMessage: boolean) {
-      const optionsToChoose = ['Stein', 'Schere', 'Papier'];
       const messageToSend = initialMessage
-        ? 'Hallo, mein Name ist Veri. Ich werde deinen Lernprozess unterstützen! Du kannst aber auch Stein, Schere, Papier mit mir spielen.'
-        : optionsToChoose[Math.floor(Math.random() * optionsToChoose.length)];
+        ? 'Hallo, mein Name ist Veri. Ich werde deinen Lernprozess unterstützen!'
+        : 'Willkommen zurück!'
       const authHeader = {
         'Content-Type': 'application/json;charset=UTF-8',
         Authorization: 'Bearer ' + this.adminToken
@@ -208,11 +212,8 @@ export default {
       });
     },
     updateMessageHistory(messageSent: Message) {
-      this.messageHistory.push(messageSent);
+      this.messageHistory.addItem(messageSent);
       this.updateDialogScroll();
-      setTimeout(() => {
-        this.generateMessageFromBackend(false);
-      }, 500);
     },
     updateChatbotDialogVisible(dialogVisible: boolean) {
       if (dialogVisible) {
@@ -249,9 +250,10 @@ export default {
     />
     <ChatbotDialog
       ref="chatbotDialog"
-      :messageHistory="messageHistory"
+      :messageHistory="messageHistory.items"
       :botImagePath="botImagePath"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
+      @resetMessageHistory="messageHistory.clearItems()"
       @updateMessageHistory="updateMessageHistory"
       v-else
     />
