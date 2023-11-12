@@ -1,15 +1,16 @@
-<script>
+<script lang="ts">
 import ChatbotIcon from './ChatbotIcon.vue';
+import { Message } from './types/message';
 
 export default {
   data: () => ({
-    messageToSend: '',
+    messageToSend: '' as string,
     messageUpdate: false,
     hasScrolled: false,
     wasScrolledAutomatically: false
   }),
   props: {
-    messageHistory: Array,
+    messageHistory: Array<Message>,
     botImagePath: String
   },
   components: {
@@ -26,6 +27,9 @@ export default {
   methods: {
     initChatbotDialog() {
       const dialogContainer = document.getElementById('dialogContainer');
+      if (!dialogContainer) {
+        return;
+      }
       dialogContainer.onscroll = () => {
         console.log('hasScrolled');
         // avoid setting hasScrolled for situations, in which the dialog was scrolled automatically
@@ -45,12 +49,12 @@ export default {
     closeChatbotDialog() {
       this.$emit('closeChatbotDialog');
     },
-    isIncomingMessage(message) {
+    isIncomingMessage(message: Message) {
       const incomingParameters = ['message'];
       const parameterKeyArray = message?.parameters?.map((param) => param.key) || [];
       return parameterKeyArray.some((item) => incomingParameters.includes(item));
     },
-    sendMessage(event) {
+    sendMessage(event: Event | null) {
       if (event) {
         event.preventDefault();
       }
@@ -59,7 +63,7 @@ export default {
         this.messageToSend = '';
         return;
       }
-      const messageToSend = {
+      const messageToSend: Message = {
         aId: '2EA95788-7ABA-4DDD-B3BA-E7EB344685BD',
         aoId: 'BC2340BA-1623-41F8-9BVD-B4373956E6EC',
         parameters: [
@@ -76,17 +80,22 @@ export default {
         this.messageToSend = '';
       }, 50);
     },
+    parameterValue(message: Message, key: string) {
+      return message.parameters?.find((param) => param.key === key)?.value;
+    },
     // Retrieved from https://stackoverflow.com/a/18614545
     updateScroll() {
       console.log('updateScroll');
       if (!this.hasScrolled) {
         setTimeout(() => {
           const element = document.getElementById('dialogContainer');
-          element.scrollTop = element.scrollHeight;
-          this.wasScrolledAutomatically = true;
-          setTimeout(() => {
-            this.wasScrolledAutomatically = false;
-          }, 250);
+          if (element) {
+            element.scrollTop = element.scrollHeight;
+            this.wasScrolledAutomatically = true;
+            setTimeout(() => {
+              this.wasScrolledAutomatically = false;
+            }, 250);
+          }
         }, 100);
       } else {
         this.messageUpdate = true;
@@ -98,10 +107,10 @@ export default {
       this.updateScroll();
     },
     fadeIn() {
-      document.getElementById('chatbotDialog').classList.add('animate__fadeInRight');
+      document.getElementById('chatbotDialog')?.classList.add('animate__fadeInRight');
     },
     fadeOut() {
-      document.getElementById('chatbotDialog').classList.add('animate__fadeOutRight');
+      document.getElementById('chatbotDialog')?.classList.add('animate__fadeOutRight');
     }
   }
 };
@@ -120,19 +129,19 @@ export default {
         New messages available!
       </div>
       <div id="messageHistory" :style="hasScrolledButReceivedNewMessages ? 'margin-top: 50px;' : ''">
-        <template v-for="message in messageHistory">
+        <div v-for="(message, messageIndex) in messageHistory" :key="'message' + messageIndex">
           <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="isIncomingMessage(message)">
             <ChatbotIcon :botImagePath="botImagePath" />
             <span>
-              {{ message.parameters.find((param) => param.key === 'message').value }}
+              {{ parameterValue(message, 'message') }}
             </span>
           </div>
           <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
             <span>
-              {{ message.parameters.find((param) => param.key === 'message_response').value }}
+              {{ parameterValue(message, 'message_response') }}
             </span>
           </div>
-        </template>
+        </div>
       </div>
     </div>
     <div id="dialogInput">

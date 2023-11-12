@@ -1,14 +1,14 @@
-<script>
+<script lang="ts">
 export default {
   props: {
     botImagePath: String
   },
   methods: {
     fadeIn() {
-      document.getElementById('chatbotWidget').classList.add('animate__fadeInRight');
+      document.getElementById('chatbotWidget')?.classList.add('animate__fadeInRight');
     },
     fadeOut() {
-      document.getElementById('chatbotWidget').classList.add('animate__fadeOutRight');
+      document.getElementById('chatbotWidget')?.classList.add('animate__fadeOutRight');
     }
   }
 };
@@ -16,7 +16,7 @@ export default {
 
 <template>
   <div id="chatbotWidget" class="animate__animated">
-    <img :src="this.botImagePath" width="35" height="35" alt="Chatbot Icon" />
+    <img :src="botImagePath" width="35" height="35" alt="Chatbot Icon" />
   </div>
 </template>
 

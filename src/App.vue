@@ -1,7 +1,8 @@
-<script>
+<script lang="ts">
 import ChatbotDialog from './components/ChatbotDialog.vue';
 import ChatbotWidget from './components/ChatbotWidget.vue';
 import axios from 'axios';
+import { Message } from './components/types/message';
 
 // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
 // Define constants for bytes used throughout the code.
@@ -14,17 +15,18 @@ const BYTES = {
 
 export default {
   data: () => ({
-    chatbotDialogVisible: false,
-    backendUrl: 'http://localhost:8080',
-    pluginPath: '',
+    chatbotDialogVisible: false as boolean,
+    backendUrl: 'http://localhost:8080' as string,
+    pluginPath: '' as string,
     // WebSocket connection and message sending
-    adminToken: '',
-    userIdOrActorAccountName: 'ca1910',
-    userToken: '',
-    webSocket: null,
-    messageToSend: '',
-    messageHistory: [],
-    pongInterval: null
+    adminToken: '' as string,
+    userIdOrActorAccountName: 'ca1910' as string,
+    userToken: '' as string,
+    // TODO: Fix type
+    webSocket: null as any,
+    messageToSend: '' as string,
+    messageHistory: [] as Message[],
+    pongInterval: 0 as number
   }),
   components: {
     ChatbotDialog,
@@ -47,15 +49,15 @@ export default {
       this.pluginPath = this.isRunLocally
         ? ''
         : './Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/VerDatAsBot';
-      document.addEventListener('init-path', (event) => {
+      document.addEventListener('init-path', (event: any) => {
         // https://github.com/vaadin/vaadin-upload/issues/138#issuecomment-266773430
         console.log('init-path', event);
         this.pluginPath = event.detail;
       });
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-          console.log('tab gets visible again', this.webSocket.readyState);
-          if (this.webSocket.readyState !== 1) {
+          console.log('tab gets visible again', this.webSocket?.readyState);
+          if (this.webSocket?.readyState !== 1) {
             this.initWebSocketConnection();
           }
         }
@@ -76,16 +78,17 @@ export default {
       }
       this.userToken = userData.data.token;
       const webSocketURL = 'ws://' + this.backendUrl.split('http://')?.[1] + '/api/v1/websocket';
+      // TODO: "Vue: This expression is not constructable."
       this.webSocket = new WebSocket(webSocketURL);
 
       // Use code provided by Robert Peine from verdatas-backend README
-      this.webSocket.onopen = (event) => {
+      this.webSocket.onopen = () => {
         this.webSocket.send('CONNECT\ntoken:' + this.userToken + '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0');
         // there is only one destination that needs to be subscribed: /user/queue/chat
         this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:/user/queue/chat\n\n\0');
       };
 
-      this.webSocket.onmessage = (event) => {
+      this.webSocket.onmessage = (event: any) => {
         // console.log('incoming message event', event);
         // extract content between \n\n and \0
         const message = event.data.substring(event.data.indexOf('\n\n') + 2, event.data.lastIndexOf('\0'));
@@ -102,20 +105,23 @@ export default {
         }
         // Other, "real" messages
         else {
-          this.messageHistory.push(JSON.parse(message));
+          const messageToPush: Message = JSON.parse(message);
+          this.messageHistory.push(messageToPush);
           this.updateDialogScroll();
           // console.log('other message', messageToPush);
         }
       };
 
-      this.webSocket.onclose = (event) => {
+      this.webSocket.onclose = () => {
         console.log('WebSocket closed. Clear pong interval.', this.pongInterval);
-        clearInterval(this.pongInterval);
+        window.clearInterval(this.pongInterval);
+        // reset value, as it is not done automatically: https://stackoverflow.com/a/5978560/3623608
+        this.pongInterval = 0;
       };
     },
     initializePongMessageInterval() {
       // Send pong every 3 seconds, as it is done in the stomp-websocket library
-      this.pongInterval = setInterval(() => {
+      this.pongInterval = window.setInterval(() => {
         this.webSocket.send(BYTES.LF);
         console.log('Pong message sent.');
       }, 3000);
@@ -143,9 +149,10 @@ export default {
       });
     },
     updateDialogScroll() {
-      this.$refs.chatbotDialog.updateScroll();
+      // https://stackoverflow.com/a/76297364/3623608
+      (this.$refs.chatbotDialog as typeof ChatbotDialog).updateScroll();
     },
-    generateMessageFromBackend(initialMessage) {
+    generateMessageFromBackend(initialMessage: boolean) {
       const optionsToChoose = ['Stein', 'Schere', 'Papier'];
       const messageToSend = initialMessage
         ? 'Hallo, mein Name ist Veri. Ich werde deinen Lernprozess unterstützen! Du kannst aber auch Stein, Schere, Papier mit mir spielen.'
@@ -200,30 +207,30 @@ export default {
         console.log(data);
       });
     },
-    updateMessageHistory(messageSent) {
+    updateMessageHistory(messageSent: Message) {
       this.messageHistory.push(messageSent);
       this.updateDialogScroll();
       setTimeout(() => {
         this.generateMessageFromBackend(false);
       }, 500);
     },
-    updateChatbotDialogVisible(dialogVisible) {
+    updateChatbotDialogVisible(dialogVisible: boolean) {
       if (dialogVisible) {
-        this.$refs.chatbotWidget.fadeOut();
+        (this.$refs.chatbotWidget as typeof ChatbotWidget).fadeOut();
         setTimeout(() => {
           this.chatbotDialogVisible = dialogVisible;
           // The ref must exist before it is addressed
           setTimeout(() => {
-            this.$refs.chatbotDialog.fadeIn();
+            (this.$refs.chatbotDialog as typeof ChatbotDialog).fadeIn();
           }, 1);
         }, 300);
       } else {
-        this.$refs.chatbotDialog.fadeOut();
+        (this.$refs.chatbotDialog as typeof ChatbotDialog).fadeOut();
         setTimeout(() => {
           this.chatbotDialogVisible = dialogVisible;
           // The ref must exist before it is addressed
           setTimeout(() => {
-            this.$refs.chatbotWidget.fadeIn();
+            (this.$refs.chatbotWidget as typeof ChatbotWidget).fadeIn();
           }, 1);
         }, 300);
       }

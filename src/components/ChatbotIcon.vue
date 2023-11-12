@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 export default {
   props: {
     botImagePath: String,
@@ -12,7 +12,7 @@ export default {
 
 <template>
   <div class="chatbotIcon" :class="headerIcon ? 'headerIcon' : 'dialogIcon'">
-    <img :src="this.botImagePath" width="25" height="25" alt="Chatbot Icon" />
+    <img :src="botImagePath" width="25" height="25" alt="Chatbot Icon" />
   </div>
 </template>
 
