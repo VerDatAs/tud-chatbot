@@ -1,19 +1,23 @@
 <script lang="ts">
 import ChatbotIcon from './ChatbotIcon.vue';
 import { Message } from './types/message';
+import ChatbotTextMessage from '@/components/ChatbotTextMessage.vue';
 
 export default {
   data: () => ({
     messageToSend: '' as string,
-    messageUpdate: false,
-    hasScrolled: false,
-    wasScrolledAutomatically: false
+    messageUpdate: false as boolean,
+    hasScrolled: false as boolean,
+    wasScrolledAutomatically: false as boolean,
+    incomingMessageTypes: ['message'],
+    outgoingMessageTypes: ['message_response']
   }),
   props: {
     messageHistory: Array<Message>,
     botImagePath: String
   },
   components: {
+    ChatbotTextMessage,
     ChatbotIcon
   },
   computed: {
@@ -50,9 +54,12 @@ export default {
       this.$emit('closeChatbotDialog');
     },
     isIncomingMessage(message: Message) {
-      const incomingParameters = ['message'];
       const parameterKeyArray = message?.parameters?.map((param) => param.key) || [];
-      return parameterKeyArray.some((item) => incomingParameters.includes(item));
+      return parameterKeyArray.some((item) => this.incomingMessageTypes.includes(item));
+    },
+    parametersIncludeKey(message: Message, key: string) {
+      const parameterKeyArray = message?.parameters?.map((param) => param.key) || [];
+      return parameterKeyArray.includes(key);
     },
     sendMessage(event: Event | null) {
       if (event) {
@@ -87,7 +94,8 @@ export default {
       }, 50);
     },
     parameterValue(message: Message, key: string) {
-      return message.parameters?.find((param) => param.key === key)?.value;
+      // Difference between ?? and || -> https://stackoverflow.com/questions/66883181/difference-between-and-operators
+      return message.parameters?.find((param) => param.key === key)?.value ?? '';
     },
     // Retrieved from https://stackoverflow.com/a/18614545
     updateScroll() {
@@ -137,15 +145,20 @@ export default {
       <div id="messageHistory" :style="hasScrolledButReceivedNewMessages ? 'margin-top: 50px;' : ''">
         <div v-for="(message, messageIndex) in messageHistory" :key="'message' + messageIndex">
           <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="isIncomingMessage(message)">
-            <ChatbotIcon :botImagePath="botImagePath" />
-            <span>
-              {{ parameterValue(message, 'message') }}
-            </span>
+            <ChatbotTextMessage
+              :bot-image-path="botImagePath"
+              :incoming="true"
+              :message="parameterValue(message, 'message')"
+              v-if="parametersIncludeKey(message, 'message')"
+            />
+            <div v-else>-- none supported key --</div>
           </div>
           <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
-            <span>
-              {{ parameterValue(message, 'message_response') }}
-            </span>
+            <ChatbotTextMessage
+              :message="parameterValue(message, 'message_response')"
+              v-if="parametersIncludeKey(message, 'message_response')"
+            />
+            <div v-else>-- none supported key --</div>
           </div>
         </div>
       </div>
@@ -166,7 +179,7 @@ export default {
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style lang="scss">
 #chatbotDialog {
   position: relative;
   width: 360px;

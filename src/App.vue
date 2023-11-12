@@ -161,7 +161,7 @@ export default {
     generateMessageFromBackend(initialMessage: boolean) {
       const messageToSend = initialMessage
         ? 'Hallo, mein Name ist Veri. Ich werde deinen Lernprozess unterstützen!'
-        : 'Willkommen zurück!'
+        : 'Willkommen zurück!';
       const authHeader = {
         'Content-Type': 'application/json;charset=UTF-8',
         Authorization: 'Bearer ' + this.adminToken
@@ -218,7 +218,7 @@ export default {
     },
     updateChatbotDialogVisible(dialogVisible: boolean) {
       if (dialogVisible) {
-        (this.$refs.chatbotWidget as typeof ChatbotWidget).fadeOut();
+        (this.$refs.chatbotWidget as typeof ChatbotWidget)?.fadeOut();
         setTimeout(() => {
           this.displayStore.dialogOpen = dialogVisible;
           // The ref must exist before it is addressed
@@ -227,7 +227,7 @@ export default {
           }, 1);
         }, 300);
       } else {
-        (this.$refs.chatbotDialog as typeof ChatbotDialog).fadeOut();
+        (this.$refs.chatbotDialog as typeof ChatbotDialog)?.fadeOut();
         setTimeout(() => {
           this.displayStore.dialogOpen = dialogVisible;
           // The ref must exist before it is addressed
