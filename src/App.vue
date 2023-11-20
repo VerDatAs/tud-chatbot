@@ -1,7 +1,7 @@
 <script lang="ts">
 import ChatbotDialog from './components/ChatbotDialog.vue';
 import ChatbotWidget from './components/ChatbotWidget.vue';
-import { Message } from './components/types/message';
+import { AssistanceObjectCommunication } from './components/types/assistance-object-communication';
 import { useDisplayStore } from './stores/display';
 import { useMessageHistoryStore } from './stores/messageHistory';
 import axios from 'axios';
@@ -111,7 +111,7 @@ export default {
         }
         // Other, "real" messages
         else {
-          const messageToPush: Message = JSON.parse(message);
+          const messageToPush: AssistanceObjectCommunication = JSON.parse(message);
           this.messageHistoryStore.addItem(messageToPush);
           this.updateDialogScroll();
           // console.log('other message', messageToPush);
@@ -212,7 +212,7 @@ export default {
         console.log(data);
       });
     },
-    updateMessageHistory(messageSent: Message) {
+    updateMessageHistory(messageSent: AssistanceObjectCommunication) {
       this.messageHistoryStore.addItem(messageSent);
       this.updateDialogScroll();
     },

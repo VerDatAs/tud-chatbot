@@ -1,17 +1,17 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
-import { Message } from '@/components/types/message';
+import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 
 export const useMessageHistoryStore = defineStore({
   id: 'messageHistory',
   state: () => ({
-    items: [] as Message[]
+    items: [] as AssistanceObjectCommunication[]
   }),
   actions: {
-    addItem(message: Message) {
+    addItem(message: AssistanceObjectCommunication) {
       this.items.push(message);
     },
     clearItems() {
-      console.log('hgo in');
+      console.log('clear message history');
       this.items = [];
     }
   },

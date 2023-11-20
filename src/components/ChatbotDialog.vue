@@ -1,6 +1,7 @@
 <script lang="ts">
 import ChatbotIcon from './ChatbotIcon.vue';
-import { Message } from './types/message';
+import { AssistanceObjectCommunication } from './types/assistance-object-communication';
+import { AssistanceParameter } from './types/assistance-parameter';
 import ChatbotTextMessage from '@/components/ChatbotTextMessage.vue';
 
 export default {
@@ -13,7 +14,7 @@ export default {
     outgoingMessageTypes: ['message_response']
   }),
   props: {
-    messageHistory: Array<Message>,
+    messageHistory: Array<AssistanceObjectCommunication>,
     botImagePath: String
   },
   components: {
@@ -53,11 +54,11 @@ export default {
     closeChatbotDialog() {
       this.$emit('closeChatbotDialog');
     },
-    isIncomingMessage(message: Message) {
+    isIncomingMessage(message: AssistanceObjectCommunication) {
       const parameterKeyArray = message?.parameters?.map((param) => param.key) || [];
       return parameterKeyArray.some((item) => this.incomingMessageTypes.includes(item));
     },
-    parametersIncludeKey(message: Message, key: string) {
+    parametersIncludeKey(message: AssistanceObjectCommunication, key: string) {
       const parameterKeyArray = message?.parameters?.map((param) => param.key) || [];
       return parameterKeyArray.includes(key);
     },
@@ -76,16 +77,7 @@ export default {
         this.messageToSend = '';
         return;
       }
-      const messageToSend: Message = {
-        aId: '2EA95788-7ABA-4DDD-B3BA-E7EB344685BD',
-        aoId: 'BC2340BA-1623-41F8-9BVD-B4373956E6EC',
-        parameters: [
-          {
-            key: 'message_response',
-            value: this.messageToSend
-          }
-        ]
-      };
+      const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication('2EA95788-7ABA-4DDD-B3BA-E7EB344685BD', 'BC2340BA-1623-41F8-9BVD-B4373956E6EC', [new AssistanceParameter('message_response', this.messageToSend)])
       // TODO: Send message via WebSocket (input as Prop)
       this.$emit('updateMessageHistory', messageToSend);
       // Reset message input
@@ -93,7 +85,7 @@ export default {
         this.messageToSend = '';
       }, 50);
     },
-    parameterValue(message: Message, key: string) {
+    parameterValue(message: AssistanceObjectCommunication, key: string) {
       // Difference between ?? and || -> https://stackoverflow.com/questions/66883181/difference-between-and-operators
       return message.parameters?.find((param) => param.key === key)?.value ?? '';
     },
