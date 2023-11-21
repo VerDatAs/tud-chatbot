@@ -17,6 +17,7 @@ const BYTES = {
 
 export default {
   data: () => ({
+    hasJustLoggedIn: false as boolean,
     backendUrl: 'http://localhost:8080' as string,
     pluginPath: '' as string,
     // WebSocket connection and message sending
@@ -51,79 +52,112 @@ export default {
       this.pluginPath = this.isRunLocally
         ? ''
         : './Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/VerDatAsBot';
-      document.addEventListener('init-path', (event: any) => {
+      document.addEventListener('init-bot', async (event: any) => {
         // https://github.com/vaadin/vaadin-upload/issues/138#issuecomment-266773430
-        console.log('init-path', event);
-        this.pluginPath = event.detail;
+        console.log('init-bot', event);
+        this.pluginPath = event.path;
+        this.backendUrl = event.backendUrl;
+        this.hasJustLoggedIn = event.hasJustLoggedIn;
+
+        if (!this.isRunLocally) {
+          await this.retrieveTokenAndHandleMessageExchange();
+        }
       });
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           console.log('tab gets visible again', this.webSocket?.readyState);
-          if (this.webSocket?.readyState !== 1) {
-            this.initWebSocketConnection();
-          }
+          this.handleWebSocketConnection(false);
         }
       });
-      await this.getAdminToken();
-      await this.initWebSocketConnection();
-      if (this.messageHistoryStore.items.length === 0) {
-        this.greetUserMessage(true);
-      } else {
-        this.greetUserMessage(false);
+
+      if (this.isRunLocally) {
+        await this.retrieveTokenAndHandleMessageExchange();
       }
     },
-    async initWebSocketConnection() {
-      console.log('initWebSocketConnection');
-      const authUrl = this.backendUrl + '/api/v1/auth/login';
-      const request = {
-        actorAccountName: 'ca1910'
-      };
-      const userData = await axios.post(authUrl, request);
-      if (!userData.data) {
-        return;
+    async retrieveTokenAndHandleMessageExchange() {
+      await this.getAdminToken();
+      await this.handleWebSocketConnection(true);
+      // if (this.messageHistoryStore.items.length === 0) {
+      //   this.greetUserMessage(true);
+      // } else {
+      //   this.greetUserMessage(false);
+      // }
+    },
+    async handleWebSocketConnection(switchedPage: boolean) {
+      console.log('handleWebSocketConnection');
+      if (this.webSocket?.readyState !== 1) {
+        const authUrl = this.backendUrl + '/api/v1/auth/login';
+        const request = {
+          actorAccountName: 'ca1910'
+        };
+        const userData = await axios.post(authUrl, request);
+        if (!userData.data) {
+          return;
+        }
+        this.userToken = userData.data.token;
+        const webSocketURL = 'ws://' + this.backendUrl.split('http://')?.[1] + '/api/v1/websocket';
+        // TODO: "Vue: This expression is not constructable."
+        this.webSocket = new WebSocket(webSocketURL);
+
+        // Use code provided by Robert Peine from verdatas-backend README
+        this.webSocket.onopen = () => {
+          this.webSocket.send('CONNECT\ntoken:' + this.userToken + '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0');
+          // there is only one destination that needs to be subscribed: /user/queue/chat
+          this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:/app/user/queue/chat\n\n\0');
+          // potentially send wake-up message
+          this.handleWakeUpMessageSending(switchedPage);
+        };
+
+        this.webSocket.onmessage = (event: any) => {
+          // console.log('incoming message event', event);
+          // extract content between \n\n and \0
+          const message = event.data.substring(event.data.indexOf('\n\n') + 2, event.data.lastIndexOf('\0'));
+          // verdatas-backend sends JSON data in body of STOMP messages that can be deserialized
+          // If no message ('') is received, it is the connect message
+          if (!message) {
+            console.log('Connected message. Initialize pong message interval.');
+            this.initializePongMessageInterval();
+          }
+              // If BYTES.LF is received, it is a ping message
+          // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/client.js#L74
+          else if (message === BYTES.LF) {
+            console.log('Ping message received.');
+          }
+          // Other, "real" messages
+          else {
+            const messageToPush: AssistanceObjectCommunication = JSON.parse(message);
+            this.messageHistoryStore.addItem(messageToPush);
+            this.updateDialogScroll();
+            // console.log('other message', messageToPush);
+          }
+        };
+
+        this.webSocket.onclose = () => {
+          console.log('WebSocket closed. Clear pong interval.', this.pongInterval);
+          window.clearInterval(this.pongInterval);
+          // reset value, as it is not done automatically: https://stackoverflow.com/a/5978560/3623608
+          this.pongInterval = 0;
+        };
+      } else {
+        // WebSocket connection is still established
+        // potentially send wake-up message
+        this.handleWakeUpMessageSending(switchedPage);
       }
-      this.userToken = userData.data.token;
-      const webSocketURL = 'ws://' + this.backendUrl.split('http://')?.[1] + '/api/v1/websocket';
-      // TODO: "Vue: This expression is not constructable."
-      this.webSocket = new WebSocket(webSocketURL);
-
-      // Use code provided by Robert Peine from verdatas-backend README
-      this.webSocket.onopen = () => {
-        this.webSocket.send('CONNECT\ntoken:' + this.userToken + '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0');
-        // there is only one destination that needs to be subscribed: /user/queue/chat
-        this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:/user/queue/chat\n\n\0');
-      };
-
-      this.webSocket.onmessage = (event: any) => {
-        // console.log('incoming message event', event);
-        // extract content between \n\n and \0
-        const message = event.data.substring(event.data.indexOf('\n\n') + 2, event.data.lastIndexOf('\0'));
-        // verdatas-backend sends JSON data in body of STOMP messages that can be deserialized
-        // If no message ('') is received, it is the connect message
-        if (!message) {
-          console.log('Connected message. Initialize pong message interval.');
-          this.initializePongMessageInterval();
+    },
+    // When switching the page, send information about having just logged in or not
+    handleWakeUpMessageSending(switchedPage: boolean) {
+      if (switchedPage) {
+        const message = {
+          parameters: [
+            {
+              key: "just_logged_in",
+              value: this.hasJustLoggedIn
+            }
+          ]
         }
-        // If BYTES.LF is received, it is a ping message
-        // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/client.js#L74
-        else if (message === BYTES.LF) {
-          console.log('Ping message received.');
-        }
-        // Other, "real" messages
-        else {
-          const messageToPush: AssistanceObjectCommunication = JSON.parse(message);
-          this.messageHistoryStore.addItem(messageToPush);
-          this.updateDialogScroll();
-          // console.log('other message', messageToPush);
-        }
-      };
-
-      this.webSocket.onclose = () => {
-        console.log('WebSocket closed. Clear pong interval.', this.pongInterval);
-        window.clearInterval(this.pongInterval);
-        // reset value, as it is not done automatically: https://stackoverflow.com/a/5978560/3623608
-        this.pongInterval = 0;
-      };
+        const messageAsJson = JSON.stringify(message);
+        this.webSocket.send('MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' + messageAsJson.length + '\n\n' + messageAsJson + '\0');
+      }
     },
     initializePongMessageInterval() {
       // Send pong every 3 seconds, as it is done in the stomp-websocket library
