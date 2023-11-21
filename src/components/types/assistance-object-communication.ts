@@ -1,13 +1,12 @@
 import { AssistanceParameter } from './assistance-parameter';
 
 export class AssistanceObjectCommunication {
-  aId: string;
-  aoId: string;
+  aId?: string;
+  aoId?: string;
+  messageId?: string;
   parameters: AssistanceParameter[];
 
-  constructor(aId: string, aoId: string, parameters: AssistanceParameter[]) {
-    this.aId = aId;
-    this.aoId = aoId;
+  constructor(parameters: AssistanceParameter[]) {
     this.parameters = parameters;
   }
 }

@@ -1,8 +1,8 @@
 export class AssistanceParameter {
   'key': string;
-  'value': string;
+  'value': any;
 
-  constructor(key: string, value: string) {
+  constructor(key: string, value: any) {
     this.key = key;
     this.value = value;
   }

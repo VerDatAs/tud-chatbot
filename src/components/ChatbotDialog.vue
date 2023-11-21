@@ -14,6 +14,7 @@ export default {
     outgoingMessageTypes: ['message_response']
   }),
   props: {
+    messageExchange: Array<AssistanceObjectCommunication>,
     messageHistory: Array<AssistanceObjectCommunication>,
     botImagePath: String
   },
@@ -77,7 +78,9 @@ export default {
         this.messageToSend = '';
         return;
       }
-      const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication('2EA95788-7ABA-4DDD-B3BA-E7EB344685BD', 'BC2340BA-1623-41F8-9BVD-B4373956E6EC', [new AssistanceParameter('message_response', this.messageToSend)])
+      const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication( [new AssistanceParameter('message_response', this.messageToSend)]);
+      messageToSend.aId = '2EA95788-7ABA-4DDD-B3BA-E7EB344685BD';
+      messageToSend.aoId = 'BC2340BA-1623-41F8-9BVD-B4373956E6EC';
       // TODO: Send message via WebSocket (input as Prop)
       this.$emit('updateMessageHistory', messageToSend);
       // Reset message input
@@ -134,8 +137,8 @@ export default {
       <div class="scrolledButNewMessages" v-if="hasScrolledButReceivedNewMessages" @click="scrollDown">
         New messages available!
       </div>
-      <div id="messageHistory" :style="hasScrolledButReceivedNewMessages ? 'margin-top: 50px;' : ''">
-        <div v-for="(message, messageIndex) in messageHistory" :key="'message' + messageIndex">
+      <div id="messageExchange" :style="hasScrolledButReceivedNewMessages ? 'margin-top: 50px;' : ''">
+        <div v-for="(message, messageIndex) in messageExchange" :key="'message' + messageIndex">
           <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="isIncomingMessage(message)">
             <ChatbotTextMessage
               :bot-image-path="botImagePath"

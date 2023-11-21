@@ -3,8 +3,10 @@ import ChatbotDialog from './components/ChatbotDialog.vue';
 import ChatbotWidget from './components/ChatbotWidget.vue';
 import { AssistanceObjectCommunication } from './components/types/assistance-object-communication';
 import { useDisplayStore } from './stores/display';
+import { useMessageExchangeStore } from './stores/messageExchange';
 import { useMessageHistoryStore } from './stores/messageHistory';
 import axios from 'axios';
+import type {AssistanceParameter} from "@/components/types/assistance-parameter";
 
 // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
 // Define constants for bytes used throughout the code.
@@ -28,6 +30,7 @@ export default {
     webSocket: null as any,
     displayStore: useDisplayStore(),
     messageToSend: '' as string,
+    messageExchangeStore: useMessageExchangeStore(),
     messageHistoryStore: useMessageHistoryStore(),
     pongInterval: 0 as number
   }),
@@ -56,7 +59,8 @@ export default {
         // https://github.com/vaadin/vaadin-upload/issues/138#issuecomment-266773430
         console.log('init-bot', event);
         this.pluginPath = event.path;
-        this.backendUrl = event.backendUrl;
+        // TODO: Uncomment as soon as the backend works
+        // this.backendUrl = event.backendUrl;
         this.hasJustLoggedIn = event.hasJustLoggedIn;
 
         if (!this.isRunLocally) {
@@ -103,7 +107,7 @@ export default {
         this.webSocket.onopen = () => {
           this.webSocket.send('CONNECT\ntoken:' + this.userToken + '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0');
           // there is only one destination that needs to be subscribed: /user/queue/chat
-          this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:/app/user/queue/chat\n\n\0');
+          this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:/user/queue/chat\n\n\0');
           // potentially send wake-up message
           this.handleWakeUpMessageSending(switchedPage);
         };
@@ -125,10 +129,22 @@ export default {
           }
           // Other, "real" messages
           else {
-            const messageToPush: AssistanceObjectCommunication = JSON.parse(message);
-            this.messageHistoryStore.addItem(messageToPush);
+            // TODO: Due to the message mocking, the message has to be parsed again -> need to be fixed
+            const receivedMessage: AssistanceObjectCommunication = JSON.parse(JSON.parse(message).msg);
+            console.log('received message', receivedMessage);
+            if (!receivedMessage?.parameters) {
+              return;
+            }
+            if (this.checkForKeyPresence(receivedMessage, 'previous_messages')) {
+              this.messageExchangeStore.setItems(this.checkForKeyPresence(receivedMessage, 'previous_messages')?.value);
+              // If the user has just logged in, display the chatbot dialog
+              if (this.hasJustLoggedIn) {
+                this.updateChatbotDialogVisible(true);
+              }
+            }
             this.updateDialogScroll();
-            // console.log('other message', messageToPush);
+            // const messageToPush: AssistanceObjectCommunication = JSON.parse(message);
+            // this.messageHistoryStore.addItem(messageToPush);
           }
         };
 
@@ -144,20 +160,28 @@ export default {
         this.handleWakeUpMessageSending(switchedPage);
       }
     },
+    checkForKeyPresence(assistanceObject: AssistanceObjectCommunication, key: string): AssistanceParameter | undefined {
+      return assistanceObject?.parameters?.find((param) => param.key === key);
+    },
     // When switching the page, send information about having just logged in or not
     handleWakeUpMessageSending(switchedPage: boolean) {
-      if (switchedPage) {
-        const message = {
-          parameters: [
-            {
-              key: "just_logged_in",
-              value: this.hasJustLoggedIn
-            }
-          ]
+      // Delay message until the WebSocket is connected
+      setTimeout(() => {
+        if (switchedPage) {
+          const message = {
+            parameters: [
+              {
+                key: "just_logged_in",
+                value: this.hasJustLoggedIn
+              }
+            ]
+          }
+          const messageAsJson = JSON.stringify(message);
+          this.webSocket.send('MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' + messageAsJson.length + '\n\n' + messageAsJson + '\0');
+          // the backend requests old messages from VSG and send then to the chatbot plugin
+          this.mockBackendMessage('previous_messages');
         }
-        const messageAsJson = JSON.stringify(message);
-        this.webSocket.send('MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' + messageAsJson.length + '\n\n' + messageAsJson + '\0');
-      }
+      }, 500);
     },
     initializePongMessageInterval() {
       // Send pong every 3 seconds, as it is done in the stomp-websocket library
@@ -191,6 +215,51 @@ export default {
     updateDialogScroll() {
       // https://stackoverflow.com/a/76297364/3623608
       (this.$refs.chatbotDialog as typeof ChatbotDialog).updateScroll();
+    },
+    mockBackendMessage(type: string) {
+      const requestUrl = this.backendUrl + '/api/v1/users/' + this.userIdOrActorAccountName + '/chatbot-messages';
+      if (type === 'previous_messages') {
+        const previousMessagesRequest = {
+          parameters: [
+            {
+              key: "previous_messages",
+              value: [
+                {
+                  aId: "2EA95788-7ABA-4DDD-B3BA-E7EB574685BD",
+                  aoId: "BC2340BA-1623-41F8-9C0D-B4373956E6EC",
+                  parameters: [
+                    {
+                      key: "message",
+                      value: "Hallo, ich bin Veri :)"
+                    }
+                  ]
+                },
+                {
+                  aId: "2EA95788-7ABA-4DDD-B3BA-E7EB574685BR",
+                  aoId: "BC2340BA-1623-41F8-9C0D-B4373956E6ED",
+                  parameters: [
+                    {
+                      key: "message_response",
+                      value: "Hi Veri!"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        };
+        const request = {
+          type: 'informational_feedback',
+          message: JSON.stringify(previousMessagesRequest)
+        };
+        const authHeader = {
+          'Content-Type': 'application/json;charset=UTF-8',
+          Authorization: 'Bearer ' + this.adminToken
+        };
+        axios.post(requestUrl, request, { headers: authHeader }).then((data) => {
+          console.log(data);
+        });
+      }
     },
     generateMessageFromBackend(initialMessage: boolean) {
       const messageToSend = initialMessage
@@ -285,10 +354,11 @@ export default {
     />
     <ChatbotDialog
       ref="chatbotDialog"
+      :messageExchange="messageExchangeStore.items"
       :messageHistory="messageHistoryStore.items"
       :botImagePath="botImagePath"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
-      @resetMessageHistory="messageHistoryStore.clearItems()"
+      @resetMessageHistory="messageExchangeStore.clearItems()"
       @updateMessageHistory="updateMessageHistory"
       v-else
     />
