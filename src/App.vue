@@ -141,6 +141,9 @@ export default {
               if (this.hasJustLoggedIn) {
                 this.updateChatbotDialogVisible(true);
               }
+            } else if (this.checkForKeyPresence(receivedMessage, 'message')) {
+              this.messageExchangeStore.addItem(receivedMessage);
+              this.acknowledgeMessage(receivedMessage);
             }
             this.updateDialogScroll();
             // const messageToPush: AssistanceObjectCommunication = JSON.parse(message);
@@ -180,8 +183,25 @@ export default {
           this.webSocket.send('MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' + messageAsJson.length + '\n\n' + messageAsJson + '\0');
           // the backend requests old messages from VSG and send then to the chatbot plugin
           this.mockBackendMessage('previous_messages');
+          // if the user has just logged in, the backend will send a greeting message
+          if (this.hasJustLoggedIn) {
+            // Delay it some time to make it look more realistic
+            setTimeout(() => {
+              this.mockBackendMessage('greeting');
+            }, 1500);
+          }
         }
-      }, 500);
+      }, 250);
+    },
+    // acknowledge the reception of the message
+    acknowledgeMessage(receivedMessage: AssistanceObjectCommunication) {
+      if (receivedMessage?.messageId) {
+        const acknowledgeMessage = {
+          messageId: receivedMessage.messageId
+        };
+        const messageAsJson = JSON.stringify(acknowledgeMessage);
+        this.webSocket.send('MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' + messageAsJson.length + '\n\n' + messageAsJson + '\0');
+      }
     },
     initializePongMessageInterval() {
       // Send pong every 3 seconds, as it is done in the stomp-websocket library
@@ -218,8 +238,9 @@ export default {
     },
     mockBackendMessage(type: string) {
       const requestUrl = this.backendUrl + '/api/v1/users/' + this.userIdOrActorAccountName + '/chatbot-messages';
+      let baseRequest = {}
       if (type === 'previous_messages') {
-        const previousMessagesRequest = {
+        baseRequest = {
           parameters: [
             {
               key: "previous_messages",
@@ -248,18 +269,31 @@ export default {
             }
           ]
         };
-        const request = {
-          type: 'informational_feedback',
-          message: JSON.stringify(previousMessagesRequest)
-        };
-        const authHeader = {
-          'Content-Type': 'application/json;charset=UTF-8',
-          Authorization: 'Bearer ' + this.adminToken
-        };
-        axios.post(requestUrl, request, { headers: authHeader }).then((data) => {
-          console.log(data);
-        });
+      } else if (type === 'greeting') {
+        baseRequest = {
+          aId: "2EA95788-7ABA-4DDD-B3BA-E7EB574685BD",
+          aoId: "BC2340BA-1623-41F8-9C0D-B4373956E6EC",
+          messageId: "6A4B1434-2CD1-40D5-87DE-B15D17876869",
+          parameters: [
+            {
+              key: "message",
+              value: "Willkommen zurück"
+            }
+          ]
+        }
       }
+      // Send a mocking request to the backend
+      const request = {
+        type: 'informational_feedback',
+        message: JSON.stringify(baseRequest)
+      };
+      const authHeader = {
+        'Content-Type': 'application/json;charset=UTF-8',
+        Authorization: 'Bearer ' + this.adminToken
+      };
+      axios.post(requestUrl, request, { headers: authHeader }).then((data) => {
+        console.log(data);
+      });
     },
     generateMessageFromBackend(initialMessage: boolean) {
       const messageToSend = initialMessage

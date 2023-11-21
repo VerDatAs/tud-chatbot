@@ -10,12 +10,15 @@ export const useMessageExchangeStore = defineStore({
     setItems(items: AssistanceObjectCommunication[]) {
       this.items = items;
     },
+    addItem(item: AssistanceObjectCommunication) {
+      this.items.push(item);
+    },
     clearItems() {
       console.log('clear message history');
       this.items = [];
     }
   },
-  persist: true
+  persist: false
 });
 
 if (import.meta.hot) {
