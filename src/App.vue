@@ -130,7 +130,8 @@ export default {
           // Other, "real" messages
           else {
             // TODO: Due to the message mocking, the message has to be parsed again -> need to be fixed
-            const receivedMessage: AssistanceObjectCommunication = JSON.parse(JSON.parse(message).msg);
+            // Currently, the object send by /chatbot-messages and /sendAssistanceTest are quite different
+            const receivedMessage: AssistanceObjectCommunication = JSON.parse(message).msg ? JSON.parse(JSON.parse(message).msg) : JSON.parse(message);
             console.log('received message', receivedMessage);
             if (!receivedMessage?.parameters) {
               return;
