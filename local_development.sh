@@ -4,5 +4,5 @@ npm run build
 cp dist/assets/app.js ../verdatasbot/templates/index.js
 cp dist/assets/index.css ../verdatasbot/templates/index.css
 cp dist/veri.png ../verdatasbot/templates/veri.png
-cd ../ilias-dev
+cd ../ilias-dev || return
 sh reload_directories.sh

@@ -3,6 +3,7 @@ import ChatbotIcon from './ChatbotIcon.vue';
 import { AssistanceObjectCommunication } from './types/assistance-object-communication';
 import { AssistanceParameter } from './types/assistance-parameter';
 import ChatbotTextMessage from '@/components/ChatbotTextMessage.vue';
+import ChatbotOptionsMessage from "@/components/ChatbotOptionsMessage.vue";
 
 export default {
   data: () => ({
@@ -10,7 +11,7 @@ export default {
     messageUpdate: false as boolean,
     hasScrolled: false as boolean,
     wasScrolledAutomatically: false as boolean,
-    incomingMessageTypes: ['message'],
+    incomingMessageTypes: ['message', 'options'],
     outgoingMessageTypes: ['message_response']
   }),
   props: {
@@ -19,8 +20,9 @@ export default {
     botImagePath: String
   },
   components: {
-    ChatbotTextMessage,
-    ChatbotIcon
+    ChatbotIcon,
+    ChatbotOptionsMessage,
+    ChatbotTextMessage
   },
   computed: {
     hasScrolledButReceivedNewMessages() {
@@ -92,6 +94,9 @@ export default {
       // Difference between ?? and || -> https://stackoverflow.com/questions/66883181/difference-between-and-operators
       return message.parameters?.find((param) => param.key === key)?.value ?? '';
     },
+    selectOption(optionResponse: AssistanceObjectCommunication) {
+      this.$emit('selectOption', optionResponse);
+    },
     // Retrieved from https://stackoverflow.com/a/18614545
     updateScroll() {
       console.log('updateScroll');
@@ -140,17 +145,23 @@ export default {
       <div id="messageExchange" :style="hasScrolledButReceivedNewMessages ? 'margin-top: 50px;' : ''">
         <div v-for="(message, messageIndex) in messageExchange" :key="'message' + messageIndex">
           <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="isIncomingMessage(message)">
+            <ChatbotOptionsMessage
+              :bot-image-path="botImagePath"
+              :message="message"
+              v-if="parametersIncludeKey(message, 'options')"
+              @select-option="selectOption"
+            />
             <ChatbotTextMessage
               :bot-image-path="botImagePath"
               :incoming="true"
-              :message="parameterValue(message, 'message')"
-              v-if="parametersIncludeKey(message, 'message')"
+              :text="parameterValue(message, 'message')"
+              v-else-if="parametersIncludeKey(message, 'message')"
             />
             <div v-else>-- none supported key --</div>
           </div>
           <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
             <ChatbotTextMessage
-              :message="parameterValue(message, 'message_response')"
+              :text="parameterValue(message, 'message_response')"
               v-if="parametersIncludeKey(message, 'message_response')"
             />
             <div v-else>-- none supported key --</div>
@@ -252,7 +263,7 @@ export default {
 
       &.messageIncoming,
       &.messageOutgoing {
-        span {
+        .messageContainer {
           display: inline-block;
           padding: 0.5rem 0.75rem;
           border-radius: 15px;
@@ -263,7 +274,7 @@ export default {
         padding-left: 45px;
         padding-right: 18px;
 
-        span {
+        .messageContainer {
           border-top-left-radius: 0;
           border: 1px solid #ccc;
           background: #f6f6f6;
@@ -275,7 +286,7 @@ export default {
         text-align: right;
         padding-left: 18px;
 
-        span {
+        .messageContainer {
           border-bottom-right-radius: 0;
           background: #000;
         }

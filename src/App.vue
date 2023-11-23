@@ -19,7 +19,7 @@ const BYTES = {
 
 export default {
   data: () => ({
-    hasJustLoggedIn: false as boolean,
+    hasJustLoggedIn: true as boolean,
     backendUrl: 'http://localhost:8080' as string,
     pluginPath: '' as string,
     // WebSocket connection and message sending
@@ -48,6 +48,9 @@ export default {
   },
   created() {
     this.initChatbotApp();
+    if (this.isRunLocally) {
+      import('./assets/local-dev.css');
+    }
   },
   methods: {
     async initChatbotApp() {
@@ -58,10 +61,10 @@ export default {
       document.addEventListener('init-bot', async (event: any) => {
         // https://github.com/vaadin/vaadin-upload/issues/138#issuecomment-266773430
         console.log('init-bot', event);
-        this.pluginPath = event.path;
+        this.pluginPath = event.detail.path;
         // TODO: Uncomment as soon as the backend works
         // this.backendUrl = event.backendUrl;
-        this.hasJustLoggedIn = event.hasJustLoggedIn;
+        this.hasJustLoggedIn = event.detail.hasJustLoggedIn;
 
         if (!this.isRunLocally) {
           await this.retrieveTokenAndHandleMessageExchange();
@@ -142,10 +145,14 @@ export default {
               if (this.hasJustLoggedIn) {
                 this.updateChatbotDialogVisible(true);
               }
-            } else if (this.checkForKeyPresence(receivedMessage, 'message')) {
+            } else if (this.checkForKeyPresence(receivedMessage, 'options')) {
               this.messageExchangeStore.addItem(receivedMessage);
               this.acknowledgeMessage(receivedMessage);
             }
+            // else if (this.checkForKeyPresence(receivedMessage, 'message')) {
+            //   this.messageExchangeStore.addItem(receivedMessage);
+            //   this.acknowledgeMessage(receivedMessage);
+            // }
             this.updateDialogScroll();
             // const messageToPush: AssistanceObjectCommunication = JSON.parse(message);
             // this.messageHistoryStore.addItem(messageToPush);
@@ -203,6 +210,11 @@ export default {
         const messageAsJson = JSON.stringify(acknowledgeMessage);
         this.webSocket.send('MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' + messageAsJson.length + '\n\n' + messageAsJson + '\0');
       }
+    },
+    // an option has been selected
+    selectOption(optionResponse: AssistanceObjectCommunication) {
+      const messageAsJson = JSON.stringify(optionResponse);
+      this.webSocket.send('MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' + messageAsJson.length + '\n\n' + messageAsJson + '\0');
     },
     initializePongMessageInterval() {
       // Send pong every 3 seconds, as it is done in the stomp-websocket library
@@ -394,6 +406,7 @@ export default {
       :botImagePath="botImagePath"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       @resetMessageHistory="messageExchangeStore.clearItems()"
+      @selectOption="selectOption"
       @updateMessageHistory="updateMessageHistory"
       v-else
     />

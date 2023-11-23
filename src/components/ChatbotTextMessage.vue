@@ -14,7 +14,7 @@ export default {
       type: Boolean,
       default: false
     },
-    message: {
+    text: {
       type: String,
       required: true
     }
@@ -24,7 +24,7 @@ export default {
 
 <template>
   <ChatbotIcon :botImagePath="botImagePath" v-if="incoming && botImagePath" />
-  <span>
-    {{ message }}
-  </span>
+  <div class="messageContainer">
+    {{ text }}
+  </div>
 </template>
