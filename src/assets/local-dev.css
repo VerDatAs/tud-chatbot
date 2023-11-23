@@ -1,74 +1,3 @@
-@font-face {
-  font-family: 'Open Sans';
-  src: url('fonts/OpenSansWeb/OpenSans-Regular.woff2') format('woff2'), url('fonts/OpenSansWeb/OpenSans-Regular.woff') format('woff');
-  font-weight: 400;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Open Sans';
-  src: url('fonts/OpenSansWeb/OpenSans-Bold.woff2') format('woff2'), url('fonts/OpenSansWeb/OpenSans-Bold.woff') format('woff');
-  font-weight: 700;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Open Sans';
-  src: url('fonts/OpenSansWeb/OpenSans-Italic.woff2') format('woff2'), url('fonts/OpenSansWeb/OpenSans-Italic.woff') format('woff');
-  font-weight: 400;
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Open Sans';
-  src: url('fonts/OpenSansWeb/OpenSans-BoldItalic.woff2') format('woff2'), url('fonts/OpenSansWeb/OpenSans-BoldItalic.woff') format('woff');
-  font-weight: 700;
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Open Sans';
-  src: url('fonts/OpenSansWeb/OpenSans-Light.woff2') format('woff2'), url('fonts/OpenSansWeb/OpenSans-Light.woff') format('woff');
-  font-weight: 300;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Open Sans';
-  src: url('fonts/OpenSansWeb/OpenSans-LightItalic.woff2') format('woff2'), url('fonts/OpenSansWeb/OpenSans-LightItalic.woff') format('woff');
-  font-weight: 300;
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Open Sans';
-  src: url('fonts/OpenSansWeb/OpenSans-Semibold.woff2') format('woff2'), url('fonts/OpenSansWeb/OpenSans-Semibold.woff') format('woff');
-  font-weight: 600;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Open Sans';
-  src: url('fonts/OpenSansWeb/OpenSans-SemiboldItalic.woff2') format('woff2'), url('fonts/OpenSansWeb/OpenSans-SemiboldItalic.woff') format('woff');
-  font-weight: 600;
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Open Sans';
-  src: url('fonts/OpenSansWeb/OpenSans-ExtraBold.woff2') format('woff2'), url('fonts/OpenSansWeb/OpenSans-ExtraBold.woff') format('woff');
-  font-weight: 800;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Open Sans';
-  src: url('fonts/OpenSansWeb/OpenSans-ExtraBoldItalic.woff2') format('woff2'), url('fonts/OpenSansWeb/OpenSans-ExtraBoldItalic.woff') format('woff');
-  font-weight: 800;
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Open Sans Emoji';
-  src: url('fonts/OpenSansEmoji/OpenSansEmoji.ttf') format('truetype'), url('fonts/OpenSansEmoji/OpenSansEmoji.otf') format('otf');
-  font-style: normal;
-}
-@font-face {
-  font-family: 'il-icons';
-  src: url('fonts/Iconfont/il-icons.woff') format('woff'), url('fonts/Iconfont/il-icons.ttf') format('truetype');
-  font-weight: 300;
-  font-style: normal;
-}
 /* rtl-review is this font safe for RTL languages? */
 /* rtl-review */
 [dir="ltr"] * {
@@ -275,11 +204,6 @@ table {
 td,
 th {
   padding: 0;
-}
-@font-face {
-  font-family: "Glyphicons Halflings";
-  src: url("../../node_modules/bootstrap/fonts/glyphicons-halflings-regular.eot");
-  src: url("../../node_modules/bootstrap/fonts/glyphicons-halflings-regular.eot?#iefix") format("embedded-opentype"), url("../../node_modules/bootstrap/fonts/glyphicons-halflings-regular.woff2") format("woff2"), url("../../node_modules/bootstrap/fonts/glyphicons-halflings-regular.woff") format("woff"), url("../../node_modules/bootstrap/fonts/glyphicons-halflings-regular.ttf") format("truetype"), url("../../node_modules/bootstrap/fonts/glyphicons-halflings-regular.svg#glyphicons_halflingsregular") format("svg");
 }
 .glyphicon {
   position: relative;
@@ -7532,12 +7456,6 @@ a fieldset[disabled] .active {
 .btn-bulky {
   width: 100%;
 }
-.il-btn-with-loading-animation {
-  background-image: url("images/loader.svg");
-  background-repeat: no-repeat;
-  background-position: right center;
-  padding-right: 18px;
-}
 .minimize,
 .close {
   font-size: 1.3125rem;
@@ -11549,7 +11467,6 @@ with the il- variable set here.
   position: absolute;
   margin-left: -15px;
   margin-right: -15px;
-  background: url(../img/loading.gif) no-repeat;
 }
 @-webkit-keyframes rotate {
   100% {
@@ -11598,7 +11515,6 @@ with the il- variable set here.
   padding: 0;
 }
 .il-popover i.icon-refresh {
-  background: url("images/loading.gif") no-repeat;
   height: 30px;
 }
 .il-popover .il-popover-title-container {
@@ -12281,7 +12197,6 @@ a {
 	 * All skins which want to support mounting of Webfolders using Internet Explorer
 	 * must explicitly enable AnchorClick behavior.
 	 */
-  behavior: url(#default#AnchorClick);
   /* END WebDAV: Enable links with AnchorClick behavior for Internet Explorer. */
 }
 a:hover {
@@ -13139,7 +13054,6 @@ div.ilHeaderBanner img.ilHeaderImg {
   padding-right: 0;
 }
 div.ilBox {
-  background: url("images/FramedBack.png") repeat-x;
   border: 1px solid #dddddd;
   padding: 10px;
   margin-bottom: 20px;
@@ -13271,7 +13185,6 @@ img.ilSmallIcon {
   cursor: pointer;
   color: #4c6586;
   font-size: 1rem;
-  background-image: url("images/tree_col.svg");
   background-repeat: no-repeat;
   background-color: #f9f9f9;
   background-position: 15px 9px;
@@ -13297,7 +13210,6 @@ img.ilSmallIcon {
 }
 .il_HAccordionHeadActive,
 .il_VAccordionHeadActive {
-  background-image: url("images/tree_exp.svg");
   background-color: #e2e8ef;
 }
 .ilAccHideContent {
@@ -13575,7 +13487,6 @@ div.il_ExplorerItemDescription {
 }
 .jstree li,
 .jstree.jstree-default li i {
-  background: url("images/jstree.svg") no-repeat;
   vertical-align: top;
 }
 .jstree.jstree-default .jstree-open > i {
@@ -13885,7 +13796,6 @@ a.mailunread:visited {
 }
 /* --- Services/COPage ---*/
 a.ilEditSubmit {
-  background: url("images/ButtonsBack.png") repeat-x bottom white;
   padding: 2px;
   margin: 0;
   border: 1px solid #bababa;
@@ -13903,7 +13813,6 @@ input.ilEditSubmit {
   font-size: 0.75rem;
   line-height: 14px;
   cursor: pointer;
-  background: url("images/ButtonsBack.png") repeat-x bottom white;
   border: 1px solid #bababa;
   border-bottom-color: #737373;
   border-right-color: #737373;
@@ -14455,7 +14364,6 @@ div.ilc_question_MultipleChoice .ilc_qanswer_Answer > div:first-child {
 div.ilCOPGMediaPrint {
   background-color: #f9f9f9 !important;
   position: relative !important;
-  background-image: url("images/play.svg") !important;
   background-position: 50% 50% !important;
   background-repeat: no-repeat !important;
   background-size: auto 90% !important;
@@ -15993,7 +15901,6 @@ span.bibl_text_inline_Emph {
   color: #f0f0f0;
   /* margin-top: -240px; */
   top: 0;
-  background: url("images/black60.png");
 }
 .ilPlayerPreviewOverlay img {
   cursor: pointer;
@@ -16007,10 +15914,8 @@ span.bibl_text_inline_Emph {
   color: white;
 }
 .mejs-overlay-button {
-  background-image: url("images/bigplay.svg");
 }
 .ilPlayerPreviewPlayButton {
-  background: url("images/bigplay.svg") no-repeat scroll 0 0 transparent;
   height: 100px;
   left: 50%;
   margin: -50px 0 0 -50px;
@@ -16094,18 +15999,8 @@ div.ilc_PredTextPlaceHolderThumb {
   padding: 5px 2px 5px 0;
   border: 1px solid #2c2c2c;
   font-size: 0.625rem;
-  background: url("images/question_placeholder_thumb.png") no-repeat center;
   background-color: white;
   font-weight: 600;
-}
-div.ilc_MediaPlaceHolderThumb {
-  background-image: url("images/media_placeholder_thumb.png");
-}
-div.ilc_TextPlaceHolderThumb {
-  background-image: url("images/text_placeholder_thumb.png");
-}
-div.ilc_PredTextPlaceHolderThumb {
-  background-image: url("images/pred_text_placeholder_thumb.png");
 }
 div.ilc_HeadlineThumb {
   font-size: 0.75rem;
@@ -16494,12 +16389,6 @@ div.il_ContainerListItem {
   /* padding-top: 6px; */
   background-color: #f9f9f9;
   cursor: pointer;
-}
-.ilContainerBlockHeaderExpanded {
-  background-image: url("images/tree_exp.svg");
-}
-.ilContainerBlockHeaderCollapsed {
-  background-image: url("images/tree_col.svg");
 }
 [dir="rtl"] .ilContainerBlockHeader {
   text-align: right;
@@ -18082,7 +17971,6 @@ body.ilPrtfPdfBody .ilPCMyCoursesToggle img {
   width: 55px;
 }
 .ilAwarenessItemRow .media-body {
-  /* background-image: url('./templates/default/images/scorm/not_attempted.svg'); */
   background-repeat: no-repeat;
   background-size: 12px 12px;
   background-position: right 10px top 50%;
@@ -18090,9 +17978,6 @@ body.ilPrtfPdfBody .ilPCMyCoursesToggle img {
   /* and bug #18937 */
   /* max-width: 0; */
   width: 100%;
-}
-.ilAwarenessItemRow .media-body.ilAwarenessOnline {
-  background-image: url('images/scorm/completed.svg');
 }
 .ilAwarenessLoader {
   display: block;
@@ -18360,7 +18245,6 @@ body.ilPrtfPdfBody .ilPCMyCoursesToggle img {
   display: block;
   height: 14px;
   width: 14px;
-  background: url("images/emoticons_trigger.png") no-repeat;
   background-size: cover;
   z-index: 1000;
 }
@@ -19012,7 +18896,6 @@ span.ilProfileBadge .modal .img-responsive {
 .ilPreviewTextLoading {
   width: 14px;
   height: 14px;
-  background: transparent url("images/loader.svg") no-repeat 0 0;
   display: none;
 }
 .ilPreviewActions a.submit,
@@ -19062,7 +18945,6 @@ span.ilProfileBadge .modal .img-responsive {
   margin-top: 0;
   border: 0;
   border-radius: 0;
-  background: transparent url("images/preview_close.png") no-repeat 0 0;
   width: 16px;
   height: 16px;
 }
@@ -19086,7 +18968,6 @@ span.ilProfileBadge .modal .img-responsive {
 }
 .ilPreviewTooltipPrev {
   position: absolute;
-  background: transparent url("images/preview_arrows.png") no-repeat 0 0;
   width: 30px;
   height: 40px;
   left: 0;
@@ -19104,7 +18985,6 @@ span.ilProfileBadge .modal .img-responsive {
 }
 .ilPreviewTooltipNext {
   position: absolute;
-  background: transparent url("images/preview_arrows.png") no-repeat 0 -40px;
   width: 30px;
   height: 40px;
   right: 0;
@@ -19378,16 +19258,6 @@ div.textbox {
 .filterinactive {
   background-color: #fff;
 }
-.manfeedback .toggle-button {
-  padding-left: 20px;
-  background: transparent url(images/del_sprite_arrows.gif) 3px -318px no-repeat;
-  cursor: pointer;
-}
-.manfeedback .yes {
-  padding-left: 20px;
-  background: transparent url(images/del_sprite_arrows.gif) 3px -359px no-repeat;
-  cursor: pointer;
-}
 .manfeedback .off {
   padding-left: 20px;
   background: none;
@@ -19515,10 +19385,6 @@ div.term {
 }
 span.result {
   font-style: italic;
-}
-div.ilc_Page.readonly div.ilc_question_Standard {
-  background-color: #f3f3f3;
-  background-image: url(../../../../templates/default/images/qmark-ro.svg);
 }
 ul.ilAssQuestionRelatedNavigationContainer,
 div.ilAssQuestionRelatedNavigationContainer {
@@ -19705,12 +19571,6 @@ div.ilc_Page.readonly textarea[disabled] {
   background-repeat: no-repeat;
   background-size: 10px;
   background-position: 0px 5px;
-}
-#tst_output #tst_left ul.shortlist li.unanswered {
-  background-image: url('images/answered_not.svg');
-}
-#tst_output #tst_left ul.shortlist li.answered {
-  background-image: url('images/answered.svg');
 }
 #tst_output #tst_left ul.shortlist li.active {
   font-weight: 600;
