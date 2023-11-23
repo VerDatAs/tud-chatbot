@@ -3,6 +3,7 @@ import ChatbotDialog from './components/ChatbotDialog.vue';
 import ChatbotWidget from './components/ChatbotWidget.vue';
 import { AssistanceObjectCommunication } from './components/types/assistance-object-communication';
 import { useDisplayStore } from './stores/display';
+import { useNotesStore } from './stores/notes';
 import { useMessageExchangeStore } from './stores/messageExchange';
 import { useMessageHistoryStore } from './stores/messageHistory';
 import axios from 'axios';
@@ -29,6 +30,7 @@ export default {
     // TODO: Fix type
     webSocket: null as any,
     displayStore: useDisplayStore(),
+    notesStore: useNotesStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
     messageHistoryStore: useMessageHistoryStore(),
@@ -386,6 +388,12 @@ export default {
           }, 1);
         }, 300);
       }
+    },
+    updateChatbotNotesVisible(notesVisible: boolean) {
+      this.displayStore.changeNotesOpen(notesVisible);
+    },
+    updateNotes(notes: string) {
+      this.notesStore.setNotes(notes);
     }
   }
 };
@@ -404,10 +412,14 @@ export default {
       :messageExchange="messageExchangeStore.items"
       :messageHistory="messageHistoryStore.items"
       :botImagePath="botImagePath"
+      :notesVisible="displayStore.notesOpen"
+      :notes="notesStore.text"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       @resetMessageHistory="messageExchangeStore.clearItems()"
       @selectOption="selectOption"
       @updateMessageHistory="updateMessageHistory"
+      @updateChatbotNotesVisible="updateChatbotNotesVisible"
+      @updateNotes="updateNotes"
       v-else
     />
   </main>
