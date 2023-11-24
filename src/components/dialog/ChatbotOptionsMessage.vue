@@ -1,7 +1,7 @@
 <script lang="ts">
-import ChatbotIcon from '@/components/ChatbotIcon.vue';
-import { Option } from "@/components/types/option";
-import { AssistanceObjectCommunication } from "@/components/types/assistance-object-communication";
+import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
+import { Option } from '@/components/types/option';
+import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 
 export default {
   components: {
@@ -17,9 +17,7 @@ export default {
       required: true
     }
   },
-  emits: [
-    'selectOption'
-  ],
+  emits: ['selectOption'],
   methods: {
     parameterValue(message: AssistanceObjectCommunication, key: string) {
       // Difference between ?? and || -> https://stackoverflow.com/questions/66883181/difference-between-and-operators
@@ -40,8 +38,14 @@ export default {
   <ChatbotIcon :botImagePath="botImagePath" v-if="botImagePath" />
   <div class="messageContainer">
     {{ parameterValue(message, 'message') }}
-    <hr>
-    <button class="btn btn-default" style="display: block; margin-bottom: 5px; width: 100%;" v-for="option in parameterValue(message, 'options')" @click="selectOption(option)" :key="message.aId + option.key">
+    <hr />
+    <button
+      class="btn btn-default"
+      style="display: block; margin-bottom: 5px; width: 100%"
+      v-for="option in parameterValue(message, 'options')"
+      @click="selectOption(option)"
+      :key="message.aId + option.key"
+    >
       {{ option.value }}
     </button>
   </div>

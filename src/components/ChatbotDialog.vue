@@ -1,9 +1,10 @@
 <script lang="ts">
-import ChatbotIcon from './ChatbotIcon.vue';
-import { AssistanceObjectCommunication } from './types/assistance-object-communication';
-import { AssistanceParameter } from './types/assistance-parameter';
-import ChatbotTextMessage from '@/components/ChatbotTextMessage.vue';
-import ChatbotOptionsMessage from "@/components/ChatbotOptionsMessage.vue";
+import ChatbotNotes from '@/components/dialog/ChatbotNotes.vue';
+import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
+import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
+import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
+import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
+import { AssistanceParameter } from '@/components/types/assistance-parameter';
 
 export default {
   data: () => ({
@@ -22,9 +23,10 @@ export default {
     notes: String
   },
   components: {
-    ChatbotIcon,
+    ChatbotNotes,
     ChatbotOptionsMessage,
-    ChatbotTextMessage
+    ChatbotTextMessage,
+    ChatbotIcon
   },
   computed: {
     hasScrolledButReceivedNewMessages() {
@@ -82,7 +84,9 @@ export default {
         this.messageToSend = '';
         return;
       }
-      const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication( [new AssistanceParameter('message_response', this.messageToSend)]);
+      const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication([
+        new AssistanceParameter('message_response', this.messageToSend)
+      ]);
       messageToSend.aId = '2EA95788-7ABA-4DDD-B3BA-E7EB344685BD';
       messageToSend.aoId = 'BC2340BA-1623-41F8-9BVD-B4373956E6EC';
       // TODO: Send message via WebSocket (input as Prop)
@@ -122,13 +126,6 @@ export default {
       this.messageUpdate = false;
       this.updateScroll();
     },
-    toggleNotes(notesOpen: boolean) {
-      this.$emit('updateChatbotNotesVisible', notesOpen);
-    },
-    notesInput(event: any) {
-      const text = event.target.value;
-      this.$emit('updateNotes', text);
-    },
     fadeIn() {
       document.getElementById('chatbotDialog')?.classList.add('animate__fadeInRight');
     },
@@ -141,15 +138,7 @@ export default {
 
 <template>
   <div id="chatbotDialog" class="animate__animated">
-    <div class="notesIcon" @click="toggleNotes(true)" v-if="!notesVisible">
-      <svg xmlns="http://www.w3.org/2000/svg" height="32" viewBox="0 -960 960 960" width="32" style="color: #fff;"><path d="M160-400v-80h280v80H160Zm0-160v-80h440v80H160Zm0-160v-80h440v80H160Zm360 560v-123l221-220q9-9 20-13t22-4q12 0 23 4.5t20 13.5l37 37q8 9 12.5 20t4.5 22q0 11-4 22.5T863-380L643-160H520Zm300-263-37-37 37 37ZM580-220h38l121-122-18-19-19-18-122 121v38Zm141-141-19-18 37 37-18-19Z"/></svg>
-    </div>
-    <div class="notesIcon" @click="toggleNotes(false)" v-if="notesVisible" style="padding: 5px;">
-      <svg xmlns="http://www.w3.org/2000/svg" height="26" viewBox="0 -960 960 960" width="26"><path d="M383-480 200-664l56-56 240 240-240 240-56-56 183-184Zm264 0L464-664l56-56 240 240-240 240-56-56 183-184Z"/></svg>
-    </div>
-    <div class="notesContainer" v-if="notesVisible">
-      <textarea placeholder="Your notes come here ..." :value="notes" @input="notesInput"></textarea>
-    </div>
+    <ChatbotNotes :notesVisible="notesVisible" :notes="notes" />
     <div id="dialogHeader">
       <ChatbotIcon :botImagePath="botImagePath" :headerIcon="true" />
       <span class="headerName">VERI</span>
@@ -211,45 +200,6 @@ export default {
   border-top: 1px solid #ddd;
   border-left: 1px solid #ddd;
   background: #fff;
-
-  .notesIcon {
-    width: 36px;
-    height: 36px;
-    padding: 2px;
-    background: #ccc;
-    position: absolute;
-    left: -25px;
-    border-radius: 3px;
-    border: 1px solid #bbb;
-    top: calc(25%);
-    cursor: pointer;
-    z-index: 100;
-  }
-
-  .notesContainer {
-    width: 250px;
-    height: 100%;
-    padding: 8px;
-    background: #eee;
-    position: absolute;
-    left: -250px;
-    border: 1px solid #bbb;
-    top: 0;
-    z-index: 99;
-
-    textarea {
-      width: 100%;
-      height: 100%;
-      padding: 10px;
-      color: #333;
-      font-family: monospace;
-      font-size: 13px;
-      letter-spacing: .1em;
-      border: 1px solid #bbb;
-      border-radius: 3px;
-      outline: none;
-    }
-  }
 
   #dialogHeader {
     position: relative;

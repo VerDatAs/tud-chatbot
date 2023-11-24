@@ -1,5 +1,5 @@
 <script lang="ts">
-import ChatbotIcon from '@/components/ChatbotIcon.vue';
+import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
 
 export default {
   components: {

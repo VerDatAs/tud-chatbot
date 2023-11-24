@@ -1,13 +1,13 @@
 <script lang="ts">
-import ChatbotDialog from './components/ChatbotDialog.vue';
-import ChatbotWidget from './components/ChatbotWidget.vue';
-import { AssistanceObjectCommunication } from './components/types/assistance-object-communication';
-import { useDisplayStore } from './stores/display';
-import { useNotesStore } from './stores/notes';
-import { useMessageExchangeStore } from './stores/messageExchange';
-import { useMessageHistoryStore } from './stores/messageHistory';
+import ChatbotDialog from '@/components/ChatbotDialog.vue';
+import ChatbotWidget from '@/components/ChatbotWidget.vue';
+import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
+import { AssistanceParameter } from '@/components/types/assistance-parameter';
+import { useDisplayStore } from '@/stores/display';
+import { useNotesStore } from '@/stores/notes';
+import { useMessageExchangeStore } from '@/stores/messageExchange';
+import { useMessageHistoryStore } from '@/stores/messageHistory';
 import axios from 'axios';
-import type {AssistanceParameter} from "@/components/types/assistance-parameter";
 
 // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
 // Define constants for bytes used throughout the code.
@@ -51,7 +51,7 @@ export default {
   created() {
     this.initChatbotApp();
     if (this.isRunLocally) {
-      import('./assets/local-dev.css');
+      import('./assets/local-dev.scss');
     }
   },
   methods: {
@@ -127,7 +127,7 @@ export default {
             console.log('Connected message. Initialize pong message interval.');
             this.initializePongMessageInterval();
           }
-              // If BYTES.LF is received, it is a ping message
+          // If BYTES.LF is received, it is a ping message
           // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/client.js#L74
           else if (message === BYTES.LF) {
             console.log('Ping message received.');
@@ -136,7 +136,9 @@ export default {
           else {
             // TODO: Due to the message mocking, the message has to be parsed again -> need to be fixed
             // Currently, the object send by /chatbot-messages and /sendAssistanceTest are quite different
-            const receivedMessage: AssistanceObjectCommunication = JSON.parse(message).msg ? JSON.parse(JSON.parse(message).msg) : JSON.parse(message);
+            const receivedMessage: AssistanceObjectCommunication = JSON.parse(message).msg
+              ? JSON.parse(JSON.parse(message).msg)
+              : JSON.parse(message);
             console.log('received message', receivedMessage);
             if (!receivedMessage?.parameters) {
               return;
@@ -184,13 +186,19 @@ export default {
           const message = {
             parameters: [
               {
-                key: "just_logged_in",
+                key: 'just_logged_in',
                 value: this.hasJustLoggedIn
               }
             ]
-          }
+          };
           const messageAsJson = JSON.stringify(message);
-          this.webSocket.send('MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' + messageAsJson.length + '\n\n' + messageAsJson + '\0');
+          this.webSocket.send(
+            'MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' +
+              messageAsJson.length +
+              '\n\n' +
+              messageAsJson +
+              '\0'
+          );
           // the backend requests old messages from VSG and send then to the chatbot plugin
           this.mockBackendMessage('previous_messages');
           // if the user has just logged in, the backend will send a greeting message
@@ -210,13 +218,25 @@ export default {
           messageId: receivedMessage.messageId
         };
         const messageAsJson = JSON.stringify(acknowledgeMessage);
-        this.webSocket.send('MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' + messageAsJson.length + '\n\n' + messageAsJson + '\0');
+        this.webSocket.send(
+          'MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' +
+            messageAsJson.length +
+            '\n\n' +
+            messageAsJson +
+            '\0'
+        );
       }
     },
     // an option has been selected
     selectOption(optionResponse: AssistanceObjectCommunication) {
       const messageAsJson = JSON.stringify(optionResponse);
-      this.webSocket.send('MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' + messageAsJson.length + '\n\n' + messageAsJson + '\0');
+      this.webSocket.send(
+        'MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' +
+          messageAsJson.length +
+          '\n\n' +
+          messageAsJson +
+          '\0'
+      );
     },
     initializePongMessageInterval() {
       // Send pong every 3 seconds, as it is done in the stomp-websocket library
@@ -253,30 +273,30 @@ export default {
     },
     mockBackendMessage(type: string) {
       const requestUrl = this.backendUrl + '/api/v1/users/' + this.userIdOrActorAccountName + '/chatbot-messages';
-      let baseRequest = {}
+      let baseRequest = {};
       if (type === 'previous_messages') {
         baseRequest = {
           parameters: [
             {
-              key: "previous_messages",
+              key: 'previous_messages',
               value: [
                 {
-                  aId: "2EA95788-7ABA-4DDD-B3BA-E7EB574685BD",
-                  aoId: "BC2340BA-1623-41F8-9C0D-B4373956E6EC",
+                  aId: '2EA95788-7ABA-4DDD-B3BA-E7EB574685BD',
+                  aoId: 'BC2340BA-1623-41F8-9C0D-B4373956E6EC',
                   parameters: [
                     {
-                      key: "message",
-                      value: "Hallo, ich bin Veri :)"
+                      key: 'message',
+                      value: 'Hallo, ich bin Veri :)'
                     }
                   ]
                 },
                 {
-                  aId: "2EA95788-7ABA-4DDD-B3BA-E7EB574685BR",
-                  aoId: "BC2340BA-1623-41F8-9C0D-B4373956E6ED",
+                  aId: '2EA95788-7ABA-4DDD-B3BA-E7EB574685BR',
+                  aoId: 'BC2340BA-1623-41F8-9C0D-B4373956E6ED',
                   parameters: [
                     {
-                      key: "message_response",
-                      value: "Hi Veri!"
+                      key: 'message_response',
+                      value: 'Hi Veri!'
                     }
                   ]
                 }
@@ -286,16 +306,16 @@ export default {
         };
       } else if (type === 'greeting') {
         baseRequest = {
-          aId: "2EA95788-7ABA-4DDD-B3BA-E7EB574685BD",
-          aoId: "BC2340BA-1623-41F8-9C0D-B4373956E6EC",
-          messageId: "6A4B1434-2CD1-40D5-87DE-B15D17876869",
+          aId: '2EA95788-7ABA-4DDD-B3BA-E7EB574685BD',
+          aoId: 'BC2340BA-1623-41F8-9C0D-B4373956E6EC',
+          messageId: '6A4B1434-2CD1-40D5-87DE-B15D17876869',
           parameters: [
             {
-              key: "message",
-              value: "Willkommen zurück"
+              key: 'message',
+              value: 'Willkommen zurück'
             }
           ]
-        }
+        };
       }
       // Send a mocking request to the backend
       const request = {
@@ -388,12 +408,6 @@ export default {
           }, 1);
         }, 300);
       }
-    },
-    updateChatbotNotesVisible(notesVisible: boolean) {
-      this.displayStore.changeNotesOpen(notesVisible);
-    },
-    updateNotes(notes: string) {
-      this.notesStore.setNotes(notes);
     }
   }
 };
@@ -418,8 +432,6 @@ export default {
       @resetMessageHistory="messageExchangeStore.clearItems()"
       @selectOption="selectOption"
       @updateMessageHistory="updateMessageHistory"
-      @updateChatbotNotesVisible="updateChatbotNotesVisible"
-      @updateNotes="updateNotes"
       v-else
     />
   </main>
