@@ -152,14 +152,11 @@ export default {
             } else if (this.checkForKeyPresence(receivedMessage, 'options')) {
               this.messageExchangeStore.addItem(receivedMessage);
               this.acknowledgeMessage(receivedMessage);
+            } else if (this.checkForKeyPresence(receivedMessage, 'message')) {
+              this.messageExchangeStore.addItem(receivedMessage);
+              this.acknowledgeMessage(receivedMessage);
             }
-            // else if (this.checkForKeyPresence(receivedMessage, 'message')) {
-            //   this.messageExchangeStore.addItem(receivedMessage);
-            //   this.acknowledgeMessage(receivedMessage);
-            // }
             this.updateDialogScroll();
-            // const messageToPush: AssistanceObjectCommunication = JSON.parse(message);
-            // this.messageHistoryStore.addItem(messageToPush);
           }
         };
 
@@ -202,12 +199,13 @@ export default {
           // the backend requests old messages from VSG and send then to the chatbot plugin
           this.mockBackendMessage('previous_messages');
           // if the user has just logged in, the backend will send a greeting message
-          if (this.hasJustLoggedIn) {
-            // Delay it some time to make it look more realistic
-            setTimeout(() => {
-              this.mockBackendMessage('greeting');
-            }, 1500);
-          }
+          // TODO: Comment in later, if this gets relevant again
+          // if (this.hasJustLoggedIn) {
+          //   // Delay it some time to make it look more realistic
+          //   setTimeout(() => {
+          //     this.mockBackendMessage('greeting');
+          //   }, 1500);
+          // }
         }
       }, 250);
     },
@@ -286,17 +284,7 @@ export default {
                   parameters: [
                     {
                       key: 'message',
-                      value: 'Hallo, ich bin Veri :)'
-                    }
-                  ]
-                },
-                {
-                  aId: '2EA95788-7ABA-4DDD-B3BA-E7EB574685BR',
-                  aoId: 'BC2340BA-1623-41F8-9C0D-B4373956E6ED',
-                  parameters: [
-                    {
-                      key: 'message_response',
-                      value: 'Hi Veri!'
+                      value: 'Hallo. Mein Name ist Veri und ich bin Dein Lernassistent. Ich unterstütze Dich beim Lernen und gebe Dir Rückmeldung und hilfreiche Tipps.'
                     }
                   ]
                 }
