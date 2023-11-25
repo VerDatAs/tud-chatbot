@@ -15,6 +15,10 @@ export default {
     message: {
       type: AssistanceObjectCommunication,
       required: true
+    },
+    isLastItem: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['selectOption'],
@@ -25,9 +29,10 @@ export default {
     },
     selectOption(option: Option) {
       const responseOption: Option = new Option('options_response', option.key);
-      const responseObject: AssistanceObjectCommunication = new AssistanceObjectCommunication([responseOption]);
+      const responseObject: AssistanceObjectCommunication = new AssistanceObjectCommunication();
       responseObject.aId = this.message.aId;
       responseObject.aoId = this.message.aoId;
+      responseObject.parameters = [responseOption];
       this.$emit('selectOption', responseObject);
     }
   }
@@ -45,6 +50,7 @@ export default {
       v-for="option in parameterValue(message, 'options')"
       @click="selectOption(option)"
       :key="message.aId + option.key"
+      :disabled="!isLastItem"
     >
       {{ option.value }}
     </button>

@@ -13,10 +13,13 @@ export default {
     hasScrolled: false as boolean,
     wasScrolledAutomatically: false as boolean,
     incomingMessageTypes: ['message', 'options'],
-    outgoingMessageTypes: ['message_response']
+    outgoingMessageTypes: ['message_response', 'options_response']
   }),
   props: {
-    messageExchange: Array<AssistanceObjectCommunication>,
+    messageExchange: {
+      type: Array<AssistanceObjectCommunication>,
+      default: []
+    },
     messageHistory: Array<AssistanceObjectCommunication>,
     botImagePath: String,
     notesVisible: Boolean,
@@ -84,11 +87,10 @@ export default {
         this.messageToSend = '';
         return;
       }
-      const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication([
-        new AssistanceParameter('message_response', this.messageToSend)
-      ]);
+      const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
       messageToSend.aId = '2EA95788-7ABA-4DDD-B3BA-E7EB344685BD';
       messageToSend.aoId = 'BC2340BA-1623-41F8-9BVD-B4373956E6EC';
+      messageToSend.parameters = [ new AssistanceParameter('message_response', this.messageToSend) ];
       // TODO: Send message via WebSocket (input as Prop)
       this.$emit('updateMessageHistory', messageToSend);
       // Reset message input
@@ -102,6 +104,9 @@ export default {
     },
     selectOption(optionResponse: AssistanceObjectCommunication) {
       this.$emit('selectOption', optionResponse);
+    },
+    findRelatedOptions(responseOption: AssistanceObjectCommunication) {
+      return this.messageExchange.find((message) => message.aId === responseOption.aId && message.aoId === responseOption.aoId && this.parametersIncludeKey(message, 'options'));
     },
     // Retrieved from https://stackoverflow.com/a/18614545
     updateScroll() {
@@ -149,12 +154,13 @@ export default {
       <div class="scrolledButNewMessages" v-if="hasScrolledButReceivedNewMessages" @click="scrollDown">
         New messages available!
       </div>
-      <div id="messageExchange" :style="hasScrolledButReceivedNewMessages ? 'margin-top: 50px;' : ''">
+      <div id="messageExchange" :style="hasScrolledButReceivedNewMessages ? 'margin-top: 50px;' : ''" v-if="messageExchange.length > 0">
         <div v-for="(message, messageIndex) in messageExchange" :key="'message' + messageIndex">
           <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="isIncomingMessage(message)">
             <ChatbotOptionsMessage
               :bot-image-path="botImagePath"
               :message="message"
+              :is-last-item="messageIndex === messageExchange.length - 1"
               v-if="parametersIncludeKey(message, 'options')"
               @select-option="selectOption"
             />
@@ -170,6 +176,11 @@ export default {
             <ChatbotTextMessage
               :text="parameterValue(message, 'message_response')"
               v-if="parametersIncludeKey(message, 'message_response')"
+            />
+            <ChatbotTextMessage
+              :related-options="findRelatedOptions(message)"
+              :text="parameterValue(message, 'options_response')"
+              v-else-if="parametersIncludeKey(message, 'options_response')"
             />
             <div v-else>-- none supported key --</div>
           </div>

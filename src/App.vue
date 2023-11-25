@@ -18,6 +18,8 @@ const BYTES = {
   NULL: '\x00'
 };
 
+const webSocketDestination = '/user/queue/chat';
+
 export default {
   data: () => ({
     hasJustLoggedIn: true as boolean,
@@ -112,7 +114,7 @@ export default {
         this.webSocket.onopen = () => {
           this.webSocket.send('CONNECT\ntoken:' + this.userToken + '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0');
           // there is only one destination that needs to be subscribed: /user/queue/chat
-          this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:/user/queue/chat\n\n\0');
+          this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:' + webSocketDestination + '\n\n\0');
           // potentially send wake-up message
           this.handleWakeUpMessageSending(switchedPage);
         };
@@ -180,7 +182,7 @@ export default {
       // Delay message until the WebSocket is connected
       setTimeout(() => {
         if (switchedPage) {
-          const message = {
+          const message: AssistanceObjectCommunication = {
             parameters: [
               {
                 key: 'just_logged_in',
@@ -188,14 +190,7 @@ export default {
               }
             ]
           };
-          const messageAsJson = JSON.stringify(message);
-          this.webSocket.send(
-            'MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' +
-              messageAsJson.length +
-              '\n\n' +
-              messageAsJson +
-              '\0'
-          );
+          this.sendWebSocketMessage(message);
           // the backend requests old messages from VSG and send then to the chatbot plugin
           this.mockBackendMessage('previous_messages');
           // if the user has just logged in, the backend will send a greeting message
@@ -209,32 +204,30 @@ export default {
         }
       }, 250);
     },
+    // handle message sending over the WebSocket
+    sendWebSocketMessage(messageToSend: AssistanceObjectCommunication) {
+      const messageAsJson = JSON.stringify(messageToSend);
+      // TODO: Remove /app as soon as the backend was adjusted
+      this.webSocket.send(
+        'MESSAGE\ndestination:/app' + webSocketDestination + '\ncontent-length:' +
+        messageAsJson.length +
+        '\n\n' +
+        messageAsJson +
+        '\0'
+      );
+      // TODO: Remove as soon as the backend was adjusted
+      if (messageToSend?.parameters?.find((param) => param.key === 'options_response')) {
+        this.messageExchangeStore.addItem(messageToSend);
+      }
+    },
     // acknowledge the reception of the message
     acknowledgeMessage(receivedMessage: AssistanceObjectCommunication) {
       if (receivedMessage?.messageId) {
-        const acknowledgeMessage = {
+        const acknowledgeMessage: AssistanceObjectCommunication = {
           messageId: receivedMessage.messageId
         };
-        const messageAsJson = JSON.stringify(acknowledgeMessage);
-        this.webSocket.send(
-          'MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' +
-            messageAsJson.length +
-            '\n\n' +
-            messageAsJson +
-            '\0'
-        );
+        this.sendWebSocketMessage(acknowledgeMessage);
       }
-    },
-    // an option has been selected
-    selectOption(optionResponse: AssistanceObjectCommunication) {
-      const messageAsJson = JSON.stringify(optionResponse);
-      this.webSocket.send(
-        'MESSAGE\ndestination:/app/user/queue/chat\ncontent-length:' +
-          messageAsJson.length +
-          '\n\n' +
-          messageAsJson +
-          '\0'
-      );
     },
     initializePongMessageInterval() {
       // Send pong every 3 seconds, as it is done in the stomp-websocket library
@@ -418,7 +411,7 @@ export default {
       :notes="notesStore.text"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       @resetMessageHistory="messageExchangeStore.clearItems()"
-      @selectOption="selectOption"
+      @selectOption="sendWebSocketMessage"
       @updateMessageHistory="updateMessageHistory"
       v-else
     />
