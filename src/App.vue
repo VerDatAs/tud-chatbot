@@ -39,7 +39,7 @@ export default {
     messageExchangeStore: useMessageExchangeStore(),
     messageHistoryStore: useMessageHistoryStore(),
     incomingMessageTypes: ['message', 'options', 'group'],
-    outgoingMessageTypes: ['message_response', 'options_response'],
+    outgoingMessageTypes: ['message_response', 'options_response', 'assistance_state_update_response'],
     pongInterval: 0 as number
   }),
   components: {

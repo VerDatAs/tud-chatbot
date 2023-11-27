@@ -1,5 +1,6 @@
 <script lang="ts">
 import ChatbotGroupFormationMessage from '@/components/dialog/ChatbotGroupFormationMessage.vue';
+import ChatbotGroupTerminationMessage from '@/components/dialog/ChatbotGroupTerminationMessage.vue';
 import ChatbotNotes from '@/components/dialog/ChatbotNotes.vue';
 import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
 import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
@@ -38,6 +39,7 @@ export default {
   },
   components: {
     ChatbotGroupFormationMessage,
+    ChatbotGroupTerminationMessage,
     ChatbotNotes,
     ChatbotOptionsMessage,
     ChatbotTextMessage,
@@ -95,7 +97,7 @@ export default {
         return;
       }
       // check message with removed linebreaks and trimmed whitespaces to be empty
-      if (this.messageToSend.replace(/(\r\n|\n|\r)/gm, '').trimEnd() === '') {
+      else if (this.messageToSend.replace(/(\r\n|\n|\r)/gm, '').trimEnd() === '') {
         this.messageToSend = '';
         return;
       }
@@ -114,6 +116,14 @@ export default {
         // remove possible leading whitespaces
         remainingMessage = remainingMessage.trimStart();
         messageToSend.parameters = [new AssistanceParameter('message_response', remainingMessage)];
+      } else if (
+        this.groups.length > 0 &&
+        (this.messageToSend === 'TERMINATE' || this.messageToSend === 'TERMINATE\n')
+      ) {
+        const groupToTerminate = this.groups[0];
+        messageToSend.aId = groupToTerminate.aId;
+        messageToSend.aoId = groupToTerminate.aoId;
+        messageToSend.parameters = [new AssistanceParameter('assistance_state_update_response', 'completed')];
       } else {
         // TODO: Implement simple intent matching (detect correct type or sent as "incorrect" type message)
         // For the moment, do not send any aId and aoId
@@ -134,12 +144,12 @@ export default {
     selectOption(optionResponse: AssistanceObjectCommunication) {
       this.$emit('sendAssistanceObject', optionResponse);
     },
-    findRelatedOptions(responseOption: AssistanceObjectCommunication) {
+    findRelatedItems(responseOption: AssistanceObjectCommunication, key: string) {
       return this.messageExchange.find(
         (message) =>
           message.aId === responseOption.aId &&
           message.aoId === responseOption.aoId &&
-          this.parametersIncludeKey(message, 'options')
+          this.parametersIncludeKey(message, key)
       );
     },
     // Retrieved from https://stackoverflow.com/a/18614545
@@ -227,8 +237,13 @@ export default {
             <ChatbotTextMessage
               :assistance-object="message"
               :key-to-display="'options_response'"
-              :related-options="findRelatedOptions(message)"
+              :related-options="findRelatedItems(message, 'options')"
               v-else-if="parametersIncludeKey(message, 'options_response')"
+            />
+            <ChatbotGroupTerminationMessage
+              :assistance-object="message"
+              :related-group="findRelatedItems(message, 'group')"
+              v-else-if="parametersIncludeKey(message, 'assistance_state_update_response')"
             />
             <div v-else>-- none supported key --</div>
           </div>
