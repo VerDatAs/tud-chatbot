@@ -6,7 +6,8 @@ export default {
   data: () => ({
     displayStore: useDisplayStore(),
     notesStore: useNotesStore(),
-    notesPlaceholder: 'Notizen können hier eingegeben werden:\n\n* Definition des Problems,\n* Analyse der Ursache,\n* Vorschläge zur Lösung,\n* Bewertung der Vorschläge.'
+    notesPlaceholder:
+      'Notizen können hier eingegeben werden:\n\n* Definition des Problems,\n* Analyse der Ursache,\n* Vorschläge zur Lösung,\n* Bewertung der Vorschläge.'
   }),
   props: {
     notes: String,

@@ -4,6 +4,7 @@ import ChatbotWidget from '@/components/ChatbotWidget.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
 import { useDisplayStore } from '@/stores/display';
+import { useGroupInformationStore } from '@/stores/groupInformation';
 import { useNotesStore } from '@/stores/notes';
 import { useMessageExchangeStore } from '@/stores/messageExchange';
 import { useMessageHistoryStore } from '@/stores/messageHistory';
@@ -32,10 +33,13 @@ export default {
     // TODO: Fix type
     webSocket: null as any,
     displayStore: useDisplayStore(),
+    groupInformationStore: useGroupInformationStore(),
     notesStore: useNotesStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
     messageHistoryStore: useMessageHistoryStore(),
+    incomingMessageTypes: ['message', 'options', 'group'],
+    outgoingMessageTypes: ['message_response', 'options_response'],
     pongInterval: 0 as number
   }),
   components: {
@@ -154,6 +158,11 @@ export default {
             } else if (this.checkForKeyPresence(receivedMessage, 'options')) {
               this.messageExchangeStore.addItem(receivedMessage);
               this.acknowledgeMessage(receivedMessage);
+            } else if (this.checkForKeyPresence(receivedMessage, 'group')) {
+              // store group in both messageExchange and groupInformation store
+              this.messageExchangeStore.addItem(receivedMessage);
+              this.groupInformationStore.addItem(receivedMessage);
+              this.acknowledgeMessage(receivedMessage);
             } else if (this.checkForKeyPresence(receivedMessage, 'message')) {
               this.messageExchangeStore.addItem(receivedMessage);
               this.acknowledgeMessage(receivedMessage);
@@ -209,15 +218,17 @@ export default {
       const messageAsJson = JSON.stringify(messageToSend);
       // TODO: Remove /app as soon as the backend was adjusted
       this.webSocket.send(
-        'MESSAGE\ndestination:/app' + webSocketDestination + '\ncontent-length:' +
-        messageAsJson.length +
-        '\n\n' +
-        messageAsJson +
-        '\0'
+        'MESSAGE\ndestination:/app' +
+          webSocketDestination +
+          '\ncontent-length:' +
+          messageAsJson.length +
+          '\n\n' +
+          messageAsJson +
+          '\0'
       );
-      // TODO: Remove as soon as the backend was adjusted
-      if (messageToSend?.parameters?.find((param) => param.key === 'options_response')) {
+      if (messageToSend?.parameters?.find((param) => this.outgoingMessageTypes.includes(param.key))) {
         this.messageExchangeStore.addItem(messageToSend);
+        this.updateDialogScroll();
       }
     },
     // acknowledge the reception of the message
@@ -260,7 +271,7 @@ export default {
     },
     updateDialogScroll() {
       // https://stackoverflow.com/a/76297364/3623608
-      (this.$refs.chatbotDialog as typeof ChatbotDialog).updateScroll();
+      (this.$refs.chatbotDialog as typeof ChatbotDialog)?.updateScroll();
     },
     mockBackendMessage(type: string) {
       const requestUrl = this.backendUrl + '/api/v1/users/' + this.userIdOrActorAccountName + '/chatbot-messages';
@@ -277,7 +288,8 @@ export default {
                   parameters: [
                     {
                       key: 'message',
-                      value: 'Hallo. Mein Name ist Veri und ich bin Dein Lernassistent. Ich unterstütze Dich beim Lernen und gebe Dir Rückmeldung und hilfreiche Tipps.'
+                      value:
+                        'Hallo. Mein Name ist Veri und ich bin Dein Lernassistent. Ich unterstütze Dich beim Lernen und gebe Dir Rückmeldung und hilfreiche Tipps.'
                     }
                   ]
                 }
@@ -365,8 +377,9 @@ export default {
         console.log(data);
       });
     },
-    updateMessageHistory(messageSent: AssistanceObjectCommunication) {
-      this.messageHistoryStore.addItem(messageSent);
+    updateMessageExchange(messageSent: AssistanceObjectCommunication) {
+      this.sendWebSocketMessage(messageSent);
+      this.messageExchangeStore.addItem(messageSent);
       this.updateDialogScroll();
     },
     updateChatbotDialogVisible(dialogVisible: boolean) {
@@ -404,15 +417,17 @@ export default {
     />
     <ChatbotDialog
       ref="chatbotDialog"
-      :messageExchange="messageExchangeStore.items"
-      :messageHistory="messageHistoryStore.items"
-      :botImagePath="botImagePath"
-      :notesVisible="displayStore.notesOpen"
+      :bot-image-path="botImagePath"
+      :groups="groupInformationStore.items"
+      :incoming-message-types="incomingMessageTypes"
+      :message-exchange="messageExchangeStore.items"
+      :message-history="messageHistoryStore.items"
+      :notes-visible="displayStore.notesOpen"
       :notes="notesStore.text"
+      :outgoing-message-types="outgoingMessageTypes"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       @resetMessageHistory="messageExchangeStore.clearItems()"
-      @selectOption="sendWebSocketMessage"
-      @updateMessageHistory="updateMessageHistory"
+      @sendAssistanceObject="sendWebSocketMessage"
       v-else
     />
   </main>

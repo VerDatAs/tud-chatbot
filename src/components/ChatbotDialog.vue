@@ -1,4 +1,5 @@
 <script lang="ts">
+import ChatbotGroupFormationMessage from '@/components/dialog/ChatbotGroupFormationMessage.vue';
 import ChatbotNotes from '@/components/dialog/ChatbotNotes.vue';
 import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
 import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
@@ -11,21 +12,32 @@ export default {
     messageToSend: '' as string,
     messageUpdate: false as boolean,
     hasScrolled: false as boolean,
-    wasScrolledAutomatically: false as boolean,
-    incomingMessageTypes: ['message', 'options'],
-    outgoingMessageTypes: ['message_response', 'options_response']
+    wasScrolledAutomatically: false as boolean
   }),
   props: {
+    botImagePath: String,
+    groups: {
+      type: Array<AssistanceObjectCommunication>,
+      default: []
+    },
     messageExchange: {
       type: Array<AssistanceObjectCommunication>,
       default: []
     },
     messageHistory: Array<AssistanceObjectCommunication>,
-    botImagePath: String,
     notesVisible: Boolean,
-    notes: String
+    notes: String,
+    incomingMessageTypes: {
+      type: Array<String>,
+      default: []
+    },
+    outgoingMessageTypes: {
+      type: Array<String>,
+      default: []
+    }
   },
   components: {
+    ChatbotGroupFormationMessage,
     ChatbotNotes,
     ChatbotOptionsMessage,
     ChatbotTextMessage,
@@ -87,12 +99,29 @@ export default {
         this.messageToSend = '';
         return;
       }
+      // prepare message to be sent
       const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
-      messageToSend.aId = '2EA95788-7ABA-4DDD-B3BA-E7EB344685BD';
-      messageToSend.aoId = 'BC2340BA-1623-41F8-9BVD-B4373956E6EC';
-      messageToSend.parameters = [ new AssistanceParameter('message_response', this.messageToSend) ];
-      // TODO: Send message via WebSocket (input as Prop)
-      this.$emit('updateMessageHistory', messageToSend);
+      // check if message starts with @group and a group was formed previously -> group message
+      if (this.messageToSend.trimStart().startsWith('@group') && this.groups.length > 0) {
+        const groupToInform = this.groups[0];
+        messageToSend.aId = groupToInform.aId;
+        messageToSend.aoId = groupToInform.aoId;
+        let remainingMessage = this.messageToSend.trimStart();
+        // remove leading @group[:] prefix
+        remainingMessage = this.messageToSend.trimStart().startsWith('@group:')
+          ? this.messageToSend.replace('@group:', '')
+          : this.messageToSend.replace('@group', '');
+        // remove possible leading whitespaces
+        remainingMessage = remainingMessage.trimStart();
+        messageToSend.parameters = [new AssistanceParameter('message_response', remainingMessage)];
+      } else {
+        // TODO: Implement simple intent matching (detect correct type or sent as "incorrect" type message)
+        // For the moment, do not send any aId and aoId
+        // messageToSend.aId = '2EA95788-7ABA-4DDD-B3BA-E7EB344685BD';
+        // messageToSend.aoId = 'BC2340BA-1623-41F8-9BVD-B4373956E6EC';
+        messageToSend.parameters = [new AssistanceParameter('message_response', this.messageToSend)];
+      }
+      this.$emit('sendAssistanceObject', messageToSend);
       // Reset message input
       setTimeout(() => {
         this.messageToSend = '';
@@ -103,10 +132,15 @@ export default {
       return message.parameters?.find((param) => param.key === key)?.value ?? '';
     },
     selectOption(optionResponse: AssistanceObjectCommunication) {
-      this.$emit('selectOption', optionResponse);
+      this.$emit('sendAssistanceObject', optionResponse);
     },
     findRelatedOptions(responseOption: AssistanceObjectCommunication) {
-      return this.messageExchange.find((message) => message.aId === responseOption.aId && message.aoId === responseOption.aoId && this.parametersIncludeKey(message, 'options'));
+      return this.messageExchange.find(
+        (message) =>
+          message.aId === responseOption.aId &&
+          message.aoId === responseOption.aoId &&
+          this.parametersIncludeKey(message, 'options')
+      );
     },
     // Retrieved from https://stackoverflow.com/a/18614545
     updateScroll() {
@@ -154,32 +188,46 @@ export default {
       <div class="scrolledButNewMessages" v-if="hasScrolledButReceivedNewMessages" @click="scrollDown">
         New messages available!
       </div>
-      <div id="messageExchange" :style="hasScrolledButReceivedNewMessages ? 'margin-top: 50px;' : ''" v-if="messageExchange.length > 0">
+      <div
+        id="messageExchange"
+        :style="hasScrolledButReceivedNewMessages ? 'margin-top: 50px;' : ''"
+        v-if="messageExchange.length > 0"
+      >
         <div v-for="(message, messageIndex) in messageExchange" :key="'message' + messageIndex">
           <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="isIncomingMessage(message)">
             <ChatbotOptionsMessage
               :bot-image-path="botImagePath"
-              :message="message"
+              :assistance-object="message"
               :is-last-item="messageIndex === messageExchange.length - 1"
               v-if="parametersIncludeKey(message, 'options')"
               @select-option="selectOption"
             />
-            <ChatbotTextMessage
+            <ChatbotGroupFormationMessage
+              :assistance-object="message"
               :bot-image-path="botImagePath"
+              v-else-if="parametersIncludeKey(message, 'group')"
+            />
+            <ChatbotTextMessage
+              :assistance-object="message"
+              :bot-image-path="botImagePath"
+              :groups="groups"
               :incoming="true"
-              :text="parameterValue(message, 'message')"
+              :key-to-display="'message'"
               v-else-if="parametersIncludeKey(message, 'message')"
             />
             <div v-else>-- none supported key --</div>
           </div>
           <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
             <ChatbotTextMessage
-              :text="parameterValue(message, 'message_response')"
+              :assistance-object="message"
+              :groups="groups"
+              :key-to-display="'message_response'"
               v-if="parametersIncludeKey(message, 'message_response')"
             />
             <ChatbotTextMessage
+              :assistance-object="message"
+              :key-to-display="'options_response'"
               :related-options="findRelatedOptions(message)"
-              :text="parameterValue(message, 'options_response')"
               v-else-if="parametersIncludeKey(message, 'options_response')"
             />
             <div v-else>-- none supported key --</div>
