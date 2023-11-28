@@ -35,6 +35,9 @@ export default {
     }
   },
   computed: {
+    isAssistanceObjectUpdateCompleted() {
+      return !!this.assistanceObject?.parameters?.find((param) => param.key === 'assistance_state_update' && param.value === 'completed');
+    },
     numberOfGroupMembers() {
       // exemplary content of "this.groups[0]":
       // {"aId":"...", "aoId":"...","parameters":[
@@ -86,6 +89,6 @@ export default {
   />
   <div class="messageContainer">
     <span v-if="sentMessageToGroup()" class="fw-bold">@group: </span>
-    <span>{{ getAssistanceObjectText() }}</span>
+    <span :class="{ 'fst-italic': isAssistanceObjectUpdateCompleted }">{{ getAssistanceObjectText() }}</span>
   </div>
 </template>

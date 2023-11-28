@@ -38,7 +38,7 @@ export default {
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
     messageHistoryStore: useMessageHistoryStore(),
-    incomingMessageTypes: ['message', 'options', 'group'],
+    incomingMessageTypes: ['message', 'options', 'group', 'assistance_state_update'],
     outgoingMessageTypes: ['message_response', 'options_response', 'assistance_state_update_response'],
     pongInterval: 0 as number
   }),
@@ -163,6 +163,13 @@ export default {
               this.messageExchangeStore.addItem(receivedMessage);
               this.groupInformationStore.addItem(receivedMessage);
               this.acknowledgeMessage(receivedMessage);
+            } else if (this.checkForKeyPresence(receivedMessage, 'assistance_state_update')) {
+              this.messageExchangeStore.addItem(receivedMessage);
+              // potentially remove item from groupInformationStore
+              if (this.parameterValue(receivedMessage, 'assistance_state_update') === 'completed') {
+                this.groupInformationStore.removeItem(receivedMessage.aId, receivedMessage.aoId);
+              }
+              this.acknowledgeMessage(receivedMessage);
             } else if (this.checkForKeyPresence(receivedMessage, 'message')) {
               this.messageExchangeStore.addItem(receivedMessage);
               this.acknowledgeMessage(receivedMessage);
@@ -185,6 +192,10 @@ export default {
     },
     checkForKeyPresence(assistanceObject: AssistanceObjectCommunication, key: string): AssistanceParameter | undefined {
       return assistanceObject?.parameters?.find((param) => param.key === key);
+    },
+    parameterValue(message: AssistanceObjectCommunication, key: string) {
+      // Difference between ?? and || -> https://stackoverflow.com/questions/66883181/difference-between-and-operators
+      return message.parameters?.find((param) => param.key === key)?.value ?? '';
     },
     // When switching the page, send information about having just logged in or not
     handleWakeUpMessageSending(switchedPage: boolean) {

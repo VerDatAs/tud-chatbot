@@ -217,6 +217,7 @@ export default {
               :group-initiation="true"
               v-else-if="parametersIncludeKey(message, 'group')"
             />
+            <!-- this is also used for 'assistance_state_update' messages, as those do not require a separate case -->
             <ChatbotTextMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
