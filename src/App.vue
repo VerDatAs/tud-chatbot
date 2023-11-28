@@ -127,7 +127,7 @@ export default {
         this.webSocket.onmessage = (event: any) => {
           // console.log('incoming message event', event);
           // extract content between \n\n and \0
-          const message = event.data.substring(event.data.indexOf('\n\n') + 2, event.data.lastIndexOf('\0'));
+          const message: string = event.data.substring(event.data.indexOf('\n\n') + 2, event.data.lastIndexOf('\0'));
           // verdatas-backend sends JSON data in body of STOMP messages that can be deserialized
           // If no message ('') is received, it is the connect message
           if (!message) {
@@ -142,16 +142,26 @@ export default {
           // Other, "real" messages
           else {
             // TODO: Due to the message mocking, the message has to be parsed again -> need to be fixed
-            // Currently, the object send by /chatbot-messages and /sendAssistanceTest are quite different
-            const receivedMessage: AssistanceObjectCommunication = JSON.parse(message).msg
+            // currently, the objects sent by /chatbot-messages and /sendAssistanceTest are quite different
+            const receivedMessageParsed: AssistanceObjectCommunication = JSON.parse(message).msg
               ? JSON.parse(JSON.parse(message).msg)
               : JSON.parse(message);
-            console.log('received message', receivedMessage);
+            // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
+            // check, if the type casting was done properly
+            // console.log(receivedMessage instanceof AssistanceObjectCommunication);
+            const receivedMessage = Object.assign(new AssistanceObjectCommunication(), receivedMessageParsed);
+
             if (!receivedMessage?.parameters) {
               return;
             }
             if (this.checkForKeyPresence(receivedMessage, 'previous_messages')) {
-              this.messageExchangeStore.setItems(this.checkForKeyPresence(receivedMessage, 'previous_messages')?.value);
+              // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
+              const previousMessagesArray: AssistanceObjectCommunication[] = this.checkForKeyPresence(receivedMessage, 'previous_messages')?.value;
+              const previousMessages: AssistanceObjectCommunication[] = [];
+              previousMessagesArray.forEach((previousMessage: AssistanceObjectCommunication) => {
+                previousMessages.push(Object.assign(new AssistanceObjectCommunication(), previousMessage));
+              })
+              this.messageExchangeStore.setItems(previousMessages);
               // If the user has just logged in, display the chatbot dialog
               if (this.hasJustLoggedIn) {
                 this.updateChatbotDialogVisible(true);
