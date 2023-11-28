@@ -93,7 +93,7 @@ export default {
     v-if="incoming && botImagePath"
   />
   <div class="messageContainer">
-    <span v-if="sentMessageToGroup()" style="font-weight: 800">@group:</span>
+    <span v-if="sentMessageToGroup()" class="fw-bold">@group: </span>
     <span>{{ getAssistanceObjectText() }}</span>
   </div>
 </template>

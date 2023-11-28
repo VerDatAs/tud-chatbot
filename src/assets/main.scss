@@ -4,6 +4,15 @@
   box-sizing: border-box;
 }
 
+// TODO: For the moment, copy some Bootstrap utility classes
+.text-decoration-underline {
+  text-decoration: underline;
+}
+
+.fw-bold {
+  font-weight: 700;
+}
+
 .animate__animated {
   &.animate__fadeInRight,
   &.animate__fadeOutRight {

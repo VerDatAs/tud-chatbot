@@ -1,6 +1,5 @@
 <script lang="ts">
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
-import { Option } from '@/components/types/option';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 
 export default {
@@ -8,13 +7,19 @@ export default {
     ChatbotIcon
   },
   props: {
+    assistanceObject: {
+      type: AssistanceObjectCommunication,
+      required: true,
+      default: null
+    },
     botImagePath: {
       type: String,
       required: false
     },
-    assistanceObject: {
-      type: AssistanceObjectCommunication,
-      required: true
+    groupInitiation: {
+      type: Boolean,
+      required: false,
+      default: true
     }
   },
   methods: {
@@ -29,10 +34,14 @@ export default {
 <template>
   <ChatbotIcon :botImagePath="botImagePath" v-if="botImagePath" />
   <div class="messageContainer">
-    {{ parameterValue(assistanceObject, 'message') }}
-    <hr />
+    <template v-if="groupInitiation">
+      {{ parameterValue(assistanceObject, 'message') }}
+      <hr />
+    </template>
     <div class="groupInformation" v-if="parameterValue(assistanceObject, 'group')">
-      <span style="text-decoration: underline">Gruppeninformationen:</span>
+      <span class="text-decoration-underline">
+        {{ groupInitiation ? 'Gruppeninformationen' : 'Abbruch der Gruppenkollaboration' }}{{ assistanceObject ? ':' : '' }}
+      </span>
       <ul>
         <li v-if="parameterValue(assistanceObject, 'group')?.find((ao: any) => ao.key === 'groupId')">
           Gruppen-ID: {{ parameterValue(assistanceObject, 'group').find((ao: any) => ao.key === 'groupId').value }}
@@ -43,10 +52,18 @@ export default {
         </li>
       </ul>
     </div>
-    <hr />
-    <span style="text-decoration: underline">Hinweis:</span>
-    Benutze
-    <span style="font-weight: 800">@group</span>
-    um eine Nachricht an deine Gruppe zu senden.
+    <template v-if="groupInitiation">
+      <hr />
+      <span class="text-decoration-underline">Hinweis:</span>
+      Benutze
+      <span class="fw-bold">@group</span>
+      um eine Nachricht an deine Gruppe zu senden.
+    </template>
   </div>
 </template>
+
+<style lang="scss" scoped>
+  ul {
+    text-align: left;
+  }
+</style>

@@ -1,6 +1,5 @@
 <script lang="ts">
-import ChatbotGroupFormationMessage from '@/components/dialog/ChatbotGroupFormationMessage.vue';
-import ChatbotGroupTerminationMessage from '@/components/dialog/ChatbotGroupTerminationMessage.vue';
+import ChatbotGroupStatusMessage from '@/components/dialog/ChatbotGroupStatusMessage.vue';
 import ChatbotNotes from '@/components/dialog/ChatbotNotes.vue';
 import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
 import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
@@ -38,8 +37,7 @@ export default {
     }
   },
   components: {
-    ChatbotGroupFormationMessage,
-    ChatbotGroupTerminationMessage,
+    ChatbotGroupStatusMessage,
     ChatbotNotes,
     ChatbotOptionsMessage,
     ChatbotTextMessage,
@@ -212,9 +210,10 @@ export default {
               v-if="parametersIncludeKey(message, 'options')"
               @select-option="selectOption"
             />
-            <ChatbotGroupFormationMessage
+            <ChatbotGroupStatusMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
+              :group-initiation="true"
               v-else-if="parametersIncludeKey(message, 'group')"
             />
             <ChatbotTextMessage
@@ -240,9 +239,9 @@ export default {
               :related-options="findRelatedItems(message, 'options')"
               v-else-if="parametersIncludeKey(message, 'options_response')"
             />
-            <ChatbotGroupTerminationMessage
-              :assistance-object="message"
-              :related-group="findRelatedItems(message, 'group')"
+            <ChatbotGroupStatusMessage
+              :assistance-object="findRelatedItems(message, 'group')"
+              :group-initiation="false"
               v-else-if="parametersIncludeKey(message, 'assistance_state_update_response')"
             />
             <div v-else>-- none supported key --</div>
