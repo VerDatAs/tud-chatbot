@@ -12,4 +12,4 @@ const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);
 app.use(pinia);
 
-app.mount('#app');
+app.mount('#chatbotApp');
