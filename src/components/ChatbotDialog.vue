@@ -102,6 +102,7 @@ export default {
       // prepare message to be sent
       const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
       // check if message starts with @group and a group was formed previously -> group message
+      // in this case, this.groups has to be used to find only active groups
       if (this.messageToSend.trimStart().startsWith('@group') && this.groups.length > 0) {
         const groupToInform = this.groups[0];
         messageToSend.aId = groupToInform.aId;
@@ -219,9 +220,9 @@ export default {
             <ChatbotTextMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
-              :groups="groups"
               :incoming="true"
               :key-to-display="'message'"
+              :related-group="findRelatedItems(message, 'group')"
               v-else-if="parametersIncludeKey(message, 'message')"
             />
             <div v-else>-- none supported key --</div>
@@ -229,8 +230,8 @@ export default {
           <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
             <ChatbotTextMessage
               :assistance-object="message"
-              :groups="groups"
               :key-to-display="'message_response'"
+              :related-group="findRelatedItems(message, 'group')"
               v-if="parametersIncludeKey(message, 'message_response')"
             />
             <ChatbotTextMessage

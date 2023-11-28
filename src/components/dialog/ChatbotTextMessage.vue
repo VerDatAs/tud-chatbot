@@ -16,10 +16,6 @@ export default {
       type: String,
       required: false
     },
-    groups: {
-      type: Array<AssistanceObjectCommunication>,
-      default: []
-    },
     incoming: {
       type: Boolean,
       default: false
@@ -28,21 +24,17 @@ export default {
       type: String,
       required: true
     },
+    relatedGroup: {
+      type: AssistanceObjectCommunication,
+      required: false,
+      default: null
+    },
     relatedOptions: {
       type: AssistanceObjectCommunication,
       default: null
     }
   },
   computed: {
-    isGroupMessage() {
-      let groupMessage: boolean = false;
-      // Check, if message has the same aId and aoId as the group -> message from the group
-      if (this.groups?.length > 0) {
-        const group = this.groups[0];
-        groupMessage = this.assistanceObject.aId === group.aId && this.assistanceObject.aoId === group.aoId;
-      }
-      return groupMessage;
-    },
     numberOfGroupMembers() {
       // exemplary content of "this.groups[0]":
       // {"aId":"...", "aoId":"...","parameters":[
@@ -56,7 +48,7 @@ export default {
       //   ]}
       // ]}
       return (
-        this.groups?.[0]?.parameters
+        this.relatedGroup?.parameters
           ?.find((param: any) => param?.key === 'group')
           ?.value?.find((groupParam: any) => groupParam.key === 'members')?.value?.length || 0
       );
@@ -79,7 +71,7 @@ export default {
       return textToDisplay;
     },
     sentMessageToGroup() {
-      return this.keyToDisplay === 'message_response' && this.isGroupMessage;
+      return this.keyToDisplay === 'message_response' && this.relatedGroup;
     }
   }
 };
@@ -88,7 +80,7 @@ export default {
 <template>
   <ChatbotIcon
     :bot-image-path="botImagePath"
-    :is-group-message="isGroupMessage"
+    :is-group-message="!!relatedGroup"
     :number-of-group-members="numberOfGroupMembers"
     v-if="incoming && botImagePath"
   />
