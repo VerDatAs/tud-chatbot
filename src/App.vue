@@ -8,6 +8,7 @@ import { useGroupInformationStore } from '@/stores/groupInformation';
 import { useNotesStore } from '@/stores/notes';
 import { useMessageExchangeStore } from '@/stores/messageExchange';
 import { useMessageHistoryStore } from '@/stores/messageHistory';
+import { parameterValue } from '@/util/assistanceObjectHelper';
 import axios from 'axios';
 
 // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
@@ -193,10 +194,8 @@ export default {
     checkForKeyPresence(assistanceObject: AssistanceObjectCommunication, key: string): AssistanceParameter | undefined {
       return assistanceObject?.parameters?.find((param) => param.key === key);
     },
-    parameterValue(message: AssistanceObjectCommunication, key: string) {
-      // Difference between ?? and || -> https://stackoverflow.com/questions/66883181/difference-between-and-operators
-      return message.parameters?.find((param) => param.key === key)?.value ?? '';
-    },
+    // https://stackoverflow.com/a/60617142
+    parameterValue,
     // When switching the page, send information about having just logged in or not
     handleWakeUpMessageSending(switchedPage: boolean) {
       // Delay message until the WebSocket is connected

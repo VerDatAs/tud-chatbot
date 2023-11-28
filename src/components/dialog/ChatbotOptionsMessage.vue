@@ -2,6 +2,7 @@
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { Option } from '@/components/types/option';
+import { parameterValue } from '@/util/assistanceObjectHelper';
 
 export default {
   components: {
@@ -23,10 +24,8 @@ export default {
   },
   emits: ['selectOption'],
   methods: {
-    parameterValue(assistanceObject: AssistanceObjectCommunication, key: string) {
-      // Difference between ?? and || -> https://stackoverflow.com/questions/66883181/difference-between-and-operators
-      return assistanceObject.parameters?.find((param) => param.key === key)?.value ?? '';
-    },
+    // https://stackoverflow.com/a/60617142
+    parameterValue,
     selectOption(option: Option) {
       const responseOption: Option = new Option('options_response', option.key);
       const responseObject: AssistanceObjectCommunication = new AssistanceObjectCommunication();
