@@ -226,9 +226,14 @@ export default {
           messageAsJson +
           '\0'
       );
+      // add any valid outgoing message to the messageExchangeStore
       if (messageToSend?.parameters?.find((param) => this.outgoingMessageTypes.includes(param.key))) {
         this.messageExchangeStore.addItem(messageToSend);
         this.updateDialogScroll();
+      }
+      // remove terminated group from the groupInformationStore
+      if (messageToSend?.parameters?.find((param) => param.key === 'assistance_state_update_response' && param.value === 'completed')) {
+        this.groupInformationStore.removeItem(messageToSend.aId, messageToSend.aoId);
       }
     },
     // acknowledge the reception of the message

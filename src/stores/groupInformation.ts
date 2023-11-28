@@ -16,6 +16,9 @@ export const useGroupInformationStore = defineStore({
       // this.items.push(item);
       this.items = [item];
     },
+    removeItem(aId: string | undefined, aoId: string | undefined) {
+      this.items = this.items.filter((item) => item.aId !== aId || item.aoId !== aoId);
+    },
     clearItems() {
       console.log('clear group information');
       this.items = [];
