@@ -18,7 +18,7 @@ export const useMessageExchangeStore = defineStore({
       this.items = [];
     }
   },
-  persist: false
+  persist: true
 });
 
 if (import.meta.hot) {

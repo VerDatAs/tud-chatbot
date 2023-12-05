@@ -24,12 +24,11 @@ const webSocketDestination = '/user/queue/chat';
 
 export default {
   data: () => ({
-    hasJustLoggedIn: true as boolean,
-    backendUrl: 'http://localhost:8080' as string,
+    hasJustLoggedIn: false as boolean,
+    backendUrl: '' as string,
     pluginPath: '' as string,
     // WebSocket connection and message sending
-    adminToken: '' as string,
-    userIdOrActorAccountName: 'ca1910' as string,
+    userIdOrActorAccountName: '' as string,
     userToken: '' as string,
     // TODO: Fix type
     webSocket: null as any,
@@ -71,8 +70,9 @@ export default {
         // https://github.com/vaadin/vaadin-upload/issues/138#issuecomment-266773430
         console.log('init-bot', event);
         this.pluginPath = event.detail.path;
-        // TODO: Uncomment as soon as the backend works
-        // this.backendUrl = event.backendUrl;
+        this.backendUrl = event.detail.backendUrl;
+        this.userIdOrActorAccountName = event.detail.pseudoId;
+        this.userToken = event.detail.token;
         this.hasJustLoggedIn = event.detail.hasJustLoggedIn;
 
         if (!this.isRunLocally) {
@@ -87,30 +87,37 @@ export default {
       });
 
       if (this.isRunLocally) {
-        await this.retrieveTokenAndHandleMessageExchange();
-      }
-    },
-    async retrieveTokenAndHandleMessageExchange() {
-      await this.getAdminToken();
-      await this.handleWebSocketConnection(true);
-      // if (this.messageHistoryStore.items.length === 0) {
-      //   this.greetUserMessage(true);
-      // } else {
-      //   this.greetUserMessage(false);
-      // }
-    },
-    async handleWebSocketConnection(switchedPage: boolean) {
-      console.log('handleWebSocketConnection');
-      if (this.webSocket?.readyState !== 1) {
+        // set hasJustLoggedIn to true to retrieve greeting message
+        this.backendUrl = 'http://localhost:8080';
+        this.userIdOrActorAccountName = 'ca1910';
+        this.hasJustLoggedIn = true;
+        // manually retrieve token
         const authUrl = this.backendUrl + '/api/v1/auth/login';
         const request = {
-          actorAccountName: 'ca1910'
+          actorAccountName: this.userIdOrActorAccountName
         };
         const userData = await axios.post(authUrl, request);
         if (!userData.data) {
           return;
         }
         this.userToken = userData.data.token;
+        await this.retrieveTokenAndHandleMessageExchange();
+      }
+    },
+    async retrieveTokenAndHandleMessageExchange() {
+      if (this.hasJustLoggedIn) {
+        // On login, reset potentially send messages
+        this.messageExchangeStore.clearItems();
+      }
+      await this.handleWebSocketConnection(true);
+      // TODO: Remove as soon as the previous messages are sent
+      if (this.hasJustLoggedIn) {
+        this.updateChatbotDialogVisible(true);
+      }
+    },
+    async handleWebSocketConnection(switchedPage: boolean) {
+      console.log('handleWebSocketConnection');
+      if (this.webSocket?.readyState !== 1) {
         const webSocketURL = 'ws://' + this.backendUrl.split('http://')?.[1] + '/api/v1/websocket';
         // TODO: "Vue: This expression is not constructable."
         this.webSocket = new WebSocket(webSocketURL);
@@ -119,9 +126,12 @@ export default {
         this.webSocket.onopen = () => {
           this.webSocket.send('CONNECT\ntoken:' + this.userToken + '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0');
           // there is only one destination that needs to be subscribed: /user/queue/chat
-          this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:' + webSocketDestination + '\n\n\0');
-          // potentially send wake-up message
-          this.handleWakeUpMessageSending(switchedPage);
+          // dirty workaround to not send SUBSCRIBE before CONNECTED was received
+          setTimeout(() => {
+            this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:' + webSocketDestination + '\n\n\0');
+            // potentially send wake-up message
+            this.handleWakeUpMessageSending(switchedPage);
+          }, 50);
         };
 
         this.webSocket.onmessage = (event: any) => {
@@ -149,42 +159,54 @@ export default {
             // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
             // check, if the type casting was done properly
             // console.log(receivedMessage instanceof AssistanceObjectCommunication);
-            const receivedMessage = Object.assign(new AssistanceObjectCommunication(), receivedMessageParsed);
 
-            if (!receivedMessage?.parameters) {
-              return;
+            // receivedMessageParsed can either be an AssistanceObjectCommunication or an Array of AssistanceObjectCommunications
+            const messagesQueue: AssistanceObjectCommunication[] = [];
+            if (Array.isArray(receivedMessageParsed)) {
+              receivedMessageParsed.forEach((message) => {
+                messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
+              });
+            } else {
+              messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), receivedMessageParsed));
             }
-            if (this.checkForKeyPresence(receivedMessage, 'previous_messages')) {
-              // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
-              const previousMessagesArray: AssistanceObjectCommunication[] = this.checkForKeyPresence(receivedMessage, 'previous_messages')?.value;
-              const previousMessages: AssistanceObjectCommunication[] = [];
-              previousMessagesArray.forEach((previousMessage: AssistanceObjectCommunication) => {
-                previousMessages.push(Object.assign(new AssistanceObjectCommunication(), previousMessage));
-              })
-              this.messageExchangeStore.setItems(previousMessages);
-              // If the user has just logged in, display the chatbot dialog
-              if (this.hasJustLoggedIn) {
-                this.updateChatbotDialogVisible(true);
+
+            // iterate messages
+            messagesQueue.forEach((receivedMessage) => {
+              if (!receivedMessage?.parameters) {
+                return;
               }
-            } else if (this.checkForKeyPresence(receivedMessage, 'options')) {
-              this.messageExchangeStore.addItem(receivedMessage);
-              this.acknowledgeMessage(receivedMessage);
-            } else if (this.checkForKeyPresence(receivedMessage, 'group')) {
-              // store group in both messageExchange and groupInformation store
-              this.messageExchangeStore.addItem(receivedMessage);
-              this.groupInformationStore.addItem(receivedMessage);
-              this.acknowledgeMessage(receivedMessage);
-            } else if (this.checkForKeyPresence(receivedMessage, 'assistance_state_update')) {
-              this.messageExchangeStore.addItem(receivedMessage);
-              // potentially remove item from groupInformationStore
-              if (this.parameterValue(receivedMessage, 'assistance_state_update') === 'completed') {
-                this.groupInformationStore.removeItem(receivedMessage.aId, receivedMessage.aoId);
+              if (this.checkForKeyPresence(receivedMessage, 'previous_messages')) {
+                // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
+                const previousMessagesArray: AssistanceObjectCommunication[] = this.checkForKeyPresence(receivedMessage, 'previous_messages')?.value;
+                const previousMessages: AssistanceObjectCommunication[] = [];
+                previousMessagesArray.forEach((previousMessage: AssistanceObjectCommunication) => {
+                  previousMessages.push(Object.assign(new AssistanceObjectCommunication(), previousMessage));
+                })
+                this.messageExchangeStore.setItems(previousMessages);
+                // If the user has just logged in, display the chatbot dialog
+                if (this.hasJustLoggedIn) {
+                  this.updateChatbotDialogVisible(true);
+                }
+              } else if (this.checkForKeyPresence(receivedMessage, 'options')) {
+                this.messageExchangeStore.addItem(receivedMessage);
+                this.acknowledgeMessage(receivedMessage);
+              } else if (this.checkForKeyPresence(receivedMessage, 'group')) {
+                // store group in both messageExchange and groupInformation store
+                this.messageExchangeStore.addItem(receivedMessage);
+                this.groupInformationStore.addItem(receivedMessage);
+                this.acknowledgeMessage(receivedMessage);
+              } else if (this.checkForKeyPresence(receivedMessage, 'assistance_state_update')) {
+                this.messageExchangeStore.addItem(receivedMessage);
+                // potentially remove item from groupInformationStore
+                if (this.parameterValue(receivedMessage, 'assistance_state_update') === 'completed') {
+                  this.groupInformationStore.removeItem(receivedMessage.aId, receivedMessage.aoId);
+                }
+                this.acknowledgeMessage(receivedMessage);
+              } else if (this.checkForKeyPresence(receivedMessage, 'message')) {
+                this.messageExchangeStore.addItem(receivedMessage);
+                this.acknowledgeMessage(receivedMessage);
               }
-              this.acknowledgeMessage(receivedMessage);
-            } else if (this.checkForKeyPresence(receivedMessage, 'message')) {
-              this.messageExchangeStore.addItem(receivedMessage);
-              this.acknowledgeMessage(receivedMessage);
-            }
+            });
             this.updateDialogScroll();
           }
         };
@@ -221,31 +243,32 @@ export default {
           };
           this.sendWebSocketMessage(message);
           // the backend requests old messages from VSG and send then to the chatbot plugin
-          this.mockBackendMessage('previous_messages');
+          // this.mockAssistanceRequest('previous_messages');
           // if the user has just logged in, the backend will send a greeting message
           // TODO: Comment in later, if this gets relevant again
-          // if (this.hasJustLoggedIn) {
-          //   // Delay it some time to make it look more realistic
-          //   setTimeout(() => {
-          //     this.mockBackendMessage('greeting');
-          //   }, 1500);
-          // }
+          if (this.hasJustLoggedIn) {
+            // Delay it some time to make it look more realistic
+            setTimeout(() => {
+              this.mockAssistanceRequest('greeting');
+            }, 500);
+          }
         }
       }, 250);
     },
     // handle message sending over the WebSocket
-    sendWebSocketMessage(messageToSend: AssistanceObjectCommunication) {
+    sendWebSocketMessage(messageToSend: AssistanceObjectCommunication, destinationToOverwrite?: String) {
       const messageAsJson = JSON.stringify(messageToSend);
-      // TODO: Remove /app as soon as the backend was adjusted
+      const destination = (destinationToOverwrite && destinationToOverwrite !== '') ? destinationToOverwrite : webSocketDestination;
       this.webSocket.send(
-        'MESSAGE\ndestination:/app' +
-          webSocketDestination +
-          '\ncontent-length:' +
-          messageAsJson.length +
-          '\n\n' +
-          messageAsJson +
-          '\0'
+        'MESSAGE\ndestination:' +
+        destination +
+        '\ncontent-length:' +
+        this.countBytes(messageAsJson) +
+        '\n\n' +
+        messageAsJson +
+        '\0'
       );
+
       // add any valid outgoing message to the messageExchangeStore
       if (messageToSend?.parameters?.find((param) => this.outgoingMessageTypes.includes(param.key))) {
         this.messageExchangeStore.addItem(messageToSend);
@@ -272,49 +295,30 @@ export default {
         console.log('Pong message sent.');
       }, 3000);
     },
-    /**
-     * Helper function to simulate the behavior of the Bot sending a greeting message
-     */
-    greetUserMessage(isInitialLogin: boolean) {
-      setTimeout(() => {
-        // TODO: Open dialog automatically, when hasJustLoggedIn
-        this.updateChatbotDialogVisible(true);
-        setTimeout(() => {
-          this.generateMessageFromBackend(isInitialLogin);
-        }, 500);
-      }, 500);
-    },
-    async getAdminToken() {
-      const authUrl = this.backendUrl + '/api/v1/auth/login';
-      const request = {
-        actorAccountName: 'root',
-        password: 'root'
-      };
-      await axios.post(authUrl, request).then((adminData) => {
-        this.adminToken = adminData.data.token;
-      });
-    },
     updateDialogScroll() {
       // https://stackoverflow.com/a/76297364/3623608
       (this.$refs.chatbotDialog as typeof ChatbotDialog)?.updateScroll();
     },
-    mockBackendMessage(type: string) {
-      const requestUrl = this.backendUrl + '/api/v1/users/' + this.userIdOrActorAccountName + '/chatbot-messages';
-      let baseRequest = {};
-      if (type === 'previous_messages') {
-        baseRequest = {
-          parameters: [
+    mockAssistanceRequest(type: String) {
+      const webSocketTestDestination = '/tutoring-system/queue/assistance';
+      let messageToSend = {};
+      if (type === 'greeting') {
+        messageToSend = {
+          "assistance": [
             {
-              key: 'previous_messages',
-              value: [
+              "aId": "2EA95788-7ABA-4DDD-B3BA-E7EB574685BD",
+              "userId": this.userIdOrActorAccountName,
+              "typeKey": "greeting",
+              "timestamp": "2023-06-27T10:12:53.000000+02:00",
+              "assistanceState": "completed",
+              "assistanceObjects": [
                 {
-                  aId: '2EA95788-7ABA-4DDD-B3BA-E7EB574685BD',
-                  aoId: 'BC2340BA-1623-41F8-9C0D-B4373956E6EC',
-                  parameters: [
+                  "userId": this.userIdOrActorAccountName,
+                  "aoId": "BC2340BA-1623-41F8-9C0D-B4373956E6EC",
+                  "parameters": [
                     {
-                      key: 'message',
-                      value:
-                        'Hallo. Mein Name ist Veri und ich bin Dein Lernassistent. Ich unterstütze Dich beim Lernen und gebe Dir Rückmeldung und hilfreiche Tipps.'
+                      "key": "message",
+                      "value": "Hallo! Mein Name ist Veri und ich bin dein Lernassistent. Ich unterstütze Dich beim Lernen und gebe Dir Rückmeldung und hilfreiche Tipps.\n\nDies ist lediglich als Beispielnachricht zur Demonstration der Funktionsweise zu verstehen.\n\nWeitere Funktionen sind vorbereitet, aber noch nicht aktiv."
                     }
                   ]
                 }
@@ -322,90 +326,8 @@ export default {
             }
           ]
         };
-      } else if (type === 'greeting') {
-        baseRequest = {
-          aId: '2EA95788-7ABA-4DDD-B3BA-E7EB574685BD',
-          aoId: 'BC2340BA-1623-41F8-9C0D-B4373956E6EC',
-          messageId: '6A4B1434-2CD1-40D5-87DE-B15D17876869',
-          parameters: [
-            {
-              key: 'message',
-              value: 'Willkommen zurück'
-            }
-          ]
-        };
       }
-      // Send a mocking request to the backend
-      const request = {
-        type: 'informational_feedback',
-        message: JSON.stringify(baseRequest)
-      };
-      const authHeader = {
-        'Content-Type': 'application/json;charset=UTF-8',
-        Authorization: 'Bearer ' + this.adminToken
-      };
-      axios.post(requestUrl, request, { headers: authHeader }).then((data) => {
-        console.log(data);
-      });
-    },
-    generateMessageFromBackend(initialMessage: boolean) {
-      const messageToSend = initialMessage
-        ? 'Hallo, mein Name ist Veri. Ich werde deinen Lernprozess unterstützen!'
-        : 'Willkommen zurück!';
-      const authHeader = {
-        'Content-Type': 'application/json;charset=UTF-8',
-        Authorization: 'Bearer ' + this.adminToken
-      };
-      const authUrl = 'http://localhost:8080/api/v1/assistance/sendAssistanceTest';
-      const request = {
-        assistance: [
-          {
-            aId: '2EA95788-7ABA-4DDD-B3BA-E7EB574685BD',
-            userId: this.userIdOrActorAccountName,
-            typeKey: 'offer_help_options',
-            timestamp: '2023-06-27T10:12:53.000000+02:00',
-            assistanceState: 'initiated',
-            assistanceObjects: [
-              {
-                userId: this.userIdOrActorAccountName,
-                aoId: 'BC2340BA-1623-41F8-9C0D-B4373956E6EC',
-                timestamp: '2023-06-27T10:12:53.000000+02:00',
-                parameters: [
-                  {
-                    key: 'message',
-                    value: messageToSend
-                  },
-                  {
-                    key: 'options',
-                    value: [
-                      {
-                        key: 'example_solution',
-                        value: 'Lösungsbeispiel anzeigen'
-                      },
-                      {
-                        key: 'group_formation',
-                        value: 'Gruppe bilden'
-                      },
-                      {
-                        key: 'cancel',
-                        value: 'Hilfe ablehnen'
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      };
-      axios.post(authUrl, request, { headers: authHeader }).then((data) => {
-        console.log(data);
-      });
-    },
-    updateMessageExchange(messageSent: AssistanceObjectCommunication) {
-      this.sendWebSocketMessage(messageSent);
-      this.messageExchangeStore.addItem(messageSent);
-      this.updateDialogScroll();
+      this.sendWebSocketMessage(messageToSend, webSocketTestDestination);
     },
     updateChatbotDialogVisible(dialogVisible: boolean) {
       if (dialogVisible) {
@@ -427,6 +349,17 @@ export default {
           }, 1);
         }, 300);
       }
+    },
+    // Solution retrieved from https://github.com/rabbitmq/rabbitmq-web-stomp-examples/issues/2
+    countBytes(message: string) {
+      const escapedStr = encodeURI(message);
+      if (escapedStr.indexOf("%") != -1) {
+        let count = escapedStr.split("%").length - 1;
+        if (count == 0) count++;
+        const tmp = escapedStr.length - (count * 3);
+        return count + tmp;
+      }
+      else return escapedStr.length;
     }
   }
 };
