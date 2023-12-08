@@ -28,7 +28,7 @@ export default {
     backendUrl: '' as string,
     pluginPath: '' as string,
     // WebSocket connection and message sending
-    userIdOrActorAccountName: '' as string,
+    pseudoId: '' as string,
     userToken: '' as string,
     // TODO: Fix type
     webSocket: null as any,
@@ -71,7 +71,7 @@ export default {
         console.log('init-bot', event);
         this.pluginPath = event.detail.path;
         this.backendUrl = event.detail.backendUrl;
-        this.userIdOrActorAccountName = event.detail.pseudoId;
+        this.pseudoId = event.detail.pseudoId;
         this.userToken = event.detail.token;
         this.hasJustLoggedIn = event.detail.hasJustLoggedIn;
 
@@ -89,12 +89,12 @@ export default {
       if (this.isRunLocally) {
         // set hasJustLoggedIn to true to retrieve greeting message
         this.backendUrl = 'http://localhost:8080';
-        this.userIdOrActorAccountName = 'ca1910';
+        this.pseudoId = 'ca1910';
         this.hasJustLoggedIn = true;
         // manually retrieve token
         const authUrl = this.backendUrl + '/api/v1/auth/login';
         const request = {
-          actorAccountName: this.userIdOrActorAccountName
+          actorAccountName: this.pseudoId
         };
         const userData = await axios.post(authUrl, request);
         if (!userData.data) {
@@ -160,13 +160,21 @@ export default {
             // check, if the type casting was done properly
             // console.log(receivedMessage instanceof AssistanceObjectCommunication);
 
-            // receivedMessageParsed can either be an AssistanceObjectCommunication or an Array of AssistanceObjectCommunications
+            // if "previous_messages" or "unacknowledged_messages" do exist in the parameter keys, the value will be an Array of AssistanceObjectCommunications
+            // else, it is a single AssistanceObjectCommunication
+            // idea, use queue of correctly parsed AssistanceObjectCommunication objects
             const messagesQueue: AssistanceObjectCommunication[] = [];
-            if (Array.isArray(receivedMessageParsed)) {
-              receivedMessageParsed.forEach((message) => {
+            if (this.checkForKeyPresence(receivedMessageParsed, 'previous_messages')) {
+              parameterValue(receivedMessageParsed, 'previous_messages')?.forEach((message: any) => {
                 messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
               });
-            } else {
+            }
+            else if (this.checkForKeyPresence(receivedMessageParsed, 'unacknowledged_messages')) {
+              parameterValue(receivedMessageParsed, 'unacknowledged_messages')?.forEach((message: any) => {
+                messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
+              });
+            }
+            else {
               messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), receivedMessageParsed));
             }
 
@@ -257,6 +265,10 @@ export default {
     },
     // handle message sending over the WebSocket
     sendWebSocketMessage(messageToSend: AssistanceObjectCommunication, destinationToOverwrite?: String) {
+      // add timestamp to messages that are sent to the backend
+      if (!messageToSend.timestamp) {
+        messageToSend.timestamp = (new Date()).toISOString();
+      }
       const messageAsJson = JSON.stringify(messageToSend);
       const destination = (destinationToOverwrite && destinationToOverwrite !== '') ? destinationToOverwrite : webSocketDestination;
       this.webSocket.send(
@@ -307,14 +319,15 @@ export default {
           "assistance": [
             {
               "aId": "2EA95788-7ABA-4DDD-B3BA-E7EB574685BD",
-              "userId": this.userIdOrActorAccountName,
+              "userId": this.pseudoId,
               "typeKey": "greeting",
               "timestamp": "2023-06-27T10:12:53.000000+02:00",
               "assistanceState": "completed",
               "assistanceObjects": [
                 {
-                  "userId": this.userIdOrActorAccountName,
+                  "userId": this.pseudoId,
                   "aoId": "BC2340BA-1623-41F8-9C0D-B4373956E6EC",
+                  "timestamp": "2023-06-27T10:12:53.000000+02:00",
                   "parameters": [
                     {
                       "key": "message",

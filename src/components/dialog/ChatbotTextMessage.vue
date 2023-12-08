@@ -2,6 +2,7 @@
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
+import { formatDate } from '@/util/assistanceObjectHelper';
 
 export default {
   components: {
@@ -75,7 +76,8 @@ export default {
     },
     sentMessageToGroup() {
       return this.keyToDisplay === 'message_response' && this.relatedGroup;
-    }
+    },
+    formatDate
   }
 };
 </script>
@@ -90,5 +92,6 @@ export default {
   <div class="messageContainer">
     <span v-if="sentMessageToGroup()" class="fw-bold">@group: </span>
     <span :class="{ 'fst-italic': isAssistanceObjectUpdateCompleted }">{{ getAssistanceObjectText() }}</span>
+    <div class="messageTimestamp" v-if="assistanceObject.timestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>
 </template>

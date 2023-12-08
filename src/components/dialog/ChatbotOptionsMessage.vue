@@ -2,7 +2,7 @@
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { Option } from '@/components/types/option';
-import { parameterValue } from '@/util/assistanceObjectHelper';
+import { formatDate, parameterValue } from '@/util/assistanceObjectHelper';
 
 export default {
   components: {
@@ -25,6 +25,7 @@ export default {
   emits: ['selectOption'],
   methods: {
     // https://stackoverflow.com/a/60617142
+    formatDate,
     parameterValue,
     selectOption(option: Option) {
       const responseOption: Option = new Option('options_response', option.key);
@@ -53,5 +54,6 @@ export default {
     >
       {{ option.value }}
     </button>
+    <div class="messageTimestamp" v-if="assistanceObject.timestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>
 </template>

@@ -345,6 +345,11 @@ export default {
           display: inline-block;
           padding: 0.5rem 0.75rem;
           border-radius: 15px;
+
+          .messageTimestamp {
+            margin-top: 8px;
+            font-size: 10px;
+          }
         }
       }
 
@@ -357,6 +362,11 @@ export default {
           border: 1px solid #ccc;
           background: #f6f6f6;
           color: #000;
+
+          .messageTimestamp {
+            text-align: right;
+            color: #333;
+          }
         }
       }
 
@@ -367,6 +377,10 @@ export default {
         .messageContainer {
           border-bottom-right-radius: 0;
           background: #000;
+
+          .messageTimestamp {
+            color: #eee;
+          }
         }
       }
     }
