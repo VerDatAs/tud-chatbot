@@ -246,6 +246,10 @@ export default {
               {
                 key: 'just_logged_in',
                 value: this.hasJustLoggedIn
+              },
+              {
+                key: 'lms_url',
+                value: window.location.origin
               }
             ]
           };
