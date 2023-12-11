@@ -269,10 +269,6 @@ export default {
     },
     // handle message sending over the WebSocket
     sendWebSocketMessage(messageToSend: AssistanceObjectCommunication, destinationToOverwrite?: String) {
-      // add timestamp to messages that are sent to the backend
-      if (!messageToSend.timestamp) {
-        messageToSend.timestamp = (new Date()).toISOString();
-      }
       const messageAsJson = JSON.stringify(messageToSend);
       const destination = (destinationToOverwrite && destinationToOverwrite !== '') ? destinationToOverwrite : webSocketDestination;
       this.webSocket.send(

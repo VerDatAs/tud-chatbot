@@ -130,14 +130,22 @@ export default {
         // messageToSend.aoId = 'BC2340BA-1623-41F8-9BVD-B4373956E6EC';
         messageToSend.parameters = [new AssistanceParameter('message_response', this.messageToSend)];
       }
-      this.$emit('sendAssistanceObject', messageToSend);
+      this.emitAssistanceObject(messageToSend);
       // Reset message input
       setTimeout(() => {
         this.messageToSend = '';
       }, 50);
     },
     selectOption(optionResponse: AssistanceObjectCommunication) {
-      this.$emit('sendAssistanceObject', optionResponse);
+      this.emitAssistanceObject(optionResponse);
+    },
+    emitAssistanceObject(assistanceObject: AssistanceObjectCommunication) {
+      // TODO: Remove, if this causes problems
+      // add timestamp to messages that are sent to the backend
+      if (!assistanceObject.timestamp) {
+        assistanceObject.timestamp = (new Date()).toISOString();
+      }
+      this.$emit('sendAssistanceObject', assistanceObject);
     },
     findRelatedItems(responseOption: AssistanceObjectCommunication, key: string) {
       return this.messageExchange.find(
