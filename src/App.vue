@@ -118,7 +118,9 @@ export default {
     async handleWebSocketConnection(switchedPage: boolean) {
       console.log('handleWebSocketConnection');
       if (this.webSocket?.readyState !== 1) {
-        const webSocketURL = 'ws://' + this.backendUrl.split('http://')?.[1] + '/api/v1/websocket';
+        const backendUrlProtocol = this.backendUrl.includes('https://') ? 'https://' : 'http://';
+        const webSocketPrefix = (backendUrlProtocol === 'https://') ? 'wss://' : 'ws://';
+        const webSocketURL = webSocketPrefix + this.backendUrl.split(backendUrlProtocol)?.[1] + '/api/v1/websocket';
         // TODO: "Vue: This expression is not constructable."
         this.webSocket = new WebSocket(webSocketURL);
 
