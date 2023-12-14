@@ -9,7 +9,7 @@ import { useNotesStore } from '@/stores/notes';
 import { useMessageExchangeStore } from '@/stores/messageExchange';
 import { useMessageHistoryStore } from '@/stores/messageHistory';
 import { parameterValue } from '@/util/assistanceObjectHelper';
-import axios from 'axios';
+import { ChatbotData } from "@/components/types/chatbot-data";
 
 // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
 // Define constants for bytes used throughout the code.
@@ -27,6 +27,7 @@ export default {
     hasJustLoggedIn: false as boolean,
     backendUrl: '' as string,
     pluginPath: '' as string,
+    isRunLocally: false as boolean,
     // WebSocket connection and message sending
     pseudoId: '' as string,
     userToken: '' as string,
@@ -46,12 +47,15 @@ export default {
     ChatbotDialog,
     ChatbotWidget
   },
+  props: {
+    initChatbotData: {
+      type: ChatbotData,
+      required: true
+    }
+  },
   computed: {
     botImagePath() {
       return this.pluginPath + (!this.isRunLocally ? '/templates' : '') + '/veri.png';
-    },
-    isRunLocally() {
-      return process.env.NODE_ENV === 'development';
     }
   },
   created() {
@@ -62,47 +66,13 @@ export default {
   },
   methods: {
     async initChatbotApp() {
-      // Define default variables, e.g., the pluginPath
-      this.pluginPath = this.isRunLocally
-        ? ''
-        : './Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/VerDatAsBot';
-      document.addEventListener('init-bot', async (event: any) => {
-        // https://github.com/vaadin/vaadin-upload/issues/138#issuecomment-266773430
-        console.log('init-bot', event);
-        this.pluginPath = event.detail.path;
-        this.backendUrl = event.detail.backendUrl;
-        this.pseudoId = event.detail.pseudoId;
-        this.userToken = event.detail.token;
-        this.hasJustLoggedIn = event.detail.hasJustLoggedIn;
-
-        if (!this.isRunLocally) {
-          await this.retrieveTokenAndHandleMessageExchange();
-        }
-      });
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          console.log('tab gets visible again', this.webSocket?.readyState);
-          this.handleWebSocketConnection(false);
-        }
-      });
-
-      if (this.isRunLocally) {
-        // set hasJustLoggedIn to true to retrieve greeting message
-        this.backendUrl = 'http://localhost:8080';
-        this.pseudoId = 'ca1910';
-        this.hasJustLoggedIn = true;
-        // manually retrieve token
-        const authUrl = this.backendUrl + '/api/v1/auth/login';
-        const request = {
-          actorAccountName: this.pseudoId
-        };
-        const userData = await axios.post(authUrl, request);
-        if (!userData.data) {
-          return;
-        }
-        this.userToken = userData.data.token;
-        await this.retrieveTokenAndHandleMessageExchange();
-      }
+      this.isRunLocally = this.initChatbotData?.isRunLocally ?? false
+      this.pluginPath = this.initChatbotData.pluginPath;
+      this.backendUrl = this.initChatbotData.backendUrl;
+      this.pseudoId = this.initChatbotData.pseudoId;
+      this.userToken = this.initChatbotData.token;
+      this.hasJustLoggedIn = this.initChatbotData.hasJustLoggedIn;
+      await this.retrieveTokenAndHandleMessageExchange();
     },
     async retrieveTokenAndHandleMessageExchange() {
       if (this.hasJustLoggedIn) {
