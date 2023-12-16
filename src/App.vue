@@ -94,6 +94,10 @@ export default {
         // TODO: "Vue: This expression is not constructable."
         this.webSocket = new WebSocket(webSocketURL);
 
+        this.webSocket.onerror = (event: Event) => {
+          console.error("WebSocket error observed:", event);
+        };
+
         // Use code provided by Robert Peine from verdatas-backend README
         this.webSocket.onopen = () => {
           this.webSocket.send('CONNECT\ntoken:' + this.userToken + '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0');
