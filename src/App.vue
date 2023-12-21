@@ -9,7 +9,7 @@ import { useNotesStore } from '@/stores/notes';
 import { useMessageExchangeStore } from '@/stores/messageExchange';
 import { useMessageHistoryStore } from '@/stores/messageHistory';
 import { parameterValue } from '@/util/assistanceObjectHelper';
-import { ChatbotData } from "@/components/types/chatbot-data";
+import { ChatbotData } from '@/components/types/chatbot-data';
 
 // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
 // Define constants for bytes used throughout the code.
@@ -66,7 +66,7 @@ export default {
   },
   methods: {
     async initChatbotApp() {
-      this.isRunLocally = this.initChatbotData?.isRunLocally ?? false
+      this.isRunLocally = this.initChatbotData?.isRunLocally ?? false;
       this.pluginPath = this.initChatbotData.pluginPath;
       this.backendUrl = this.initChatbotData.backendUrl;
       this.pseudoId = this.initChatbotData.pseudoId;
@@ -89,7 +89,7 @@ export default {
       console.log('handleWebSocketConnection');
       if (this.webSocket?.readyState !== 1) {
         const backendUrlProtocol = this.backendUrl.includes('https://') ? 'https://' : 'http://';
-        const webSocketPrefix = (backendUrlProtocol === 'https://') ? 'wss://' : 'ws://';
+        const webSocketPrefix = backendUrlProtocol === 'https://' ? 'wss://' : 'ws://';
         const webSocketURL = webSocketPrefix + this.backendUrl.split(backendUrlProtocol)?.[1] + '/api/v1/websocket';
         // TODO: "Vue: This expression is not constructable."
         this.webSocket = new WebSocket(webSocketURL);
@@ -140,13 +140,11 @@ export default {
               parameterValue(receivedMessageParsed, 'previous_messages')?.forEach((message: any) => {
                 messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
               });
-            }
-            else if (this.checkForKeyPresence(receivedMessageParsed, 'unacknowledged_messages')) {
+            } else if (this.checkForKeyPresence(receivedMessageParsed, 'unacknowledged_messages')) {
               parameterValue(receivedMessageParsed, 'unacknowledged_messages')?.forEach((message: any) => {
                 messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
               });
-            }
-            else {
+            } else {
               messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), receivedMessageParsed));
             }
 
@@ -157,11 +155,14 @@ export default {
               }
               if (this.checkForKeyPresence(receivedMessage, 'previous_messages')) {
                 // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
-                const previousMessagesArray: AssistanceObjectCommunication[] = this.checkForKeyPresence(receivedMessage, 'previous_messages')?.value;
+                const previousMessagesArray: AssistanceObjectCommunication[] = this.checkForKeyPresence(
+                  receivedMessage,
+                  'previous_messages'
+                )?.value;
                 const previousMessages: AssistanceObjectCommunication[] = [];
                 previousMessagesArray.forEach((previousMessage: AssistanceObjectCommunication) => {
                   previousMessages.push(Object.assign(new AssistanceObjectCommunication(), previousMessage));
-                })
+                });
                 this.messageExchangeStore.setItems(previousMessages);
                 // If the user has just logged in, display the chatbot dialog
                 if (this.hasJustLoggedIn) {
@@ -242,15 +243,16 @@ export default {
     // handle message sending over the WebSocket
     sendWebSocketMessage(messageToSend: AssistanceObjectCommunication, destinationToOverwrite?: String) {
       const messageAsJson = JSON.stringify(messageToSend);
-      const destination = (destinationToOverwrite && destinationToOverwrite !== '') ? destinationToOverwrite : webSocketDestination;
+      const destination =
+        destinationToOverwrite && destinationToOverwrite !== '' ? destinationToOverwrite : webSocketDestination;
       this.webSocket.send(
         'MESSAGE\ndestination:' +
-        destination +
-        '\ncontent-length:' +
-        this.countBytes(messageAsJson) +
-        '\n\n' +
-        messageAsJson +
-        '\0'
+          destination +
+          '\ncontent-length:' +
+          this.countBytes(messageAsJson) +
+          '\n\n' +
+          messageAsJson +
+          '\0'
       );
 
       // add any valid outgoing message to the messageExchangeStore
@@ -259,7 +261,11 @@ export default {
         this.updateDialogScroll();
       }
       // remove terminated group from the groupInformationStore
-      if (messageToSend?.parameters?.find((param) => param.key === 'assistance_state_update_response' && param.value === 'completed')) {
+      if (
+        messageToSend?.parameters?.find(
+          (param) => param.key === 'assistance_state_update_response' && param.value === 'completed'
+        )
+      ) {
         this.groupInformationStore.removeItem(messageToSend.aId, messageToSend.aoId);
       }
     },
@@ -288,22 +294,23 @@ export default {
       let messageToSend = {};
       if (type === 'greeting') {
         messageToSend = {
-          "assistance": [
+          assistance: [
             {
-              "aId": "2EA95788-7ABA-4DDD-B3BA-E7EB574685BD",
-              "userId": this.pseudoId,
-              "typeKey": "greeting",
-              "timestamp": "2023-06-27T10:12:53.000000+02:00",
-              "assistanceState": "completed",
-              "assistanceObjects": [
+              aId: '2EA95788-7ABA-4DDD-B3BA-E7EB574685BD',
+              userId: this.pseudoId,
+              typeKey: 'greeting',
+              timestamp: '2023-06-27T10:12:53.000000+02:00',
+              assistanceState: 'completed',
+              assistanceObjects: [
                 {
-                  "userId": this.pseudoId,
-                  "aoId": "BC2340BA-1623-41F8-9C0D-B4373956E6EC",
-                  "timestamp": "2023-06-27T10:12:53.000000+02:00",
-                  "parameters": [
+                  userId: this.pseudoId,
+                  aoId: 'BC2340BA-1623-41F8-9C0D-B4373956E6EC',
+                  timestamp: '2023-06-27T10:12:53.000000+02:00',
+                  parameters: [
                     {
-                      "key": "message",
-                      "value": "Hallo! Mein Name ist Veri und ich bin dein Lernassistent. Ich unterstütze Dich beim Lernen und gebe Dir Rückmeldung und hilfreiche Tipps.\n\nDies ist lediglich als Beispielnachricht zur Demonstration der Funktionsweise zu verstehen.\n\nWeitere Funktionen sind vorbereitet, aber noch nicht aktiv."
+                      key: 'message',
+                      value:
+                        'Hallo! Mein Name ist Veri und ich bin dein Lernassistent. Ich unterstütze Dich beim Lernen und gebe Dir Rückmeldung und hilfreiche Tipps.\n\nDies ist lediglich als Beispielnachricht zur Demonstration der Funktionsweise zu verstehen.\n\nWeitere Funktionen sind vorbereitet, aber noch nicht aktiv.'
                     }
                   ]
                 }
@@ -338,13 +345,12 @@ export default {
     // Solution retrieved from https://github.com/rabbitmq/rabbitmq-web-stomp-examples/issues/2
     countBytes(message: string) {
       const escapedStr = encodeURI(message);
-      if (escapedStr.indexOf("%") != -1) {
-        let count = escapedStr.split("%").length - 1;
+      if (escapedStr.indexOf('%') != -1) {
+        let count = escapedStr.split('%').length - 1;
         if (count == 0) count++;
-        const tmp = escapedStr.length - (count * 3);
+        const tmp = escapedStr.length - count * 3;
         return count + tmp;
-      }
-      else return escapedStr.length;
+      } else return escapedStr.length;
     }
   }
 };

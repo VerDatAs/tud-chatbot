@@ -9,5 +9,5 @@ export const parameterValue = (message: AssistanceObjectCommunication, key: stri
 export const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   // Then specify how you want your dates to be formatted
-  return new Intl.DateTimeFormat('default', {dateStyle: 'short', timeStyle: 'short'}).format(date);
-}
+  return new Intl.DateTimeFormat('default', { dateStyle: 'short', timeStyle: 'short' }).format(date);
+};

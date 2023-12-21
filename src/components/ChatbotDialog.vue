@@ -1,8 +1,9 @@
 <script lang="ts">
 import ChatbotGroupStatusMessage from '@/components/dialog/ChatbotGroupStatusMessage.vue';
 import ChatbotNotes from '@/components/dialog/ChatbotNotes.vue';
-import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
 import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
+import ChatbotSystemMessage from '@/components/dialog/ChatbotSystemMessage.vue';
+import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
@@ -40,6 +41,7 @@ export default {
     ChatbotGroupStatusMessage,
     ChatbotNotes,
     ChatbotOptionsMessage,
+    ChatbotSystemMessage,
     ChatbotTextMessage,
     ChatbotIcon
   },
@@ -143,7 +145,7 @@ export default {
       // TODO: Remove, if this causes problems
       // add timestamp to messages that are sent to the backend
       if (!assistanceObject.timestamp) {
-        assistanceObject.timestamp = (new Date()).toISOString();
+        assistanceObject.timestamp = new Date().toISOString();
       }
       this.$emit('sendAssistanceObject', assistanceObject);
     },
@@ -207,7 +209,11 @@ export default {
         v-if="messageExchange.length > 0"
       >
         <div v-for="(message, messageIndex) in messageExchange" :key="'message' + messageIndex">
-          <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="isIncomingMessage(message)">
+          <div
+            class="message messageIncoming animate__animated animate__fadeInLeft"
+            :class="parametersIncludeKey(message, 'assistance_state_update') ? 'systemMessage' : ''"
+            v-if="isIncomingMessage(message)"
+          >
             <ChatbotOptionsMessage
               :bot-image-path="botImagePath"
               :assistance-object="message"
@@ -221,7 +227,11 @@ export default {
               :group-initiation="true"
               v-else-if="parametersIncludeKey(message, 'group')"
             />
-            <!-- this is also used for 'assistance_state_update' messages, as those do not require a separate case -->
+            <ChatbotSystemMessage
+              :assistance-object="message"
+              :key-to-display="'message'"
+              v-else-if="parametersIncludeKey(message, 'assistance_state_update')"
+            />
             <ChatbotTextMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
@@ -391,6 +401,13 @@ export default {
           }
         }
       }
+    }
+
+    .systemMessage {
+      padding: 0 !important;
+      border-radius: 0 !important;
+      background: none;
+      color: inherit;
     }
   }
 

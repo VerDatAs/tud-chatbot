@@ -40,7 +40,8 @@ export default {
     </template>
     <div class="groupInformation" v-if="parameterValue(assistanceObject, 'group')">
       <span class="text-decoration-underline">
-        {{ groupInitiation ? 'Gruppeninformationen' : 'Abbruch der Gruppenkollaboration' }}{{ assistanceObject ? ':' : '' }}
+        {{ groupInitiation ? 'Gruppeninformationen' : 'Abbruch der Gruppenkollaboration'
+        }}{{ assistanceObject ? ':' : '' }}
       </span>
       <ul>
         <li v-if="parameterValue(assistanceObject, 'group')?.find((ao: any) => ao.key === 'groupId')">
@@ -64,7 +65,7 @@ export default {
 </template>
 
 <style lang="scss" scoped>
-  ul {
-    text-align: left;
-  }
+ul {
+  text-align: left;
+}
 </style>

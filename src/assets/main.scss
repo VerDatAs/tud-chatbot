@@ -17,6 +17,23 @@
   font-style: italic;
 }
 
+.text-center {
+  text-align: center;
+}
+
+.alert {
+  padding: 15px;
+  margin-bottom: 16px;
+  border: 1px solid transparent;
+  border-radius: 0;
+}
+
+.alert-info {
+  color: #31708f;
+  background-color: #d9edf7;
+  border-color: #bce8f1;
+}
+
 .animate__animated {
   &.animate__fadeInRight,
   &.animate__fadeOutRight {
