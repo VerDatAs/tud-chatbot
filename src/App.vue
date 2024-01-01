@@ -135,8 +135,10 @@ export default {
             // if "previous_messages" or "unacknowledged_messages" do exist in the parameter keys, the value will be an Array of AssistanceObjectCommunications
             // else, it is a single AssistanceObjectCommunication
             // idea, use queue of correctly parsed AssistanceObjectCommunication objects
+            let previousMessagesReceived: boolean = false;
             const messagesQueue: AssistanceObjectCommunication[] = [];
             if (this.checkForKeyPresence(receivedMessageParsed, 'previous_messages')) {
+              previousMessagesReceived = true;
               parameterValue(receivedMessageParsed, 'previous_messages')?.forEach((message: any) => {
                 messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
               });
@@ -153,41 +155,30 @@ export default {
               if (!receivedMessage?.parameters) {
                 return;
               }
-              if (this.checkForKeyPresence(receivedMessage, 'previous_messages')) {
-                // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
-                const previousMessagesArray: AssistanceObjectCommunication[] = this.checkForKeyPresence(
-                  receivedMessage,
-                  'previous_messages'
-                )?.value;
-                const previousMessages: AssistanceObjectCommunication[] = [];
-                previousMessagesArray.forEach((previousMessage: AssistanceObjectCommunication) => {
-                  previousMessages.push(Object.assign(new AssistanceObjectCommunication(), previousMessage));
-                });
-                this.messageExchangeStore.setItems(previousMessages);
-                // If the user has just logged in, display the chatbot dialog
-                if (this.hasJustLoggedIn) {
-                  this.updateChatbotDialogVisible(true);
-                }
-              } else if (this.checkForKeyPresence(receivedMessage, 'options')) {
+              if (this.checkForKeyPresence(receivedMessage, 'options')) {
                 this.messageExchangeStore.addItem(receivedMessage);
-                this.acknowledgeMessage(receivedMessage);
+                this.acknowledgeMessage(receivedMessage, !previousMessagesReceived);
               } else if (this.checkForKeyPresence(receivedMessage, 'group')) {
                 // store group in both messageExchange and groupInformation store
                 this.messageExchangeStore.addItem(receivedMessage);
                 this.groupInformationStore.addItem(receivedMessage);
-                this.acknowledgeMessage(receivedMessage);
+                this.acknowledgeMessage(receivedMessage, !previousMessagesReceived);
               } else if (this.checkForKeyPresence(receivedMessage, 'assistance_state_update')) {
                 this.messageExchangeStore.addItem(receivedMessage);
                 // potentially remove item from groupInformationStore
                 if (this.parameterValue(receivedMessage, 'assistance_state_update') === 'completed') {
                   this.groupInformationStore.removeItem(receivedMessage.aId, receivedMessage.aoId);
                 }
-                this.acknowledgeMessage(receivedMessage);
+                this.acknowledgeMessage(receivedMessage, !previousMessagesReceived);
               } else if (this.checkForKeyPresence(receivedMessage, 'message')) {
                 this.messageExchangeStore.addItem(receivedMessage);
-                this.acknowledgeMessage(receivedMessage);
+                this.acknowledgeMessage(receivedMessage, !previousMessagesReceived);
               }
             });
+            // If the previous messages were received and the user has just logged in, display the chatbot dialog
+            if (previousMessagesReceived && this.hasJustLoggedIn) {
+              this.updateChatbotDialogVisible(true);
+            }
             this.updateDialogScroll();
           }
         };
@@ -270,8 +261,8 @@ export default {
       }
     },
     // acknowledge the reception of the message
-    acknowledgeMessage(receivedMessage: AssistanceObjectCommunication) {
-      if (receivedMessage?.messageId) {
+    acknowledgeMessage(receivedMessage: AssistanceObjectCommunication, acknowledgeNecessary: boolean) {
+      if (acknowledgeNecessary && receivedMessage?.messageId) {
         const acknowledgeMessage: AssistanceObjectCommunication = {
           messageId: receivedMessage.messageId
         };
