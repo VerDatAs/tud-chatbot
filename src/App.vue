@@ -135,18 +135,22 @@ export default {
             // if "previous_messages" or "unacknowledged_messages" do exist in the parameter keys, the value will be an Array of AssistanceObjectCommunications
             // else, it is a single AssistanceObjectCommunication
             // idea, use queue of correctly parsed AssistanceObjectCommunication objects
-            let previousMessagesReceived: boolean = false;
+            const previousMessagesReceived: boolean = !!this.checkForKeyPresence(receivedMessageParsed, 'previous_messages');
+            const unacknowledgedMessagesReceived: boolean = !!this.checkForKeyPresence(receivedMessageParsed, 'unacknowledged_messages');
             const messagesQueue: AssistanceObjectCommunication[] = [];
-            if (this.checkForKeyPresence(receivedMessageParsed, 'previous_messages')) {
-              previousMessagesReceived = true;
+            // two "if" conditions, as a WebSocket message can contain both "previous_messages" and "unacknowledged_messages"
+            if (previousMessagesReceived) {
               parameterValue(receivedMessageParsed, 'previous_messages')?.forEach((message: any) => {
                 messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
               });
-            } else if (this.checkForKeyPresence(receivedMessageParsed, 'unacknowledged_messages')) {
+            }
+            if (unacknowledgedMessagesReceived) {
               parameterValue(receivedMessageParsed, 'unacknowledged_messages')?.forEach((message: any) => {
                 messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
               });
-            } else {
+            }
+            // if none of these two keys were included, it is a "normal" message
+            if (!previousMessagesReceived && !unacknowledgedMessagesReceived) {
               messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), receivedMessageParsed));
             }
 
