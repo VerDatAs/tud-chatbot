@@ -135,22 +135,26 @@ export default {
             // if "previous_messages" or "unacknowledged_messages" do exist in the parameter keys, the value will be an Array of AssistanceObjectCommunications
             // else, it is a single AssistanceObjectCommunication
             // idea, use queue of correctly parsed AssistanceObjectCommunication objects
-            const previousMessagesReceived: boolean = !!this.checkForKeyPresence(receivedMessageParsed, 'previous_messages');
-            const unacknowledgedMessagesReceived: boolean = !!this.checkForKeyPresence(receivedMessageParsed, 'unacknowledged_messages');
             const messagesQueue: AssistanceObjectCommunication[] = [];
-            // two "if" conditions, as a WebSocket message can contain both "previous_messages" and "unacknowledged_messages"
-            if (previousMessagesReceived) {
+            let previousMessagesReceived: boolean = false;
+            // either previous_messages or unacknowledged_messages are retrieved when sending a wake-up message
+            // previous_messages might include "old" unacknowledged messages, whose are acknowledged automatically now
+            if (this.checkForKeyPresence(receivedMessageParsed, 'previous_messages')) {
+              previousMessagesReceived = true;
               parameterValue(receivedMessageParsed, 'previous_messages')?.forEach((message: any) => {
                 messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
               });
+              // the retrieval of the message including the previous_messages itself has to be acknowledged
+              this.acknowledgeMessage(receivedMessageParsed);
             }
-            if (unacknowledgedMessagesReceived) {
+            // TODO: if unacknowledged_messages are retrieved, the timestamp of the first unacknowledged message has to be
+            // compared to the last of the existing messages
+            else if (this.checkForKeyPresence(receivedMessageParsed, 'unacknowledged_messages')) {
               parameterValue(receivedMessageParsed, 'unacknowledged_messages')?.forEach((message: any) => {
                 messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
               });
             }
-            // if none of these two keys were included, it is a "normal" message
-            if (!previousMessagesReceived && !unacknowledgedMessagesReceived) {
+            else {
               messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), receivedMessageParsed));
             }
 
@@ -159,27 +163,24 @@ export default {
               if (!receivedMessage?.parameters) {
                 return;
               }
-              if (this.checkForKeyPresence(receivedMessage, 'options')) {
-                this.messageExchangeStore.addItem(receivedMessage);
-                this.acknowledgeMessage(receivedMessage, !previousMessagesReceived);
-              } else if (this.checkForKeyPresence(receivedMessage, 'group')) {
-                // store group in both messageExchange and groupInformation store
-                this.messageExchangeStore.addItem(receivedMessage);
+              // It is assumed that the message received is valid
+              this.messageExchangeStore.addItem(receivedMessage);
+
+              // Hold group information
+              if (this.checkForKeyPresence(receivedMessage, 'group')) {
                 this.groupInformationStore.addItem(receivedMessage);
-                this.acknowledgeMessage(receivedMessage, !previousMessagesReceived);
-              } else if (this.checkForKeyPresence(receivedMessage, 'state_update')) {
-                this.messageExchangeStore.addItem(receivedMessage);
-                // potentially remove item from groupInformationStore
-                if (this.parameterValue(receivedMessage, 'state_update')?.status === 'completed') {
-                  this.groupInformationStore.removeItem(receivedMessage.aId, receivedMessage.aoId);
-                }
-                this.acknowledgeMessage(receivedMessage, !previousMessagesReceived);
-              } else if (this.checkForKeyPresence(receivedMessage, 'message')) {
-                this.messageExchangeStore.addItem(receivedMessage);
-                this.acknowledgeMessage(receivedMessage, !previousMessagesReceived);
+              }
+              // Remove group information, if requested
+              else if (this.checkForKeyPresence(receivedMessage, 'state_update') && this.parameterValue(receivedMessage, 'state_update')?.status === 'completed') {
+                this.groupInformationStore.removeItem(receivedMessage.aId, receivedMessage.aoId);
+              }
+
+              // Acknowledge retrieval of message, if they were not part of the previous_messages
+              if (!previousMessagesReceived) {
+                this.acknowledgeMessage(receivedMessage);
               }
             });
-            // If the previous messages were received and the user has just logged in, display the chatbot dialog
+            // If the user has just logged in (and the previous messages were received), display the chatbot dialog
             if (previousMessagesReceived && this.hasJustLoggedIn) {
               this.updateChatbotDialogVisible(true);
             }
@@ -199,8 +200,8 @@ export default {
         this.handleWakeUpMessageSending(switchedPage);
       }
     },
-    checkForKeyPresence(assistanceObject: AssistanceObjectCommunication, key: string): AssistanceParameter | undefined {
-      return assistanceObject?.parameters?.find((param) => param.key === key);
+    checkForKeyPresence(assistanceObject: AssistanceObjectCommunication, key: string): boolean {
+      return !!assistanceObject.parameters?.find((param) => param.key === key);
     },
     // https://stackoverflow.com/a/60617142
     parameterValue,
@@ -254,8 +255,8 @@ export default {
       }
     },
     // acknowledge the reception of the message
-    acknowledgeMessage(receivedMessage: AssistanceObjectCommunication, acknowledgeNecessary: boolean) {
-      if (acknowledgeNecessary && receivedMessage?.messageId) {
+    acknowledgeMessage(receivedMessage: AssistanceObjectCommunication) {
+      if (receivedMessage?.messageId) {
         const acknowledgeMessage: AssistanceObjectCommunication = {
           messageId: receivedMessage.messageId
         };
