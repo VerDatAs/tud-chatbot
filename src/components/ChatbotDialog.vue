@@ -124,7 +124,7 @@ export default {
         const groupToTerminate = this.groups[0];
         messageToSend.aId = groupToTerminate.aId;
         messageToSend.aoId = groupToTerminate.aoId;
-        messageToSend.parameters = [new AssistanceParameter('assistance_state_update_response', 'completed')];
+        messageToSend.parameters = [new AssistanceParameter('state_update_response', { status: 'completed' })];
       } else {
         // TODO: Implement simple intent matching (detect correct type or sent as "incorrect" type message)
         // For the moment, do not send any aId and aoId
@@ -211,7 +211,7 @@ export default {
         <div v-for="(message, messageIndex) in messageExchange" :key="'message' + messageIndex">
           <div
             class="message messageIncoming animate__animated animate__fadeInLeft"
-            :class="parametersIncludeKey(message, 'assistance_state_update') ? 'systemMessage' : ''"
+            :class="parametersIncludeKey(message, 'state_update') ? 'systemMessage' : ''"
             v-if="isIncomingMessage(message)"
           >
             <ChatbotOptionsMessage
@@ -229,8 +229,8 @@ export default {
             />
             <ChatbotSystemMessage
               :assistance-object="message"
-              :key-to-display="'message'"
-              v-else-if="parametersIncludeKey(message, 'assistance_state_update')"
+              :key-to-display="'state_update'"
+              v-else-if="parametersIncludeKey(message, 'state_update')"
             />
             <ChatbotTextMessage
               :assistance-object="message"
@@ -258,7 +258,7 @@ export default {
             <ChatbotGroupStatusMessage
               :assistance-object="findRelatedItems(message, 'group')"
               :group-initiation="false"
-              v-else-if="parametersIncludeKey(message, 'assistance_state_update_response')"
+              v-else-if="parametersIncludeKey(message, 'state_update_response')"
             />
             <div v-else>-- none supported key --</div>
           </div>

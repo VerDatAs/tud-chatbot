@@ -39,8 +39,8 @@ export default {
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
     messageHistoryStore: useMessageHistoryStore(),
-    incomingMessageTypes: ['message', 'options', 'group', 'assistance_state_update'],
-    outgoingMessageTypes: ['message_response', 'options_response', 'assistance_state_update_response'],
+    incomingMessageTypes: ['message', 'options', 'group', 'state_update'],
+    outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
     pongInterval: 0 as number
   }),
   components: {
@@ -167,10 +167,10 @@ export default {
                 this.messageExchangeStore.addItem(receivedMessage);
                 this.groupInformationStore.addItem(receivedMessage);
                 this.acknowledgeMessage(receivedMessage, !previousMessagesReceived);
-              } else if (this.checkForKeyPresence(receivedMessage, 'assistance_state_update')) {
+              } else if (this.checkForKeyPresence(receivedMessage, 'state_update')) {
                 this.messageExchangeStore.addItem(receivedMessage);
                 // potentially remove item from groupInformationStore
-                if (this.parameterValue(receivedMessage, 'assistance_state_update') === 'completed') {
+                if (this.parameterValue(receivedMessage, 'state_update')?.status === 'completed') {
                   this.groupInformationStore.removeItem(receivedMessage.aId, receivedMessage.aoId);
                 }
                 this.acknowledgeMessage(receivedMessage, !previousMessagesReceived);
@@ -247,7 +247,7 @@ export default {
       // remove terminated group from the groupInformationStore
       if (
         messageToSend?.parameters?.find(
-          (param) => param.key === 'assistance_state_update_response' && param.value === 'completed'
+          (param) => param.key === 'state_update_response' && param.value?.status === 'completed'
         )
       ) {
         this.groupInformationStore.removeItem(messageToSend.aId, messageToSend.aoId);
