@@ -12,10 +12,6 @@ export const formatDate = (dateTime: any) => {
   if (!isNaN(timestamp)) {
     const dateTimestamp = new Date(timestamp);
     return new Intl.DateTimeFormat('default', { dateStyle: 'short', timeStyle: 'short' }).format(dateTimestamp);
-  } else if (Array.isArray(dateTime)) {
-    // Workaround for current implementation of the dateTimeString: [2023,12,30,15,35,14,469304000]
-    const dateTimestamp = new Date(dateTime[0], dateTime[1], dateTime[2], dateTime[3], dateTime[4], dateTime[5]);
-    return new Intl.DateTimeFormat('default', { dateStyle: 'short', timeStyle: 'short' }).format(dateTimestamp);
   } else {
     return 'Invalid date';
   }
