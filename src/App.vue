@@ -203,6 +203,7 @@ export default {
     // When switching the page, send information about having just logged in or not
     handleWakeUpMessageSending(switchedPage: boolean) {
       // Delay message until the WebSocket is connected
+      // TODO: Find a more reliable method, e.g., listening for the CONNECTED message
       setTimeout(() => {
         if (switchedPage) {
           const message: AssistanceObjectCommunication = {
@@ -218,27 +219,15 @@ export default {
             ]
           };
           this.sendWebSocketMessage(message);
-          // the backend requests old messages from VSG and send then to the chatbot plugin
-          // this.mockAssistanceRequest('previous_messages');
-          // if the user has just logged in, the backend will send a greeting message
-          // TODO: Comment in later, if this gets relevant again
-          if (this.hasJustLoggedIn) {
-            // Delay it some time to make it look more realistic
-            setTimeout(() => {
-              this.mockAssistanceRequest('greeting');
-            }, 500);
-          }
         }
       }, 250);
     },
     // handle message sending over the WebSocket
-    sendWebSocketMessage(messageToSend: AssistanceObjectCommunication, destinationToOverwrite?: String) {
+    sendWebSocketMessage(messageToSend: AssistanceObjectCommunication) {
       const messageAsJson = JSON.stringify(messageToSend);
-      const destination =
-        destinationToOverwrite && destinationToOverwrite !== '' ? destinationToOverwrite : webSocketDestination;
       this.webSocket.send(
         'MESSAGE\ndestination:' +
-          destination +
+          webSocketDestination +
           '\ncontent-length:' +
           this.countBytes(messageAsJson) +
           '\n\n' +
@@ -279,38 +268,6 @@ export default {
     updateDialogScroll() {
       // https://stackoverflow.com/a/76297364/3623608
       (this.$refs.chatbotDialog as typeof ChatbotDialog)?.updateScroll();
-    },
-    mockAssistanceRequest(type: String) {
-      const webSocketTestDestination = '/tutoring-system/queue/assistance';
-      let messageToSend = {};
-      if (type === 'greeting') {
-        messageToSend = {
-          assistance: [
-            {
-              aId: '2EA95788-7ABA-4DDD-B3BA-E7EB574685BD',
-              userId: this.pseudoId,
-              typeKey: 'greeting',
-              timestamp: '2023-06-27T10:12:53.000000+02:00',
-              assistanceState: 'completed',
-              assistanceObjects: [
-                {
-                  userId: this.pseudoId,
-                  aoId: 'BC2340BA-1623-41F8-9C0D-B4373956E6EC',
-                  timestamp: '2023-06-27T10:12:53.000000+02:00',
-                  parameters: [
-                    {
-                      key: 'message',
-                      value:
-                        'Hallo! Mein Name ist Veri und ich bin dein Lernassistent. Ich unterstütze Dich beim Lernen und gebe Dir Rückmeldung und hilfreiche Tipps.\n\nDies ist lediglich als Beispielnachricht zur Demonstration der Funktionsweise zu verstehen.\n\nWeitere Funktionen sind vorbereitet, aber noch nicht aktiv.'
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        };
-      }
-      this.sendWebSocketMessage(messageToSend, webSocketTestDestination);
     },
     updateChatbotDialogVisible(dialogVisible: boolean) {
       if (dialogVisible) {
