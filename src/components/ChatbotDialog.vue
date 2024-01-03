@@ -2,11 +2,13 @@
 import ChatbotGroupStatusMessage from '@/components/dialog/ChatbotGroupStatusMessage.vue';
 import ChatbotNotes from '@/components/dialog/ChatbotNotes.vue';
 import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
+import ChatbotStateUpdate from '@/components/dialog/ChatbotStateUpdate.vue';
 import ChatbotSystemMessage from '@/components/dialog/ChatbotSystemMessage.vue';
 import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
+import { checkForKeyPresence } from '@/util/assistanceObjectHelper';
 
 export default {
   data: () => ({
@@ -25,7 +27,6 @@ export default {
       type: Array<AssistanceObjectCommunication>,
       default: []
     },
-    messageHistory: Array<AssistanceObjectCommunication>,
     notesVisible: Boolean,
     notes: String,
     incomingMessageTypes: {
@@ -35,12 +36,17 @@ export default {
     outgoingMessageTypes: {
       type: Array<String>,
       default: []
+    },
+    stateUpdates: {
+      type: Array<AssistanceObjectCommunication>,
+      default: []
     }
   },
   components: {
     ChatbotGroupStatusMessage,
     ChatbotNotes,
     ChatbotOptionsMessage,
+    ChatbotStateUpdate,
     ChatbotSystemMessage,
     ChatbotTextMessage,
     ChatbotIcon
@@ -82,22 +88,14 @@ export default {
       const parameterKeyArray = message?.parameters?.map((param) => param.key) || [];
       return parameterKeyArray.some((item) => this.incomingMessageTypes.includes(item));
     },
-    parametersIncludeKey(message: AssistanceObjectCommunication, key: string) {
-      const parameterKeyArray = message?.parameters?.map((param) => param.key) || [];
-      return parameterKeyArray.includes(key);
-    },
+    // https://stackoverflow.com/a/60617142
+    checkForKeyPresence,
     sendMessage(event: Event | null) {
       if (event) {
         event.preventDefault();
       }
-      // TODO: This does not work with ENTER, if the second condition is not set
-      if (this.messageToSend === 'RESET' || this.messageToSend === 'RESET\n') {
-        this.$emit('resetMessageHistory');
-        this.messageToSend = '';
-        return;
-      }
       // check message with removed linebreaks and trimmed whitespaces to be empty
-      else if (this.messageToSend.replace(/(\r\n|\n|\r)/gm, '').trimEnd() === '') {
+      if (this.messageToSend.replace(/(\r\n|\n|\r)/gm, '').trimEnd() === '') {
         this.messageToSend = '';
         return;
       }
@@ -154,7 +152,7 @@ export default {
         (message) =>
           message.aId === responseOption.aId &&
           message.aoId === responseOption.aoId &&
-          this.parametersIncludeKey(message, key)
+          this.checkForKeyPresence(message, key)
       );
     },
     // Retrieved from https://stackoverflow.com/a/18614545
@@ -211,26 +209,32 @@ export default {
         <div v-for="(message, messageIndex) in messageExchange" :key="'message' + messageIndex">
           <div
             class="message messageIncoming animate__animated animate__fadeInLeft"
-            :class="parametersIncludeKey(message, 'state_update') ? 'systemMessage' : ''"
+            :class="checkForKeyPresence(message, 'state_update') ? 'systemMessage' : ''"
             v-if="isIncomingMessage(message)"
           >
             <ChatbotOptionsMessage
               :bot-image-path="botImagePath"
               :assistance-object="message"
               :is-last-item="messageIndex === messageExchange.length - 1"
-              v-if="parametersIncludeKey(message, 'options')"
+              v-if="checkForKeyPresence(message, 'options')"
               @select-option="selectOption"
             />
             <ChatbotGroupStatusMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
               :group-initiation="true"
-              v-else-if="parametersIncludeKey(message, 'group')"
+              v-else-if="checkForKeyPresence(message, 'group')"
+            />
+            <ChatbotStateUpdate
+              :assistance-object="message"
+              :key-of-interest="'state_update'"
+              :state-updates="stateUpdates"
+              v-else-if="checkForKeyPresence(message, 'state_update')"
             />
             <ChatbotSystemMessage
               :assistance-object="message"
-              :key-to-display="'state_update'"
-              v-else-if="parametersIncludeKey(message, 'state_update')"
+              :key-to-display="'system_message'"
+              v-else-if="checkForKeyPresence(message, 'system_message')"
             />
             <ChatbotTextMessage
               :assistance-object="message"
@@ -238,7 +242,7 @@ export default {
               :incoming="true"
               :key-to-display="'message'"
               :related-group="findRelatedItems(message, 'group')"
-              v-else-if="parametersIncludeKey(message, 'message')"
+              v-else-if="checkForKeyPresence(message, 'message')"
             />
             <div v-else>-- none supported key --</div>
           </div>
@@ -247,18 +251,18 @@ export default {
               :assistance-object="message"
               :key-to-display="'message_response'"
               :related-group="findRelatedItems(message, 'group')"
-              v-if="parametersIncludeKey(message, 'message_response')"
+              v-if="checkForKeyPresence(message, 'message_response')"
             />
             <ChatbotTextMessage
               :assistance-object="message"
               :key-to-display="'options_response'"
               :related-options="findRelatedItems(message, 'options')"
-              v-else-if="parametersIncludeKey(message, 'options_response')"
+              v-else-if="checkForKeyPresence(message, 'options_response')"
             />
             <ChatbotGroupStatusMessage
               :assistance-object="findRelatedItems(message, 'group')"
               :group-initiation="false"
-              v-else-if="parametersIncludeKey(message, 'state_update_response')"
+              v-else-if="checkForKeyPresence(message, 'state_update_response')"
             />
             <div v-else>-- none supported key --</div>
           </div>

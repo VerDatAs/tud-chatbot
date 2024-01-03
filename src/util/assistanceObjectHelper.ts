@@ -1,8 +1,12 @@
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 
-export const parameterValue = (message: AssistanceObjectCommunication, key: string) => {
+export const checkForKeyPresence = (assistanceObject: AssistanceObjectCommunication, key: string): boolean => {
+  return !!assistanceObject.parameters?.find((param) => param.key === key);
+};
+
+export const parameterValue = (assistanceObject: AssistanceObjectCommunication, key: string) => {
   // Difference between ?? and || -> https://stackoverflow.com/questions/66883181/difference-between-and-operators
-  return message.parameters?.find((param) => param.key === key)?.value ?? '';
+  return assistanceObject.parameters?.find((param) => param.key === key)?.value ?? '';
 };
 
 // Retrieved from https://jerickson.net/how-to-format-dates-in-vue-3/

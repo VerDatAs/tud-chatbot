@@ -2,13 +2,10 @@
 import ChatbotDialog from '@/components/ChatbotDialog.vue';
 import ChatbotWidget from '@/components/ChatbotWidget.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
-import { AssistanceParameter } from '@/components/types/assistance-parameter';
 import { useDisplayStore } from '@/stores/display';
-import { useGroupInformationStore } from '@/stores/groupInformation';
 import { useNotesStore } from '@/stores/notes';
 import { useMessageExchangeStore } from '@/stores/messageExchange';
-import { useMessageHistoryStore } from '@/stores/messageHistory';
-import { parameterValue } from '@/util/assistanceObjectHelper';
+import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
 import { ChatbotData } from '@/components/types/chatbot-data';
 
 // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
@@ -34,12 +31,10 @@ export default {
     // TODO: Fix type
     webSocket: null as any,
     displayStore: useDisplayStore(),
-    groupInformationStore: useGroupInformationStore(),
     notesStore: useNotesStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
-    messageHistoryStore: useMessageHistoryStore(),
-    incomingMessageTypes: ['message', 'options', 'group', 'state_update'],
+    incomingMessageTypes: ['message', 'options', 'group', 'state_update', 'system_message'],
     outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
     pongInterval: 0 as number
   }),
@@ -166,15 +161,6 @@ export default {
               // It is assumed that the message received is valid
               this.messageExchangeStore.addItem(receivedMessage);
 
-              // Hold group information
-              if (this.checkForKeyPresence(receivedMessage, 'group')) {
-                this.groupInformationStore.addItem(receivedMessage);
-              }
-              // Remove group information, if requested
-              else if (this.checkForKeyPresence(receivedMessage, 'state_update') && this.parameterValue(receivedMessage, 'state_update')?.status === 'completed') {
-                this.groupInformationStore.removeItem(receivedMessage.aId, receivedMessage.aoId);
-              }
-
               // Acknowledge retrieval of message, if they were not part of the previous_messages
               if (!previousMessagesReceived) {
                 this.acknowledgeMessage(receivedMessage);
@@ -200,10 +186,8 @@ export default {
         this.handleWakeUpMessageSending(switchedPage);
       }
     },
-    checkForKeyPresence(assistanceObject: AssistanceObjectCommunication, key: string): boolean {
-      return !!assistanceObject.parameters?.find((param) => param.key === key);
-    },
     // https://stackoverflow.com/a/60617142
+    checkForKeyPresence,
     parameterValue,
     // When switching the page, send information about having just logged in or not
     handleWakeUpMessageSending(switchedPage: boolean) {
@@ -244,14 +228,6 @@ export default {
       if (messageToSend?.parameters?.find((param) => this.outgoingMessageTypes.includes(param.key))) {
         this.messageExchangeStore.addItem(messageToSend);
         this.updateDialogScroll();
-      }
-      // remove terminated group from the groupInformationStore
-      if (
-        messageToSend?.parameters?.find(
-          (param) => param.key === 'state_update_response' && param.value?.status === 'completed'
-        )
-      ) {
-        this.groupInformationStore.removeItem(messageToSend.aId, messageToSend.aoId);
       }
     },
     // acknowledge the reception of the message
@@ -320,15 +296,14 @@ export default {
     <ChatbotDialog
       ref="chatbotDialog"
       :bot-image-path="botImagePath"
-      :groups="groupInformationStore.items"
+      :groups="messageExchangeStore.groups"
       :incoming-message-types="incomingMessageTypes"
       :message-exchange="messageExchangeStore.items"
-      :message-history="messageHistoryStore.items"
       :notes-visible="displayStore.notesOpen"
       :notes="notesStore.text"
       :outgoing-message-types="outgoingMessageTypes"
+      :state-updates="messageExchangeStore.stateUpdates"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
-      @resetMessageHistory="messageExchangeStore.clearItems()"
       @sendAssistanceObject="sendWebSocketMessage"
       v-else
     />

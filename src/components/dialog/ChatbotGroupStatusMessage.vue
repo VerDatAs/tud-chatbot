@@ -23,6 +23,11 @@ export default {
       default: true
     }
   },
+  computed: {
+    validTimestamp() {
+      return this.assistanceObject.timestamp && formatDate(this.assistanceObject.timestamp) !== 'Invalid date';
+    }
+  },
   methods: {
     // https://stackoverflow.com/a/60617142
     formatDate,
@@ -60,7 +65,7 @@ export default {
       <span class="fw-bold">@group</span>
       um eine Nachricht an deine Gruppe zu senden.
     </template>
-    <div class="messageTimestamp" v-if="assistanceObject.timestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
+    <div class="messageTimestamp" v-if="validTimestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>
 </template>
 

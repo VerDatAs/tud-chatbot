@@ -1,21 +1,44 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
+import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
 
 export const useMessageExchangeStore = defineStore({
   id: 'messageExchange',
   state: () => ({
-    items: [] as AssistanceObjectCommunication[]
+    items: [] as AssistanceObjectCommunication[],
+    groups: [] as AssistanceObjectCommunication[],
+    stateUpdates: [] as AssistanceObjectCommunication[]
   }),
   actions: {
+    clearItems() {
+      this.items = [];
+      this.groups = [];
+      this.stateUpdates = [];
+    },
     setItems(items: AssistanceObjectCommunication[]) {
       this.items = items;
+      this.items?.forEach((assistanceObject: AssistanceObjectCommunication) => {
+        this.addOrRemoveGroup(assistanceObject);
+        this.addStateUpdate(assistanceObject);
+      });
     },
-    addItem(item: AssistanceObjectCommunication) {
-      this.items.push(item);
+    addItem(assistanceObject: AssistanceObjectCommunication) {
+      this.items.push(assistanceObject);
+      this.addOrRemoveGroup(assistanceObject);
+      this.addStateUpdate(assistanceObject);
     },
-    clearItems() {
-      console.log('clear message history');
-      this.items = [];
+    addOrRemoveGroup(assistanceObject: AssistanceObjectCommunication) {
+      if (checkForKeyPresence(assistanceObject, 'group')) {
+        this.groups.push(assistanceObject);
+      } else if (parameterValue(assistanceObject, 'state_update')?.status === 'completed'
+        || parameterValue(assistanceObject, 'state_update_response')?.status === 'completed') {
+        this.groups = this.groups.filter((item) => item.aId !== assistanceObject.aId || item.aoId !== assistanceObject.aoId);
+      }
+    },
+    addStateUpdate(assistanceObject: AssistanceObjectCommunication) {
+      if (checkForKeyPresence(assistanceObject, 'state_update')) {
+        this.stateUpdates.push(assistanceObject);
+      }
     }
   },
   persist: true

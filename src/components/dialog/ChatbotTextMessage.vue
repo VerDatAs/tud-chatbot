@@ -53,6 +53,9 @@ export default {
           ?.find((param: any) => param?.key === 'group')
           ?.value?.find((groupParam: any) => groupParam.key === 'members')?.value?.length || 0
       );
+    },
+    validTimestamp() {
+      return this.assistanceObject.timestamp && formatDate(this.assistanceObject.timestamp) !== 'Invalid date';
     }
   },
   methods: {
@@ -89,6 +92,6 @@ export default {
   <div class="messageContainer">
     <span v-if="sentMessageToGroup()" class="fw-bold">@group:</span>
     <span>{{ getAssistanceObjectText() }}</span>
-    <div class="messageTimestamp" v-if="assistanceObject.timestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
+    <div class="messageTimestamp" v-if="validTimestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>
 </template>
