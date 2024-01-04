@@ -1,8 +1,12 @@
 <script lang="ts">
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { parameterValue } from '@/util/assistanceObjectHelper';
+import { useMessageExchangeStore } from '@/stores/messageExchange';
 
 export default {
+  data: () => ({
+    messageExchangeStore: useMessageExchangeStore()
+  }),
   props: {
     assistanceObject: {
       type: AssistanceObjectCommunication,
@@ -21,9 +25,10 @@ export default {
     currentPhase() {
       return parameterValue(this.assistanceObject, this.keyOfInterest)?.phase ?? 0;
     },
-    // TODO: Calculate correct number of phases
     totalNumberOfPhases() {
-      return 6;
+      const typeOfAssistanceId = this.assistanceObject.aId ? this.messageExchangeStore.assistanceIdToTypeMatching[this.assistanceObject.aId] : 'peer_collaboration';
+      const dataForType = this.messageExchangeStore.typeToDataMatching[typeOfAssistanceId] ?? {};
+      return dataForType?.phases?.length ?? 6;
     },
     checkForFirstOccurrence() {
       // find first occurrence of this state update by comparing the phase and the aId
