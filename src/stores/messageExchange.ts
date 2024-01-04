@@ -23,9 +23,12 @@ export const useMessageExchangeStore = defineStore({
       });
     },
     addItem(assistanceObject: AssistanceObjectCommunication) {
-      this.items.push(assistanceObject);
-      this.addOrRemoveGroup(assistanceObject);
-      this.addStateUpdate(assistanceObject);
+      // only push items that do not already exist
+      if (!this.items.some((item: AssistanceObjectCommunication) => item.messageId === assistanceObject.messageId)) {
+        this.items.push(assistanceObject);
+        this.addOrRemoveGroup(assistanceObject);
+        this.addStateUpdate(assistanceObject);
+      }
     },
     addOrRemoveGroup(assistanceObject: AssistanceObjectCommunication) {
       if (checkForKeyPresence(assistanceObject, 'group')) {

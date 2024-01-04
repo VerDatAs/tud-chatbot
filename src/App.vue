@@ -2,6 +2,7 @@
 import ChatbotDialog from '@/components/ChatbotDialog.vue';
 import ChatbotWidget from '@/components/ChatbotWidget.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
+import { AssistanceObjectQueueItem } from '@/components/types/assistance-object-queue-item';
 import { useDisplayStore } from '@/stores/display';
 import { useNotesStore } from '@/stores/notes';
 import { useMessageExchangeStore } from '@/stores/messageExchange';
@@ -136,32 +137,65 @@ export default {
 
             // if "previous_messages" or "unacknowledged_messages" do exist in the parameter keys, the value will be an Array of AssistanceObjectCommunications
             // else, it is a single AssistanceObjectCommunication
-            // idea, use queue of correctly parsed AssistanceObjectCommunication objects
-            const messagesQueue: AssistanceObjectCommunication[] = [];
-            let previousMessagesReceived: boolean = false;
+            // idea, use a queue of AssistanceObjectQueueItems containing correctly parsed AssistanceObjectCommunication objects
+            // as well as the information, whether it must be acknowledged or not
+            const messagesQueue: AssistanceObjectQueueItem[] = [];
             // either previous_messages or unacknowledged_messages are retrieved when sending a wake-up message
             // previous_messages might include "old" unacknowledged messages, whose are acknowledged automatically now
             if (this.checkForKeyPresence(receivedMessageParsed, 'previous_messages')) {
-              previousMessagesReceived = true;
               parameterValue(receivedMessageParsed, 'previous_messages')?.forEach((message: any) => {
-                messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
+                messagesQueue.push(new AssistanceObjectQueueItem(Object.assign(new AssistanceObjectCommunication(), message), false));
               });
               // the retrieval of the message including the previous_messages itself has to be acknowledged
               this.acknowledgeMessage(receivedMessageParsed);
             }
-            // TODO: if unacknowledged_messages are retrieved, the timestamp of the first unacknowledged message has to be
-            // compared to the last of the existing messages
+            // handles the retrieval of unacknowledged_messages (just_logged_in: false)
             else if (this.checkForKeyPresence(receivedMessageParsed, 'unacknowledged_messages')) {
-              parameterValue(receivedMessageParsed, 'unacknowledged_messages')?.forEach((message: any) => {
-                messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
-              });
+              const unacknowledgedMessages = parameterValue(receivedMessageParsed, 'unacknowledged_messages');
+              // at least one unacknowledged message has to exist, otherwise, the handling will be skipped
+              if (unacknowledgedMessages?.length > 0) {
+                const existingMessages = this.messageExchangeStore.items;
+                const emptyExistingMessages = !existingMessages?.length;
+                const lastExistingMessageTimestamp = !emptyExistingMessages && existingMessages[existingMessages.length - 1].timestamp;
+                const firstUnacknowledgedMessageTimestamp = unacknowledgedMessages[0].timestamp;
+                const timestampsExistAndExistingMessagesAreOlder = lastExistingMessageTimestamp && firstUnacknowledgedMessageTimestamp && new Date(lastExistingMessageTimestamp)?.getTime() < new Date(firstUnacknowledgedMessageTimestamp)?.getTime();
+                // either the existing messages are empty or the existing messages are older than the unacknowledged ones
+                if (emptyExistingMessages || timestampsExistAndExistingMessagesAreOlder) {
+                  // push the unacknowledged messages to the queue (add to existing messages + acknowledge them)
+                  unacknowledgedMessages.forEach((msg: AssistanceObjectCommunication) => {
+                    // unacknowledged_messages might include previous_messages
+                    if (this.checkForKeyPresence(msg, 'previous_messages')) {
+                      const unacknowledgedPreviousMessages = parameterValue(msg, 'previous_messages');
+                      unacknowledgedPreviousMessages?.forEach((previousMsg: AssistanceObjectCommunication) => {
+                        messagesQueue.push(new AssistanceObjectQueueItem(Object.assign(new AssistanceObjectCommunication(), previousMsg), false));
+                      });
+                      // acknowledge the msg containing previous_messages
+                      this.acknowledgeMessage(msg);
+                    } else {
+                      messagesQueue.push(new AssistanceObjectQueueItem(Object.assign(new AssistanceObjectCommunication(), msg), true));
+                    }
+                  })
+                }
+                // otherwise, clear the chatbot history and request the prior_messages again by sending a wake-up message
+                else {
+                  this.messageExchangeStore.clearItems();
+                  // temporary set the hasJustLoggedIn value to true to request the prior_messages again
+                  this.hasJustLoggedIn = true;
+                  this.handleWakeUpMessageSending(true);
+                  // reset the hasJustLoggedIn value back to its existing value (false)
+                  setTimeout(() => {
+                    this.hasJustLoggedIn = false;
+                  }, 250);
+                }
+              }
             }
             else {
-              messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), receivedMessageParsed));
+              messagesQueue.push(new AssistanceObjectQueueItem(Object.assign(new AssistanceObjectCommunication(), receivedMessageParsed), true));
             }
 
-            // iterate messages
-            messagesQueue.forEach((receivedMessage) => {
+            // iterate messages (array of AssistanceObjectQueueItems)
+            messagesQueue.forEach((queueItem: AssistanceObjectQueueItem) => {
+              const receivedMessage: AssistanceObjectCommunication = queueItem.assistanceObject;
               if (!receivedMessage?.parameters) {
                 return;
               }
@@ -169,12 +203,12 @@ export default {
               this.messageExchangeStore.addItem(receivedMessage);
 
               // Acknowledge retrieval of message, if they were not part of the previous_messages
-              if (!previousMessagesReceived) {
+              if (queueItem.requiresAcknowledgement) {
                 this.acknowledgeMessage(receivedMessage);
               }
             });
-            // If the user has just logged in (and the previous messages were received), display the chatbot dialog
-            if (previousMessagesReceived && this.hasJustLoggedIn) {
+            // If the user has just logged in, display the chatbot dialog
+            if (this.hasJustLoggedIn) {
               this.updateChatbotDialogVisible(true);
             }
             this.updateDialogScroll();
