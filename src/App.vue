@@ -61,6 +61,13 @@ export default {
   },
   methods: {
     async initChatbotApp() {
+      // add listener for visibility changes
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          console.log('The tab gets visible again.', this.webSocket?.readyState);
+          this.handleWebSocketConnection(false);
+        }
+      });
       this.isRunLocally = this.initChatbotData?.isRunLocally ?? false;
       this.pluginPath = this.initChatbotData.pluginPath;
       this.backendUrl = this.initChatbotData.backendUrl;
