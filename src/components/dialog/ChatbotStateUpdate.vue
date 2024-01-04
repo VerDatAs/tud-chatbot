@@ -19,7 +19,7 @@ export default {
   },
   computed: {
     currentPhase() {
-      return parameterValue(this.assistanceObject, this.keyOfInterest)?.phase
+      return parameterValue(this.assistanceObject, this.keyOfInterest)?.phase ?? 0;
     },
     // TODO: Calculate correct number of phases
     totalNumberOfPhases() {
@@ -39,7 +39,7 @@ export default {
 </script>
 
 <template>
-  <div class="progress" role="progressbar" aria-label="Basic example" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100" v-if="checkForFirstOccurrence">
+  <div class="progress" role="progressbar" aria-label="Basic example" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100" v-if="checkForFirstOccurrence && currentPhase > 0">
     <div class="progress-bar" :style="{ width: width + '%' }">Phase {{ currentPhase }}</div>
   </div>
 </template>
