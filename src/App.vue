@@ -3,11 +3,11 @@ import ChatbotDialog from '@/components/ChatbotDialog.vue';
 import ChatbotWidget from '@/components/ChatbotWidget.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceObjectQueueItem } from '@/components/types/assistance-object-queue-item';
+import { useChatbotDataStore } from '@/stores/chatbotData';
 import { useDisplayStore } from '@/stores/display';
 import { useNotesStore } from '@/stores/notes';
 import { useMessageExchangeStore } from '@/stores/messageExchange';
 import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
-import { ChatbotData } from '@/components/types/chatbot-data';
 
 // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
 // Define constants for bytes used throughout the code.
@@ -31,6 +31,7 @@ export default {
     userToken: '' as string,
     // TODO: Fix type
     webSocket: null as any,
+    chatbotDataStore: useChatbotDataStore(),
     displayStore: useDisplayStore(),
     notesStore: useNotesStore(),
     messageToSend: '' as string,
@@ -42,12 +43,6 @@ export default {
   components: {
     ChatbotDialog,
     ChatbotWidget
-  },
-  props: {
-    initChatbotData: {
-      type: ChatbotData,
-      required: true
-    }
   },
   computed: {
     botImagePath() {
@@ -69,12 +64,12 @@ export default {
           this.handleWebSocketConnection(false);
         }
       });
-      this.isRunLocally = this.initChatbotData?.isRunLocally ?? false;
-      this.pluginPath = this.initChatbotData.pluginPath;
-      this.backendUrl = this.initChatbotData.backendUrl;
-      this.pseudoId = this.initChatbotData.pseudoId;
-      this.userToken = this.initChatbotData.token;
-      this.hasJustLoggedIn = this.initChatbotData.hasJustLoggedIn;
+      this.isRunLocally = this.chatbotDataStore.data?.isRunLocally ?? false;
+      this.pluginPath = this.chatbotDataStore.data.pluginPath;
+      this.backendUrl = this.chatbotDataStore.data.backendUrl;
+      this.pseudoId = this.chatbotDataStore.data.pseudoId;
+      this.userToken = this.chatbotDataStore.data.token;
+      this.hasJustLoggedIn = this.chatbotDataStore.data.hasJustLoggedIn;
       await this.retrieveTokenAndHandleMessageExchange();
     },
     async retrieveTokenAndHandleMessageExchange() {
@@ -131,10 +126,6 @@ export default {
             const receivedMessageParsed: AssistanceObjectCommunication = JSON.parse(message).msg
               ? JSON.parse(JSON.parse(message).msg)
               : JSON.parse(message);
-            // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
-            // check, if the type casting was done properly
-            // console.log(receivedMessage instanceof AssistanceObjectCommunication);
-
             // if "previous_messages" or "unacknowledged_messages" do exist in the parameter keys, the value will be an Array of AssistanceObjectCommunications
             // else, it is a single AssistanceObjectCommunication
             // idea, use a queue of AssistanceObjectQueueItems containing correctly parsed AssistanceObjectCommunication objects
@@ -144,7 +135,7 @@ export default {
             // previous_messages might include "old" unacknowledged messages, whose are acknowledged automatically now
             if (this.checkForKeyPresence(receivedMessageParsed, 'previous_messages')) {
               parameterValue(receivedMessageParsed, 'previous_messages')?.forEach((message: any) => {
-                messagesQueue.push(new AssistanceObjectQueueItem(Object.assign(new AssistanceObjectCommunication(), message), false));
+                messagesQueue.push(new AssistanceObjectQueueItem(message, false));
               });
               // the retrieval of the message including the previous_messages itself has to be acknowledged
               this.acknowledgeMessage(receivedMessageParsed);
@@ -167,12 +158,12 @@ export default {
                     if (this.checkForKeyPresence(msg, 'previous_messages')) {
                       const unacknowledgedPreviousMessages = parameterValue(msg, 'previous_messages');
                       unacknowledgedPreviousMessages?.forEach((previousMsg: AssistanceObjectCommunication) => {
-                        messagesQueue.push(new AssistanceObjectQueueItem(Object.assign(new AssistanceObjectCommunication(), previousMsg), false));
+                        messagesQueue.push(new AssistanceObjectQueueItem(previousMsg, false));
                       });
                       // acknowledge the msg containing previous_messages
                       this.acknowledgeMessage(msg);
                     } else {
-                      messagesQueue.push(new AssistanceObjectQueueItem(Object.assign(new AssistanceObjectCommunication(), msg), true));
+                      messagesQueue.push(new AssistanceObjectQueueItem(msg, true));
                     }
                   })
                 }
@@ -190,7 +181,7 @@ export default {
               }
             }
             else {
-              messagesQueue.push(new AssistanceObjectQueueItem(Object.assign(new AssistanceObjectCommunication(), receivedMessageParsed), true));
+              messagesQueue.push(new AssistanceObjectQueueItem(receivedMessageParsed, true));
             }
 
             // iterate messages (array of AssistanceObjectQueueItems)
@@ -200,7 +191,10 @@ export default {
                 return;
               }
               // It is assumed that the message received is valid
-              this.messageExchangeStore.addItem(receivedMessage);
+              // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
+              // check, if the type casting was done properly
+              // console.log(receivedMessage instanceof AssistanceObjectCommunication);
+              this.messageExchangeStore.addItem(Object.assign(new AssistanceObjectCommunication(), receivedMessage));
 
               // Acknowledge retrieval of message, if they were not part of the previous_messages
               if (queueItem.requiresAcknowledgement) {
