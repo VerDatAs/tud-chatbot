@@ -103,6 +103,7 @@ export default {
       const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
       // check if message starts with @group and a group was formed previously -> group message
       // in this case, this.groups has to be used to find only active groups
+      // TODO: Remove, if not used anymore
       if (this.messageToSend.trimStart().startsWith('@group') && this.groups.length > 0) {
         const groupToInform = this.groups[0];
         messageToSend.aId = groupToInform.aId;
@@ -124,11 +125,16 @@ export default {
         messageToSend.aoId = groupToTerminate.aoId;
         messageToSend.parameters = [new AssistanceParameter('state_update_response', { status: 'completed' })];
       } else {
-        // TODO: Implement simple intent matching (detect correct type or sent as "incorrect" type message)
-        // For the moment, do not send any aId and aoId
-        // messageToSend.aId = '2EA95788-7ABA-4DDD-B3BA-E7EB344685BD';
-        // messageToSend.aoId = 'BC2340BA-1623-41F8-9BVD-B4373956E6EC';
-        messageToSend.parameters = [new AssistanceParameter('message_response', this.messageToSend)];
+        // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
+        const lastItemWithAssistanceId = this.messageExchange.slice().reverse().find(ao => !!ao.aId);
+        if (lastItemWithAssistanceId) {
+          messageToSend.aId = lastItemWithAssistanceId.aId;
+          // Remove newlines (and all other whitespace) at the end: https://stackoverflow.com/a/48080903
+          messageToSend.parameters = [new AssistanceParameter('message_response', this.messageToSend.trim())];
+        } else {
+          // Return, if no aId does exist as a target
+          return;
+        }
       }
       this.emitAssistanceObject(messageToSend);
       // Reset message input
