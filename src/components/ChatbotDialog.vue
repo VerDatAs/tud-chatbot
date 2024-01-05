@@ -102,6 +102,10 @@ export default {
       if (event) {
         event.preventDefault();
       }
+      // do not send messages, if the chat is disabled
+      if (!this.chatEnabled) {
+        return;
+      }
       // check message with removed linebreaks and trimmed whitespaces to be empty
       if (this.messageToSend.replace(/(\r\n|\n|\r)/gm, '').trimEnd() === '') {
         this.messageToSend = '';
