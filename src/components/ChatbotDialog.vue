@@ -31,6 +31,10 @@ export default {
       type: Array<AssistanceObjectCommunication>,
       default: []
     },
+    notesEnabled: {
+      type: Boolean,
+      default: false
+    },
     notesVisible: Boolean,
     notes: String,
     incomingMessageTypes: {
@@ -200,7 +204,7 @@ export default {
 
 <template>
   <div id="chatbotDialog" class="animate__animated">
-    <ChatbotNotes :notesVisible="notesVisible" :notes="notes" />
+    <ChatbotNotes :notes-enabled="notesEnabled" :notes-visible="notesVisible" :notes="notes" />
     <div id="dialogHeader">
       <ChatbotIcon :botImagePath="botImagePath" :headerIcon="true" />
       <span class="headerName">VERI</span>

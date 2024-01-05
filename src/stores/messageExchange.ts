@@ -2,7 +2,7 @@ import { defineStore, acceptHMRUpdate } from 'pinia';
 import { GenericStringKeyToAnyValueMapping } from '@/components/types/generic-string-key-to-any-value-mapping';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { useChatbotDataStore } from '@/stores/chatbotData';
-import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
+import { checkForKeyPresence, checkLastOperationIsEnabledValue, parameterValue } from '@/util/assistanceObjectHelper';
 import axios from 'axios';
 
 export const useMessageExchangeStore = defineStore({
@@ -99,12 +99,10 @@ export const useMessageExchangeStore = defineStore({
   },
   getters: {
     chatEnabled: (state) => {
-      return () => {
-        // find last operation with the value 'enable_chat' or 'disable_chat'
-        const lastChatOperation = state.operationItems.slice().reverse().find(ao => ['enable_chat', 'disable_chat'].includes(parameterValue(ao, 'operation')));
-        // return true, if the last operation exists and has the value 'enable_chat'
-        return lastChatOperation && parameterValue(lastChatOperation, 'operation') === 'enable_chat';
-      };
+      return () => checkLastOperationIsEnabledValue(state, 'enable_chat', 'disable_chat');
+    },
+    notesEnabled: (state) => {
+      return () => checkLastOperationIsEnabledValue(state, 'enable_notes', 'disable_notes');
     }
   },
   persist: true

@@ -11,6 +11,10 @@ export default {
   }),
   props: {
     notes: String,
+    notesEnabled: {
+      type: Boolean,
+      default: false
+    },
     notesVisible: {
       type: Boolean,
       default: false
@@ -18,7 +22,9 @@ export default {
   },
   methods: {
     toggleNotes(notesOpen: boolean) {
-      this.displayStore.changeNotesOpen(notesOpen);
+      if (this.notesEnabled) {
+        this.displayStore.changeNotesOpen(notesOpen);
+      }
     },
     // related issue for specifying the correct type for the event
     // https://stackoverflow.com/questions/44321326/property-value-does-not-exist-on-type-eventtarget-in-typescript
@@ -31,7 +37,7 @@ export default {
 </script>
 
 <template>
-  <div id="chatbotNotes">
+  <div id="chatbotNotes" :class="!notesEnabled ? 'disabledState' : ''">
     <div class="notesIcon" @click="toggleNotes(true)" v-if="!notesVisible">
       <!-- note taking icon: https://fonts.google.com/icons?selected=Material%20Symbols%20Outlined%3Aedit_note%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024 -->
       <svg xmlns="http://www.w3.org/2000/svg" height="32" width="32" viewBox="0 -960 960 960">
@@ -49,7 +55,7 @@ export default {
       </svg>
     </div>
     <div class="notesContainer" v-if="notesVisible">
-      <textarea :placeholder="notesPlaceholder" :value="notes" @input="notesInput"></textarea>
+      <textarea :placeholder="notesPlaceholder" :value="notes" @input="notesInput" :disabled="!notesEnabled"></textarea>
     </div>
   </div>
 </template>
@@ -67,6 +73,11 @@ export default {
   top: calc(25%);
   cursor: pointer;
   z-index: 100;
+}
+
+.disabledState .notesIcon {
+  background: #eee !important;
+  cursor: not-allowed !important;
 }
 
 .notesContainer {
