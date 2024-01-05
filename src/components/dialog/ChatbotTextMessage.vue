@@ -36,6 +36,9 @@ export default {
     }
   },
   computed: {
+    isUserMessage() {
+      return this.keyToDisplay === 'user_message'
+    },
     numberOfGroupMembers() {
       // exemplary content of "this.groups[0]":
       // {"aId":"...", "aoId":"...","parameters":[
@@ -74,9 +77,6 @@ export default {
       }
       return textToDisplay;
     },
-    sentMessageToGroup() {
-      return this.keyToDisplay === 'message_response' && this.relatedGroup;
-    },
     formatDate
   }
 };
@@ -85,12 +85,11 @@ export default {
 <template>
   <ChatbotIcon
     :bot-image-path="botImagePath"
-    :is-group-message="!!relatedGroup"
+    :is-group-message="!!relatedGroup || isUserMessage"
     :number-of-group-members="numberOfGroupMembers"
     v-if="incoming && botImagePath"
   />
   <div class="messageContainer">
-    <span v-if="sentMessageToGroup()" class="fw-bold">@group:</span>
     <span>{{ getAssistanceObjectText() }}</span>
     <div class="messageTimestamp" v-if="validTimestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>

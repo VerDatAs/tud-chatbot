@@ -36,7 +36,7 @@ export default {
     notesStore: useNotesStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
-    incomingMessageTypes: ['message', 'options', 'group', 'state_update', 'system_message'],
+    incomingMessageTypes: ['message', 'user_message', 'options', 'group', 'state_update', 'system_message'],
     outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
     pongInterval: 0 as number
   }),

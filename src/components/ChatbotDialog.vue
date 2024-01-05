@@ -246,6 +246,13 @@ export default {
               :assistance-object="message"
               :bot-image-path="botImagePath"
               :incoming="true"
+              :key-to-display="'user_message'"
+              v-else-if="checkForKeyPresence(message, 'user_message')"
+            />
+            <ChatbotTextMessage
+              :assistance-object="message"
+              :bot-image-path="botImagePath"
+              :incoming="true"
               :key-to-display="'message'"
               :related-group="findRelatedItems(message, 'group')"
               v-else-if="checkForKeyPresence(message, 'message')"
