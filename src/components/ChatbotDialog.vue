@@ -356,11 +356,12 @@ export default {
     overflow-y: auto;
 
     .scrolledButNewMessages {
-      position: absolute;
-      top: 0;
+      position: fixed;
+      top: 56px;
       left: 0;
       padding: 10px;
       width: 100%;
+      z-index: 99;
       text-align: center;
       background: #eee;
       border-bottom: 1px solid #ddd;
