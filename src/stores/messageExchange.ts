@@ -10,6 +10,7 @@ export const useMessageExchangeStore = defineStore({
   state: () => ({
     items: [] as AssistanceObjectCommunication[],
     groups: [] as AssistanceObjectCommunication[],
+    operationItems: [] as AssistanceObjectCommunication[],
     stateUpdates: [] as AssistanceObjectCommunication[],
     assistanceIdToTypeMatching: {} as GenericStringKeyToAnyValueMapping,
     idsRequested: [] as string[],
@@ -20,6 +21,7 @@ export const useMessageExchangeStore = defineStore({
     clearItems() {
       this.items = [];
       this.groups = [];
+      this.operationItems = [];
       this.stateUpdates = [];
       this.assistanceIdToTypeMatching = {};
       this.idsRequested = [];
@@ -38,6 +40,7 @@ export const useMessageExchangeStore = defineStore({
         this.items.push(assistanceObject);
         this.checkForTypeMatching(assistanceObject);
         this.addOrRemoveGroup(assistanceObject);
+        this.addOperationItem(assistanceObject);
         this.addStateUpdate(assistanceObject);
       }
     },
@@ -83,10 +86,25 @@ export const useMessageExchangeStore = defineStore({
         this.groups = this.groups.filter((item) => item.aId !== assistanceObject.aId || item.aoId !== assistanceObject.aoId);
       }
     },
+    addOperationItem(assistanceObject: AssistanceObjectCommunication) {
+      if (checkForKeyPresence(assistanceObject, 'operation')) {
+        this.operationItems.push(assistanceObject);
+      }
+    },
     addStateUpdate(assistanceObject: AssistanceObjectCommunication) {
       if (checkForKeyPresence(assistanceObject, 'state_update')) {
         this.stateUpdates.push(assistanceObject);
       }
+    }
+  },
+  getters: {
+    chatEnabled: (state) => {
+      return () => {
+        // find last operation with the value 'enable_chat' or 'disable_chat'
+        const lastChatOperation = state.operationItems.slice().reverse().find(ao => ['enable_chat', 'disable_chat'].includes(parameterValue(ao, 'operation')));
+        // return true, if the last operation exists and has the value 'enable_chat'
+        return lastChatOperation && parameterValue(lastChatOperation, 'operation') === 'enable_chat';
+      };
     }
   },
   persist: true

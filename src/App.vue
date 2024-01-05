@@ -331,6 +331,7 @@ export default {
     <ChatbotDialog
       ref="chatbotDialog"
       :bot-image-path="botImagePath"
+      :chat-enabled="messageExchangeStore.chatEnabled()"
       :groups="messageExchangeStore.groups"
       :incoming-message-types="incomingMessageTypes"
       :message-exchange="messageExchangeStore.items"

@@ -19,6 +19,10 @@ export default {
   }),
   props: {
     botImagePath: String,
+    chatEnabled: {
+      type: Boolean,
+      default: false
+    },
     groups: {
       type: Array<AssistanceObjectCommunication>,
       default: []
@@ -290,8 +294,9 @@ export default {
             v-model="messageToSend"
             placeholder="Sag etwas zu VERI."
             @keyup.enter.exact="sendMessage(null)"
+            :disabled="!chatEnabled"
           ></textarea>
-          <button type="submit" class="sendBtn">Senden</button>
+          <button type="submit" class="sendBtn" :disabled="!chatEnabled">Senden</button>
         </form>
       </div>
     </div>
