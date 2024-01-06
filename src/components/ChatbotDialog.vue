@@ -35,6 +35,10 @@ export default {
       type: Boolean,
       default: false
     },
+    notesCommandEnabled: {
+      type: Boolean,
+      default: false
+    },
     notesVisible: Boolean,
     notes: String,
     incomingMessageTypes: {
@@ -218,7 +222,13 @@ export default {
 
 <template>
   <div id="chatbotDialog" class="animate__animated">
-    <ChatbotNotes :notes-enabled="notesEnabled" :notes-visible="notesVisible" :notes="notes" @sendSolution="sendSolution" />
+    <ChatbotNotes
+      :notes-enabled="notesEnabled"
+      :notes-command-enabled="notesCommandEnabled"
+      :notes-visible="notesVisible"
+      :notes="notes"
+      @sendSolution="sendSolution"
+    />
     <div id="dialogHeader">
       <ChatbotIcon :botImagePath="botImagePath" :headerIcon="true" />
       <span class="headerName">VERI</span>

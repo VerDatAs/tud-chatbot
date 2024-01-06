@@ -336,6 +336,7 @@ export default {
       :incoming-message-types="incomingMessageTypes"
       :message-exchange="messageExchangeStore.items"
       :notes-enabled="messageExchangeStore.notesEnabled()"
+      :notes-command-enabled="messageExchangeStore.notesCommandEnabled()"
       :notes-visible="displayStore.notesOpen && messageExchangeStore.notesEnabled()"
       :notes="notesStore.text"
       :outgoing-message-types="outgoingMessageTypes"

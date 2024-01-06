@@ -15,6 +15,10 @@ export default {
       type: Boolean,
       default: false
     },
+    notesCommandEnabled: {
+      type: Boolean,
+      default: false
+    },
     notesVisible: {
       type: Boolean,
       default: false
@@ -75,7 +79,7 @@ export default {
       </div>
       <textarea :placeholder="notesPlaceholder" :value="notes" @input="notesInput" :disabled="!notesEnabled"></textarea>
       <div class="footer text-right">
-        <button @click="sendSolution()">Absenden</button>
+        <button @click="sendSolution()" :disabled="!notesCommandEnabled">Absenden</button>
       </div>
     </div>
   </div>
