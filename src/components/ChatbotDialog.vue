@@ -289,7 +289,6 @@ export default {
               :related-group="findRelatedItems(message, 'group')"
               v-else-if="checkForKeyPresence(message, 'message')"
             />
-            <div v-else>-- none supported key --</div>
           </div>
           <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
             <ChatbotTextMessage
@@ -309,7 +308,6 @@ export default {
               :group-initiation="false"
               v-else-if="checkForKeyPresence(message, 'state_update_response')"
             />
-            <div v-else>-- none supported key --</div>
           </div>
         </div>
       </div>
