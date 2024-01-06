@@ -3,14 +3,11 @@ import { defineStore, acceptHMRUpdate } from 'pinia';
 export const useNotesStore = defineStore({
   id: 'notes',
   state: () => ({
-    text: '' as string
+    text: 'Definition des Problems:\n*\n*\n*\n\nAnalyse der Ursache:\n*\n*\n*\n\nVorschläge zur Lösung:\n*\n*\n*\n\nBewertung der Vorschläge:\n*\n*\n*\n' as string
   }),
   actions: {
     setNotes(notes: string) {
       this.text = notes;
-    },
-    clearNotes() {
-      this.text = '';
     }
   },
   persist: true

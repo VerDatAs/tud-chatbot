@@ -154,6 +154,16 @@ export default {
         this.messageToSend = '';
       }, 50);
     },
+    sendSolution(solution: string) {
+      const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
+      // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
+      const lastItemWithAssistanceId = this.messageExchange.slice().reverse().find(ao => !!ao.aId);
+      if (lastItemWithAssistanceId) {
+        messageToSend.aId = lastItemWithAssistanceId.aId;
+        messageToSend.parameters = [new AssistanceParameter('solution_response', solution)];
+        this.emitAssistanceObject(messageToSend);
+      }
+    },
     selectOption(optionResponse: AssistanceObjectCommunication) {
       this.emitAssistanceObject(optionResponse);
     },
@@ -208,7 +218,7 @@ export default {
 
 <template>
   <div id="chatbotDialog" class="animate__animated">
-    <ChatbotNotes :notes-enabled="notesEnabled" :notes-visible="notesVisible" :notes="notes" />
+    <ChatbotNotes :notes-enabled="notesEnabled" :notes-visible="notesVisible" :notes="notes" @sendSolution="sendSolution" />
     <div id="dialogHeader">
       <ChatbotIcon :botImagePath="botImagePath" :headerIcon="true" />
       <span class="headerName">VERI</span>

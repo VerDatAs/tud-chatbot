@@ -7,7 +7,7 @@ export default {
     displayStore: useDisplayStore(),
     notesStore: useNotesStore(),
     notesPlaceholder:
-      'Notizen können hier eingegeben werden:\n\n* Definition des Problems,\n* Analyse der Ursache,\n* Vorschläge zur Lösung,\n* Bewertung der Vorschläge.'
+      'Definition des Problems:\n*\n*\n*\n\nAnalyse der Ursache:\n*\n*\n*\n\nVorschläge zur Lösung:\n*\n*\n*\n\nBewertung der Vorschläge:\n*\n*\n*\n'
   }),
   props: {
     notes: String,
@@ -20,6 +20,7 @@ export default {
       default: false
     }
   },
+  emits: ['sendSolution'],
   methods: {
     toggleNotes(notesOpen: boolean) {
       if (this.notesEnabled) {
@@ -31,6 +32,9 @@ export default {
     notesInput(event: Event) {
       const text = (event.target as HTMLInputElement)?.value;
       this.notesStore.setNotes(text);
+    },
+    sendSolution() {
+      this.$emit('sendSolution', this.notesStore.text);
     }
   }
 };
@@ -55,7 +59,13 @@ export default {
       </svg>
     </div>
     <div class="notesContainer" v-if="notesVisible">
+      <div class="header text-center">
+        <h4>Notizen:</h4>
+      </div>
       <textarea :placeholder="notesPlaceholder" :value="notes" @input="notesInput" :disabled="!notesEnabled"></textarea>
+      <div class="footer text-right">
+        <button @click="sendSolution()">Absenden</button>
+      </div>
     </div>
   </div>
 </template>
@@ -91,9 +101,19 @@ export default {
   top: 0;
   z-index: 99;
 
+  .header {
+    height: 32px;
+    padding: 3px 0 8px 0;
+
+    h4 {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+
   textarea {
     width: 100%;
-    height: 100%;
+    height: calc(100% - 70px);
     padding: 10px;
     color: #333;
     font-family: monospace;
@@ -102,6 +122,16 @@ export default {
     border: 1px solid #bbb;
     border-radius: 3px;
     outline: none;
+  }
+
+  .footer {
+    height: 38px;
+    padding: 3px 0;
+
+    button {
+      padding: 4px 7px;
+      width: 100%;
+    }
   }
 }
 </style>
