@@ -7,31 +7,48 @@ export default {
     displayStore: useDisplayStore(),
     notesStore: useNotesStore(),
     notesPlaceholder:
-      'Notizen können hier eingegeben werden:\n\n* Definition des Problems,\n* Analyse der Ursache,\n* Vorschläge zur Lösung,\n* Bewertung der Vorschläge.'
+      'Definition des Problems:\n*\n*\n*\n\nAnalyse der Ursache:\n*\n*\n*\n\nVorschläge zur Lösung:\n*\n*\n*\n\nBewertung der Vorschläge:\n*\n*\n*\n'
   }),
   props: {
     notes: String,
+    notesEnabled: {
+      type: Boolean,
+      default: false
+    },
+    notesCommandEnabled: {
+      type: Boolean,
+      default: false
+    },
     notesVisible: {
       type: Boolean,
       default: false
     }
   },
+  emits: ['sendSolution'],
   methods: {
     toggleNotes(notesOpen: boolean) {
-      this.displayStore.changeNotesOpen(notesOpen);
+      if (this.notesEnabled) {
+        this.displayStore.changeNotesOpen(notesOpen);
+      }
     },
     // related issue for specifying the correct type for the event
     // https://stackoverflow.com/questions/44321326/property-value-does-not-exist-on-type-eventtarget-in-typescript
     notesInput(event: Event) {
       const text = (event.target as HTMLInputElement)?.value;
       this.notesStore.setNotes(text);
+    },
+    resetNotes() {
+      this.notesStore.resetNotes();
+    },
+    sendSolution() {
+      this.$emit('sendSolution', this.notesStore.text);
     }
   }
 };
 </script>
 
 <template>
-  <div id="chatbotNotes">
+  <div id="chatbotNotes" :class="!notesEnabled ? 'disabledState' : ''">
     <div class="notesIcon" @click="toggleNotes(true)" v-if="!notesVisible">
       <!-- note taking icon: https://fonts.google.com/icons?selected=Material%20Symbols%20Outlined%3Aedit_note%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024 -->
       <svg xmlns="http://www.w3.org/2000/svg" height="32" width="32" viewBox="0 -960 960 960">
@@ -49,7 +66,21 @@ export default {
       </svg>
     </div>
     <div class="notesContainer" v-if="notesVisible">
-      <textarea :placeholder="notesPlaceholder" :value="notes" @input="notesInput"></textarea>
+      <div class="header">
+        <h4>Notizen:</h4>
+        <div class="resetButton" @click="resetNotes()">
+          <!-- delete icon: https://fonts.google.com/icons?selected=Material%20Symbols%20Outlined%3Adelete%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024 -->
+          <svg xmlns="http://www.w3.org/2000/svg" height="21" width="21" viewBox="0 -960 960 960">
+            <path
+              d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"
+            />
+          </svg>
+        </div>
+      </div>
+      <textarea :placeholder="notesPlaceholder" :value="notes" @input="notesInput" :disabled="!notesEnabled"></textarea>
+      <div class="footer text-right">
+        <button @click="sendSolution()" :disabled="!notesCommandEnabled">Absenden</button>
+      </div>
     </div>
   </div>
 </template>
@@ -69,20 +100,43 @@ export default {
   z-index: 100;
 }
 
+.disabledState .notesIcon {
+  background: #eee !important;
+  cursor: not-allowed !important;
+}
+
 .notesContainer {
-  width: 250px;
+  width: 275px;
   height: 100%;
   padding: 8px;
   background: #eee;
   position: absolute;
-  left: -250px;
+  left: -275px;
   border: 1px solid #bbb;
   top: 0;
   z-index: 99;
 
+  .header {
+    height: 32px;
+    padding: 3px 0 8px 5px;
+    position: relative;
+
+    h4 {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+
+    .resetButton {
+      position: absolute;
+      top: 1px;
+      right: 5px;
+      cursor: pointer;
+    }
+  }
+
   textarea {
     width: 100%;
-    height: 100%;
+    height: calc(100% - 70px);
     padding: 10px;
     color: #333;
     font-family: monospace;
@@ -91,6 +145,16 @@ export default {
     border: 1px solid #bbb;
     border-radius: 3px;
     outline: none;
+  }
+
+  .footer {
+    height: 38px;
+    padding: 3px 0;
+
+    button {
+      padding: 4px 7px;
+      width: 100%;
+    }
   }
 }
 </style>

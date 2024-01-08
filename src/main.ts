@@ -3,18 +3,21 @@ import { createPinia } from 'pinia';
 // Proposed by https://www.reddit.com/r/vuejs/comments/u0o7n6/comment/i47bqum
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
 import App from './App.vue';
-import { ChatbotData } from "@/components/types/chatbot-data";
+import { ChatbotData } from '@/components/types/chatbot-data';
+import { useChatbotDataStore } from '@/stores/chatbotData';
 import axios from 'axios';
 
 import './assets/main.scss';
 
 function initChatbot(initChatbotData: ChatbotData) {
-  console.log('init chatbotApp', JSON.stringify(initChatbotData))
-  const app = createApp(App, { initChatbotData });
+  console.log('init chatbotApp', JSON.stringify(initChatbotData));
+  const app = createApp(App);
 
   const pinia = createPinia();
   pinia.use(piniaPluginPersistedstate);
   app.use(pinia);
+
+  useChatbotDataStore().setChatbotData(initChatbotData);
 
   app.mount('#chatbotApp');
 }
@@ -35,5 +38,5 @@ function initChatbot(initChatbotData: ChatbotData) {
 // });
 
 export function init(initChatbotData: ChatbotData) {
-  initChatbot(initChatbotData)
+  initChatbot(initChatbotData);
 }

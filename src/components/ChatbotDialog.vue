@@ -1,11 +1,14 @@
 <script lang="ts">
 import ChatbotGroupStatusMessage from '@/components/dialog/ChatbotGroupStatusMessage.vue';
 import ChatbotNotes from '@/components/dialog/ChatbotNotes.vue';
-import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
 import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
+import ChatbotStateUpdate from '@/components/dialog/ChatbotStateUpdate.vue';
+import ChatbotSystemMessage from '@/components/dialog/ChatbotSystemMessage.vue';
+import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
+import { checkForKeyPresence } from '@/util/assistanceObjectHelper';
 
 export default {
   data: () => ({
@@ -16,6 +19,10 @@ export default {
   }),
   props: {
     botImagePath: String,
+    chatEnabled: {
+      type: Boolean,
+      default: false
+    },
     groups: {
       type: Array<AssistanceObjectCommunication>,
       default: []
@@ -24,7 +31,14 @@ export default {
       type: Array<AssistanceObjectCommunication>,
       default: []
     },
-    messageHistory: Array<AssistanceObjectCommunication>,
+    notesEnabled: {
+      type: Boolean,
+      default: false
+    },
+    notesCommandEnabled: {
+      type: Boolean,
+      default: false
+    },
     notesVisible: Boolean,
     notes: String,
     incomingMessageTypes: {
@@ -34,12 +48,18 @@ export default {
     outgoingMessageTypes: {
       type: Array<String>,
       default: []
+    },
+    stateUpdates: {
+      type: Array<AssistanceObjectCommunication>,
+      default: []
     }
   },
   components: {
     ChatbotGroupStatusMessage,
     ChatbotNotes,
     ChatbotOptionsMessage,
+    ChatbotStateUpdate,
+    ChatbotSystemMessage,
     ChatbotTextMessage,
     ChatbotIcon
   },
@@ -80,22 +100,18 @@ export default {
       const parameterKeyArray = message?.parameters?.map((param) => param.key) || [];
       return parameterKeyArray.some((item) => this.incomingMessageTypes.includes(item));
     },
-    parametersIncludeKey(message: AssistanceObjectCommunication, key: string) {
-      const parameterKeyArray = message?.parameters?.map((param) => param.key) || [];
-      return parameterKeyArray.includes(key);
-    },
+    // https://stackoverflow.com/a/60617142
+    checkForKeyPresence,
     sendMessage(event: Event | null) {
       if (event) {
         event.preventDefault();
       }
-      // TODO: This does not work with ENTER, if the second condition is not set
-      if (this.messageToSend === 'RESET' || this.messageToSend === 'RESET\n') {
-        this.$emit('resetMessageHistory');
-        this.messageToSend = '';
+      // do not send messages, if the chat is disabled
+      if (!this.chatEnabled) {
         return;
       }
       // check message with removed linebreaks and trimmed whitespaces to be empty
-      else if (this.messageToSend.replace(/(\r\n|\n|\r)/gm, '').trimEnd() === '') {
+      if (this.messageToSend.replace(/(\r\n|\n|\r)/gm, '').trimEnd() === '') {
         this.messageToSend = '';
         return;
       }
@@ -103,6 +119,7 @@ export default {
       const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
       // check if message starts with @group and a group was formed previously -> group message
       // in this case, this.groups has to be used to find only active groups
+      // TODO: Remove, if not used anymore
       if (this.messageToSend.trimStart().startsWith('@group') && this.groups.length > 0) {
         const groupToInform = this.groups[0];
         messageToSend.aId = groupToInform.aId;
@@ -122,19 +139,34 @@ export default {
         const groupToTerminate = this.groups[0];
         messageToSend.aId = groupToTerminate.aId;
         messageToSend.aoId = groupToTerminate.aoId;
-        messageToSend.parameters = [new AssistanceParameter('assistance_state_update_response', 'completed')];
+        messageToSend.parameters = [new AssistanceParameter('state_update_response', { status: 'completed' })];
       } else {
-        // TODO: Implement simple intent matching (detect correct type or sent as "incorrect" type message)
-        // For the moment, do not send any aId and aoId
-        // messageToSend.aId = '2EA95788-7ABA-4DDD-B3BA-E7EB344685BD';
-        // messageToSend.aoId = 'BC2340BA-1623-41F8-9BVD-B4373956E6EC';
-        messageToSend.parameters = [new AssistanceParameter('message_response', this.messageToSend)];
+        // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
+        const lastItemWithAssistanceId = this.messageExchange.slice().reverse().find(ao => !!ao.aId);
+        if (lastItemWithAssistanceId) {
+          messageToSend.aId = lastItemWithAssistanceId.aId;
+          // Remove newlines (and all other whitespace) at the end: https://stackoverflow.com/a/48080903
+          messageToSend.parameters = [new AssistanceParameter('message_response', this.messageToSend.trim())];
+        } else {
+          // Return, if no aId does exist as a target
+          return;
+        }
       }
       this.emitAssistanceObject(messageToSend);
       // Reset message input
       setTimeout(() => {
         this.messageToSend = '';
       }, 50);
+    },
+    sendSolution(solution: string) {
+      const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
+      // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
+      const lastItemWithAssistanceId = this.messageExchange.slice().reverse().find(ao => !!ao.aId);
+      if (lastItemWithAssistanceId) {
+        messageToSend.aId = lastItemWithAssistanceId.aId;
+        messageToSend.parameters = [new AssistanceParameter('solution_response', solution)];
+        this.emitAssistanceObject(messageToSend);
+      }
     },
     selectOption(optionResponse: AssistanceObjectCommunication) {
       this.emitAssistanceObject(optionResponse);
@@ -143,7 +175,7 @@ export default {
       // TODO: Remove, if this causes problems
       // add timestamp to messages that are sent to the backend
       if (!assistanceObject.timestamp) {
-        assistanceObject.timestamp = (new Date()).toISOString();
+        assistanceObject.timestamp = new Date().toISOString();
       }
       this.$emit('sendAssistanceObject', assistanceObject);
     },
@@ -152,7 +184,7 @@ export default {
         (message) =>
           message.aId === responseOption.aId &&
           message.aoId === responseOption.aoId &&
-          this.parametersIncludeKey(message, key)
+          this.checkForKeyPresence(message, key)
       );
     },
     // Retrieved from https://stackoverflow.com/a/18614545
@@ -190,7 +222,13 @@ export default {
 
 <template>
   <div id="chatbotDialog" class="animate__animated">
-    <ChatbotNotes :notesVisible="notesVisible" :notes="notes" />
+    <ChatbotNotes
+      :notes-enabled="notesEnabled"
+      :notes-command-enabled="notesCommandEnabled"
+      :notes-visible="notesVisible"
+      :notes="notes"
+      @sendSolution="sendSolution"
+    />
     <div id="dialogHeader">
       <ChatbotIcon :botImagePath="botImagePath" :headerIcon="true" />
       <span class="headerName">VERI</span>
@@ -207,50 +245,69 @@ export default {
         v-if="messageExchange.length > 0"
       >
         <div v-for="(message, messageIndex) in messageExchange" :key="'message' + messageIndex">
-          <div class="message messageIncoming animate__animated animate__fadeInLeft" v-if="isIncomingMessage(message)">
+          <div
+            class="message messageIncoming animate__animated animate__fadeInLeft"
+            :class="checkForKeyPresence(message, 'state_update') ? 'systemMessage' : ''"
+            v-if="isIncomingMessage(message)"
+          >
             <ChatbotOptionsMessage
               :bot-image-path="botImagePath"
               :assistance-object="message"
               :is-last-item="messageIndex === messageExchange.length - 1"
-              v-if="parametersIncludeKey(message, 'options')"
+              v-if="checkForKeyPresence(message, 'options')"
               @select-option="selectOption"
             />
             <ChatbotGroupStatusMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
               :group-initiation="true"
-              v-else-if="parametersIncludeKey(message, 'group')"
+              v-else-if="checkForKeyPresence(message, 'group')"
             />
-            <!-- this is also used for 'assistance_state_update' messages, as those do not require a separate case -->
+            <ChatbotStateUpdate
+              :assistance-object="message"
+              :key-of-interest="'state_update'"
+              :state-updates="stateUpdates"
+              v-else-if="checkForKeyPresence(message, 'state_update')"
+            />
+            <ChatbotSystemMessage
+              :assistance-object="message"
+              :key-to-display="'system_message'"
+              v-else-if="checkForKeyPresence(message, 'system_message')"
+            />
+            <ChatbotTextMessage
+              :assistance-object="message"
+              :bot-image-path="botImagePath"
+              :incoming="true"
+              :key-to-display="'user_message'"
+              v-else-if="checkForKeyPresence(message, 'user_message')"
+            />
             <ChatbotTextMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
               :incoming="true"
               :key-to-display="'message'"
               :related-group="findRelatedItems(message, 'group')"
-              v-else-if="parametersIncludeKey(message, 'message')"
+              v-else-if="checkForKeyPresence(message, 'message')"
             />
-            <div v-else>-- none supported key --</div>
           </div>
           <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
             <ChatbotTextMessage
               :assistance-object="message"
               :key-to-display="'message_response'"
               :related-group="findRelatedItems(message, 'group')"
-              v-if="parametersIncludeKey(message, 'message_response')"
+              v-if="checkForKeyPresence(message, 'message_response')"
             />
             <ChatbotTextMessage
               :assistance-object="message"
               :key-to-display="'options_response'"
               :related-options="findRelatedItems(message, 'options')"
-              v-else-if="parametersIncludeKey(message, 'options_response')"
+              v-else-if="checkForKeyPresence(message, 'options_response')"
             />
             <ChatbotGroupStatusMessage
               :assistance-object="findRelatedItems(message, 'group')"
               :group-initiation="false"
-              v-else-if="parametersIncludeKey(message, 'assistance_state_update_response')"
+              v-else-if="checkForKeyPresence(message, 'state_update_response')"
             />
-            <div v-else>-- none supported key --</div>
           </div>
         </div>
       </div>
@@ -263,8 +320,9 @@ export default {
             v-model="messageToSend"
             placeholder="Sag etwas zu VERI."
             @keyup.enter.exact="sendMessage(null)"
+            :disabled="!chatEnabled"
           ></textarea>
-          <button type="submit" class="sendBtn">Senden</button>
+          <button type="submit" class="sendBtn" :disabled="!chatEnabled">Senden</button>
         </form>
       </div>
     </div>
@@ -324,11 +382,12 @@ export default {
     overflow-y: auto;
 
     .scrolledButNewMessages {
-      position: absolute;
-      top: 0;
+      position: fixed;
+      top: 56px;
       left: 0;
       padding: 10px;
       width: 100%;
+      z-index: 99;
       text-align: center;
       background: #eee;
       border-bottom: 1px solid #ddd;
@@ -391,6 +450,13 @@ export default {
           }
         }
       }
+    }
+
+    .systemMessage {
+      padding: 0 !important;
+      border-radius: 0 !important;
+      background: none;
+      color: inherit;
     }
   }
 

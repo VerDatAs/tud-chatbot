@@ -36,8 +36,8 @@ export default {
     }
   },
   computed: {
-    isAssistanceObjectUpdateCompleted() {
-      return !!this.assistanceObject?.parameters?.find((param) => param.key === 'assistance_state_update' && param.value === 'completed');
+    isUserMessage() {
+      return this.keyToDisplay === 'user_message'
     },
     numberOfGroupMembers() {
       // exemplary content of "this.groups[0]":
@@ -56,6 +56,9 @@ export default {
           ?.find((param: any) => param?.key === 'group')
           ?.value?.find((groupParam: any) => groupParam.key === 'members')?.value?.length || 0
       );
+    },
+    validTimestamp() {
+      return this.assistanceObject.timestamp && formatDate(this.assistanceObject.timestamp) !== 'Invalid date';
     }
   },
   methods: {
@@ -74,9 +77,6 @@ export default {
       }
       return textToDisplay;
     },
-    sentMessageToGroup() {
-      return this.keyToDisplay === 'message_response' && this.relatedGroup;
-    },
     formatDate
   }
 };
@@ -85,13 +85,12 @@ export default {
 <template>
   <ChatbotIcon
     :bot-image-path="botImagePath"
-    :is-group-message="!!relatedGroup"
+    :is-group-message="!!relatedGroup || isUserMessage"
     :number-of-group-members="numberOfGroupMembers"
     v-if="incoming && botImagePath"
   />
   <div class="messageContainer">
-    <span v-if="sentMessageToGroup()" class="fw-bold">@group: </span>
-    <span :class="{ 'fst-italic': isAssistanceObjectUpdateCompleted }">{{ getAssistanceObjectText() }}</span>
-    <div class="messageTimestamp" v-if="assistanceObject.timestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
+    <span>{{ getAssistanceObjectText() }}</span>
+    <div class="messageTimestamp" v-if="validTimestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>
 </template>

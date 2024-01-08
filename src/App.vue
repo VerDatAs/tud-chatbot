@@ -2,14 +2,12 @@
 import ChatbotDialog from '@/components/ChatbotDialog.vue';
 import ChatbotWidget from '@/components/ChatbotWidget.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
-import { AssistanceParameter } from '@/components/types/assistance-parameter';
+import { AssistanceObjectQueueItem } from '@/components/types/assistance-object-queue-item';
+import { useChatbotDataStore } from '@/stores/chatbotData';
 import { useDisplayStore } from '@/stores/display';
-import { useGroupInformationStore } from '@/stores/groupInformation';
 import { useNotesStore } from '@/stores/notes';
 import { useMessageExchangeStore } from '@/stores/messageExchange';
-import { useMessageHistoryStore } from '@/stores/messageHistory';
-import { parameterValue } from '@/util/assistanceObjectHelper';
-import { ChatbotData } from "@/components/types/chatbot-data";
+import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
 
 // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
 // Define constants for bytes used throughout the code.
@@ -33,25 +31,18 @@ export default {
     userToken: '' as string,
     // TODO: Fix type
     webSocket: null as any,
+    chatbotDataStore: useChatbotDataStore(),
     displayStore: useDisplayStore(),
-    groupInformationStore: useGroupInformationStore(),
     notesStore: useNotesStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
-    messageHistoryStore: useMessageHistoryStore(),
-    incomingMessageTypes: ['message', 'options', 'group', 'assistance_state_update'],
-    outgoingMessageTypes: ['message_response', 'options_response', 'assistance_state_update_response'],
+    incomingMessageTypes: ['message', 'user_message', 'options', 'group', 'state_update', 'system_message'],
+    outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
     pongInterval: 0 as number
   }),
   components: {
     ChatbotDialog,
     ChatbotWidget
-  },
-  props: {
-    initChatbotData: {
-      type: ChatbotData,
-      required: true
-    }
   },
   computed: {
     botImagePath() {
@@ -66,12 +57,19 @@ export default {
   },
   methods: {
     async initChatbotApp() {
-      this.isRunLocally = this.initChatbotData?.isRunLocally ?? false
-      this.pluginPath = this.initChatbotData.pluginPath;
-      this.backendUrl = this.initChatbotData.backendUrl;
-      this.pseudoId = this.initChatbotData.pseudoId;
-      this.userToken = this.initChatbotData.token;
-      this.hasJustLoggedIn = this.initChatbotData.hasJustLoggedIn;
+      // add listener for visibility changes
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          console.log('The tab gets visible again.', this.webSocket?.readyState);
+          this.handleWebSocketConnection(false);
+        }
+      });
+      this.isRunLocally = this.chatbotDataStore.data?.isRunLocally ?? false;
+      this.pluginPath = this.chatbotDataStore.data.pluginPath;
+      this.backendUrl = this.chatbotDataStore.data.backendUrl;
+      this.pseudoId = this.chatbotDataStore.data.pseudoId;
+      this.userToken = this.chatbotDataStore.data.token;
+      this.hasJustLoggedIn = this.chatbotDataStore.data.hasJustLoggedIn;
       await this.retrieveTokenAndHandleMessageExchange();
     },
     async retrieveTokenAndHandleMessageExchange() {
@@ -89,7 +87,7 @@ export default {
       console.log('handleWebSocketConnection');
       if (this.webSocket?.readyState !== 1) {
         const backendUrlProtocol = this.backendUrl.includes('https://') ? 'https://' : 'http://';
-        const webSocketPrefix = (backendUrlProtocol === 'https://') ? 'wss://' : 'ws://';
+        const webSocketPrefix = backendUrlProtocol === 'https://' ? 'wss://' : 'ws://';
         const webSocketURL = webSocketPrefix + this.backendUrl.split(backendUrlProtocol)?.[1] + '/api/v1/websocket';
         // TODO: "Vue: This expression is not constructable."
         this.webSocket = new WebSocket(webSocketURL);
@@ -128,65 +126,85 @@ export default {
             const receivedMessageParsed: AssistanceObjectCommunication = JSON.parse(message).msg
               ? JSON.parse(JSON.parse(message).msg)
               : JSON.parse(message);
-            // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
-            // check, if the type casting was done properly
-            // console.log(receivedMessage instanceof AssistanceObjectCommunication);
-
             // if "previous_messages" or "unacknowledged_messages" do exist in the parameter keys, the value will be an Array of AssistanceObjectCommunications
             // else, it is a single AssistanceObjectCommunication
-            // idea, use queue of correctly parsed AssistanceObjectCommunication objects
-            const messagesQueue: AssistanceObjectCommunication[] = [];
+            // idea, use a queue of AssistanceObjectQueueItems containing correctly parsed AssistanceObjectCommunication objects
+            // as well as the information, whether it must be acknowledged or not
+            const messagesQueue: AssistanceObjectQueueItem[] = [];
+            // either previous_messages or unacknowledged_messages are retrieved when sending a wake-up message
+            // previous_messages might include "old" unacknowledged messages, whose are acknowledged automatically now
             if (this.checkForKeyPresence(receivedMessageParsed, 'previous_messages')) {
               parameterValue(receivedMessageParsed, 'previous_messages')?.forEach((message: any) => {
-                messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
+                messagesQueue.push(new AssistanceObjectQueueItem(message, false));
               });
+              // the retrieval of the message including the previous_messages itself has to be acknowledged
+              this.acknowledgeMessage(receivedMessageParsed);
             }
+            // handles the retrieval of unacknowledged_messages (just_logged_in: false)
             else if (this.checkForKeyPresence(receivedMessageParsed, 'unacknowledged_messages')) {
-              parameterValue(receivedMessageParsed, 'unacknowledged_messages')?.forEach((message: any) => {
-                messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), message));
-              });
+              const unacknowledgedMessages = parameterValue(receivedMessageParsed, 'unacknowledged_messages');
+              // at least one unacknowledged message has to exist, otherwise, the handling will be skipped
+              if (unacknowledgedMessages?.length > 0) {
+                const existingMessages = this.messageExchangeStore.items;
+                const emptyExistingMessages = !existingMessages?.length;
+                const lastExistingMessageTimestamp = !emptyExistingMessages && existingMessages[existingMessages.length - 1].timestamp;
+                const firstUnacknowledgedMessageTimestamp = unacknowledgedMessages[0].timestamp;
+                const timestampsExistAndExistingMessagesAreOlder = lastExistingMessageTimestamp && firstUnacknowledgedMessageTimestamp && new Date(lastExistingMessageTimestamp)?.getTime() < new Date(firstUnacknowledgedMessageTimestamp)?.getTime();
+                // either the existing messages are empty or the existing messages are older than the unacknowledged ones
+                if (emptyExistingMessages || timestampsExistAndExistingMessagesAreOlder) {
+                  // push the unacknowledged messages to the queue (add to existing messages + acknowledge them)
+                  unacknowledgedMessages.forEach((msg: AssistanceObjectCommunication) => {
+                    // unacknowledged_messages might include previous_messages
+                    if (this.checkForKeyPresence(msg, 'previous_messages')) {
+                      const unacknowledgedPreviousMessages = parameterValue(msg, 'previous_messages');
+                      unacknowledgedPreviousMessages?.forEach((previousMsg: AssistanceObjectCommunication) => {
+                        messagesQueue.push(new AssistanceObjectQueueItem(previousMsg, false));
+                      });
+                      // acknowledge the msg containing previous_messages
+                      this.acknowledgeMessage(msg);
+                    } else {
+                      messagesQueue.push(new AssistanceObjectQueueItem(msg, true));
+                    }
+                  })
+                }
+                // otherwise, clear the chatbot history and request the prior_messages again by sending a wake-up message
+                else {
+                  this.messageExchangeStore.clearItems();
+                  // temporary set the hasJustLoggedIn value to true to request the prior_messages again
+                  this.hasJustLoggedIn = true;
+                  this.handleWakeUpMessageSending(true);
+                  // reset the hasJustLoggedIn value back to its existing value (false)
+                  setTimeout(() => {
+                    this.hasJustLoggedIn = false;
+                  }, 250);
+                }
+              }
             }
             else {
-              messagesQueue.push(Object.assign(new AssistanceObjectCommunication(), receivedMessageParsed));
+              messagesQueue.push(new AssistanceObjectQueueItem(receivedMessageParsed, true));
             }
 
-            // iterate messages
-            messagesQueue.forEach((receivedMessage) => {
+            // iterate messages (array of AssistanceObjectQueueItems)
+            messagesQueue.forEach((queueItem: AssistanceObjectQueueItem) => {
+              const receivedMessage: AssistanceObjectCommunication = queueItem.assistanceObject;
               if (!receivedMessage?.parameters) {
                 return;
               }
-              if (this.checkForKeyPresence(receivedMessage, 'previous_messages')) {
-                // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
-                const previousMessagesArray: AssistanceObjectCommunication[] = this.checkForKeyPresence(receivedMessage, 'previous_messages')?.value;
-                const previousMessages: AssistanceObjectCommunication[] = [];
-                previousMessagesArray.forEach((previousMessage: AssistanceObjectCommunication) => {
-                  previousMessages.push(Object.assign(new AssistanceObjectCommunication(), previousMessage));
-                })
-                this.messageExchangeStore.setItems(previousMessages);
-                // If the user has just logged in, display the chatbot dialog
-                if (this.hasJustLoggedIn) {
-                  this.updateChatbotDialogVisible(true);
-                }
-              } else if (this.checkForKeyPresence(receivedMessage, 'options')) {
-                this.messageExchangeStore.addItem(receivedMessage);
-                this.acknowledgeMessage(receivedMessage);
-              } else if (this.checkForKeyPresence(receivedMessage, 'group')) {
-                // store group in both messageExchange and groupInformation store
-                this.messageExchangeStore.addItem(receivedMessage);
-                this.groupInformationStore.addItem(receivedMessage);
-                this.acknowledgeMessage(receivedMessage);
-              } else if (this.checkForKeyPresence(receivedMessage, 'assistance_state_update')) {
-                this.messageExchangeStore.addItem(receivedMessage);
-                // potentially remove item from groupInformationStore
-                if (this.parameterValue(receivedMessage, 'assistance_state_update') === 'completed') {
-                  this.groupInformationStore.removeItem(receivedMessage.aId, receivedMessage.aoId);
-                }
-                this.acknowledgeMessage(receivedMessage);
-              } else if (this.checkForKeyPresence(receivedMessage, 'message')) {
-                this.messageExchangeStore.addItem(receivedMessage);
+              // It is assumed that the message received is valid
+              // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
+              // check, if the type casting was done properly
+              // console.log(receivedMessage instanceof AssistanceObjectCommunication);
+              this.messageExchangeStore.addItem(Object.assign(new AssistanceObjectCommunication(), receivedMessage));
+
+              // Acknowledge retrieval of message, if they were not part of the previous_messages
+              if (queueItem.requiresAcknowledgement) {
                 this.acknowledgeMessage(receivedMessage);
               }
             });
+            // If the user has just logged in, display the chatbot dialog
+            if (this.hasJustLoggedIn) {
+              this.updateChatbotDialogVisible(true);
+            }
             this.updateDialogScroll();
           }
         };
@@ -203,14 +221,13 @@ export default {
         this.handleWakeUpMessageSending(switchedPage);
       }
     },
-    checkForKeyPresence(assistanceObject: AssistanceObjectCommunication, key: string): AssistanceParameter | undefined {
-      return assistanceObject?.parameters?.find((param) => param.key === key);
-    },
     // https://stackoverflow.com/a/60617142
+    checkForKeyPresence,
     parameterValue,
     // When switching the page, send information about having just logged in or not
     handleWakeUpMessageSending(switchedPage: boolean) {
       // Delay message until the WebSocket is connected
+      // TODO: Find a more reliable method, e.g., listening for the CONNECTED message
       setTimeout(() => {
         if (switchedPage) {
           const message: AssistanceObjectCommunication = {
@@ -226,41 +243,26 @@ export default {
             ]
           };
           this.sendWebSocketMessage(message);
-          // the backend requests old messages from VSG and send then to the chatbot plugin
-          // this.mockAssistanceRequest('previous_messages');
-          // if the user has just logged in, the backend will send a greeting message
-          // TODO: Comment in later, if this gets relevant again
-          if (this.hasJustLoggedIn) {
-            // Delay it some time to make it look more realistic
-            setTimeout(() => {
-              this.mockAssistanceRequest('greeting');
-            }, 500);
-          }
         }
       }, 250);
     },
     // handle message sending over the WebSocket
-    sendWebSocketMessage(messageToSend: AssistanceObjectCommunication, destinationToOverwrite?: String) {
+    sendWebSocketMessage(messageToSend: AssistanceObjectCommunication) {
       const messageAsJson = JSON.stringify(messageToSend);
-      const destination = (destinationToOverwrite && destinationToOverwrite !== '') ? destinationToOverwrite : webSocketDestination;
       this.webSocket.send(
         'MESSAGE\ndestination:' +
-        destination +
-        '\ncontent-length:' +
-        this.countBytes(messageAsJson) +
-        '\n\n' +
-        messageAsJson +
-        '\0'
+          webSocketDestination +
+          '\ncontent-length:' +
+          this.countBytes(messageAsJson) +
+          '\n\n' +
+          messageAsJson +
+          '\0'
       );
 
       // add any valid outgoing message to the messageExchangeStore
       if (messageToSend?.parameters?.find((param) => this.outgoingMessageTypes.includes(param.key))) {
         this.messageExchangeStore.addItem(messageToSend);
         this.updateDialogScroll();
-      }
-      // remove terminated group from the groupInformationStore
-      if (messageToSend?.parameters?.find((param) => param.key === 'assistance_state_update_response' && param.value === 'completed')) {
-        this.groupInformationStore.removeItem(messageToSend.aId, messageToSend.aoId);
       }
     },
     // acknowledge the reception of the message
@@ -282,37 +284,6 @@ export default {
     updateDialogScroll() {
       // https://stackoverflow.com/a/76297364/3623608
       (this.$refs.chatbotDialog as typeof ChatbotDialog)?.updateScroll();
-    },
-    mockAssistanceRequest(type: String) {
-      const webSocketTestDestination = '/tutoring-system/queue/assistance';
-      let messageToSend = {};
-      if (type === 'greeting') {
-        messageToSend = {
-          "assistance": [
-            {
-              "aId": "2EA95788-7ABA-4DDD-B3BA-E7EB574685BD",
-              "userId": this.pseudoId,
-              "typeKey": "greeting",
-              "timestamp": "2023-06-27T10:12:53.000000+02:00",
-              "assistanceState": "completed",
-              "assistanceObjects": [
-                {
-                  "userId": this.pseudoId,
-                  "aoId": "BC2340BA-1623-41F8-9C0D-B4373956E6EC",
-                  "timestamp": "2023-06-27T10:12:53.000000+02:00",
-                  "parameters": [
-                    {
-                      "key": "message",
-                      "value": "Hallo! Mein Name ist Veri und ich bin dein Lernassistent. Ich unterstütze Dich beim Lernen und gebe Dir Rückmeldung und hilfreiche Tipps.\n\nDies ist lediglich als Beispielnachricht zur Demonstration der Funktionsweise zu verstehen.\n\nWeitere Funktionen sind vorbereitet, aber noch nicht aktiv."
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        };
-      }
-      this.sendWebSocketMessage(messageToSend, webSocketTestDestination);
     },
     updateChatbotDialogVisible(dialogVisible: boolean) {
       if (dialogVisible) {
@@ -338,13 +309,12 @@ export default {
     // Solution retrieved from https://github.com/rabbitmq/rabbitmq-web-stomp-examples/issues/2
     countBytes(message: string) {
       const escapedStr = encodeURI(message);
-      if (escapedStr.indexOf("%") != -1) {
-        let count = escapedStr.split("%").length - 1;
+      if (escapedStr.indexOf('%') != -1) {
+        let count = escapedStr.split('%').length - 1;
         if (count == 0) count++;
-        const tmp = escapedStr.length - (count * 3);
+        const tmp = escapedStr.length - count * 3;
         return count + tmp;
-      }
-      else return escapedStr.length;
+      } else return escapedStr.length;
     }
   }
 };
@@ -361,15 +331,17 @@ export default {
     <ChatbotDialog
       ref="chatbotDialog"
       :bot-image-path="botImagePath"
-      :groups="groupInformationStore.items"
+      :chat-enabled="messageExchangeStore.chatEnabled()"
+      :groups="messageExchangeStore.groups"
       :incoming-message-types="incomingMessageTypes"
       :message-exchange="messageExchangeStore.items"
-      :message-history="messageHistoryStore.items"
-      :notes-visible="displayStore.notesOpen"
+      :notes-enabled="messageExchangeStore.notesEnabled()"
+      :notes-command-enabled="messageExchangeStore.notesCommandEnabled()"
+      :notes-visible="displayStore.notesOpen && messageExchangeStore.notesEnabled()"
       :notes="notesStore.text"
       :outgoing-message-types="outgoingMessageTypes"
+      :state-updates="messageExchangeStore.stateUpdates"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
-      @resetMessageHistory="messageExchangeStore.clearItems()"
       @sendAssistanceObject="sendWebSocketMessage"
       v-else
     />
