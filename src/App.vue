@@ -3,6 +3,7 @@ import ChatbotDialog from '@/components/ChatbotDialog.vue';
 import ChatbotWidget from '@/components/ChatbotWidget.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceObjectQueueItem } from '@/components/types/assistance-object-queue-item';
+import { AssistanceParameter } from '@/components/types/assistance-parameter';
 import { useChatbotDataStore } from '@/stores/chatbotData';
 import { useDisplayStore } from '@/stores/display';
 import { useNotesStore } from '@/stores/notes';
@@ -196,8 +197,9 @@ export default {
               // console.log(receivedMessage instanceof AssistanceObjectCommunication);
               this.messageExchangeStore.addItem(Object.assign(new AssistanceObjectCommunication(), receivedMessage));
 
-              // Acknowledge retrieval of message, if they were not part of the previous_messages
+              // If message was not part of previous_messages, check if it requires an action and acknowledge it afterwards
               if (queueItem.requiresAcknowledgement) {
+                this.checkIncomingMessageForAction(receivedMessage);
                 this.acknowledgeMessage(receivedMessage);
               }
             });
@@ -263,6 +265,17 @@ export default {
       if (messageToSend?.parameters?.find((param) => this.outgoingMessageTypes.includes(param.key))) {
         this.messageExchangeStore.addItem(messageToSend);
         this.updateDialogScroll();
+      }
+    },
+    // check incoming message for an action to execute
+    checkIncomingMessageForAction(receivedMessage: AssistanceObjectCommunication) {
+      // it is requested to automatically send the solution
+      if (parameterValue(receivedMessage, 'operation') === 'send_solution') {
+        const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
+        // Use aId of the received message to answer it
+        messageToSend.aId = receivedMessage.aId;
+        messageToSend.parameters = [new AssistanceParameter('solution_response', this.notesStore.text)];
+        this.sendWebSocketMessage(messageToSend);
       }
     },
     // acknowledge the reception of the message
