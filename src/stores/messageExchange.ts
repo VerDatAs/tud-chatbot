@@ -35,8 +35,8 @@ export const useMessageExchangeStore = defineStore({
       });
     },
     addItem(assistanceObject: AssistanceObjectCommunication) {
-      // only push or check items that do not already exist
-      if (!this.items.some((item: AssistanceObjectCommunication) => item.messageId === assistanceObject.messageId)) {
+      // only push or check items that do not already exist (messageId must exist)
+      if (!this.items.some((item: AssistanceObjectCommunication) => assistanceObject.messageId && item.messageId === assistanceObject.messageId)) {
         this.items.push(assistanceObject);
         this.checkForTypeMatching(assistanceObject);
         this.addOrRemoveGroup(assistanceObject);

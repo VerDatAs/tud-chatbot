@@ -197,10 +197,10 @@ export default {
               // console.log(receivedMessage instanceof AssistanceObjectCommunication);
               this.messageExchangeStore.addItem(Object.assign(new AssistanceObjectCommunication(), receivedMessage));
 
-              // If message was not part of previous_messages, check if it requires an action and acknowledge it afterwards
+              // If message was not part of previous_messages, acknowledge it and check if it requires an action afterward
               if (queueItem.requiresAcknowledgement) {
-                this.checkIncomingMessageForAction(receivedMessage);
                 this.acknowledgeMessage(receivedMessage);
+                this.checkIncomingMessageForAction(receivedMessage);
               }
             });
             // If the user has just logged in, display the chatbot dialog
