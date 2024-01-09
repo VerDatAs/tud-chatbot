@@ -277,6 +277,10 @@ export default {
         messageToSend.parameters = [new AssistanceParameter('solution_response', this.notesStore.text)];
         this.sendWebSocketMessage(messageToSend);
       }
+      // the template for the solution is provided
+      else if (checkForKeyPresence(receivedMessage, 'solution_template')) {
+        this.notesStore.setTemplate(parameterValue(receivedMessage, 'solution_template'));
+      }
     },
     // acknowledge the reception of the message
     acknowledgeMessage(receivedMessage: AssistanceObjectCommunication) {
