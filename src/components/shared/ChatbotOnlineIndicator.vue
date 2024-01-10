@@ -30,7 +30,7 @@ export default {
     z-index: 101;
 
     .onlineBubble {
-      background: green;
+      background: #198754;
       padding: 7px;
       max-height: 15px;
       border-radius: 7px;

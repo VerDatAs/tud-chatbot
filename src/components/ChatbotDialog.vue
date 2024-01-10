@@ -108,6 +108,9 @@ export default {
         }
       };
     },
+    resetInput() {
+      this.messageToSend = '';
+    },
     closeChatbotDialog() {
       this.$emit('closeChatbotDialog');
     },

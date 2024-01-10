@@ -289,6 +289,10 @@ export default {
       else if (parameterValue(receivedMessage, 'operation') === 'enable_notes') {
         this.displayStore.changeNotesAndPeerSolutionOpen(true);
       }
+      // disable_chat will automatically reset the input field
+      else if (parameterValue(receivedMessage, 'operation') === 'disable_chat') {
+        (this.$refs.chatbotDialog as typeof ChatbotDialog)?.resetInput();
+      }
       // the template for the solution is provided
       else if (checkForKeyPresence(receivedMessage, 'solution_template')) {
         this.notesAndPeerSolutionStore.setTemplate(parameterValue(receivedMessage, 'solution_template'));
