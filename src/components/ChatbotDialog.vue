@@ -6,6 +6,7 @@ import ChatbotStateUpdate from '@/components/dialog/ChatbotStateUpdate.vue';
 import ChatbotSystemMessage from '@/components/dialog/ChatbotSystemMessage.vue';
 import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
+import ChatbotOnlineIndicator from '@/components/shared/ChatbotOnlineIndicator.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
 import { checkForKeyPresence } from '@/util/assistanceObjectHelper';
@@ -26,6 +27,10 @@ export default {
     groups: {
       type: Array<AssistanceObjectCommunication>,
       default: []
+    },
+    isWebSocketConnected: {
+      type: Boolean,
+      default: false
     },
     messageExchange: {
       type: Array<AssistanceObjectCommunication>,
@@ -67,6 +72,7 @@ export default {
     ChatbotIcon,
     ChatbotGroupStatusMessage,
     ChatbotNotesAndPeerSolution,
+    ChatbotOnlineIndicator,
     ChatbotOptionsMessage,
     ChatbotStateUpdate,
     ChatbotSystemMessage,
@@ -200,6 +206,11 @@ export default {
       }
       this.$emit('sendAssistanceObject', assistanceObject);
     },
+    reconnectWebSocket(reconnect: boolean) {
+      if (reconnect) {
+        this.$emit('reconnectWebSocket', true);
+      }
+    },
     findRelatedItems(responseOption: AssistanceObjectCommunication, key: string) {
       return this.messageExchange.find(
         (message) =>
@@ -253,11 +264,18 @@ export default {
       :peer-solution-command-enabled="peerSolutionCommandEnabled"
       @acknowledgePeerSolution="acknowledgePeerSolution"
       @sendSolution="sendSolution"
+      v-if="notesEnabled"
     />
     <div id="dialogHeader">
       <ChatbotIcon :botImagePath="botImagePath" :headerIcon="true" />
-      <span class="headerName">VERI</span>
-      <span class="headerDescription">Supporting lecturers</span>
+      <div class="headerName">
+        VERI
+        <ChatbotOnlineIndicator
+          :is-web-socket-connected="isWebSocketConnected"
+          @reconnect-web-socket="reconnectWebSocket"
+        />
+      </div>
+      <span class="headerDescription">Unterstützung von Lehrenden</span>
       <span class="closeBtn" @click="closeChatbotDialog()">&times;</span>
     </div>
     <div id="dialogContainer">
@@ -370,7 +388,6 @@ export default {
     }
 
     .headerName {
-      display: block;
       line-height: 12px;
       font-weight: 600;
       font-size: 14px;

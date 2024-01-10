@@ -39,7 +39,9 @@ export default {
     messageExchangeStore: useMessageExchangeStore(),
     incomingMessageTypes: ['message', 'user_message', 'options', 'group', 'state_update', 'system_message'],
     outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
-    pongInterval: 0 as number
+    pongInterval: 0 as number,
+    // use triggerVariable to update changed webSocket: https://stackoverflow.com/a/64009199
+    triggerVariable: 0
   }),
   components: {
     ChatbotDialog,
@@ -48,6 +50,9 @@ export default {
   computed: {
     botImagePath() {
       return this.pluginPath + (!this.isRunLocally ? '/templates' : '') + '/veri.png';
+    },
+    isWebSocketConnected() {
+      return this.triggerVariable > 0 && this.webSocket?.readyState === 1;
     }
   },
   created() {
@@ -106,6 +111,7 @@ export default {
         };
 
         this.webSocket.onmessage = (event: any) => {
+          this.triggerVariable += 1;
           // console.log('incoming message event', event);
           // extract content between \n\n and \0
           const message: string = event.data.substring(event.data.indexOf('\n\n') + 2, event.data.lastIndexOf('\0'));
@@ -212,10 +218,12 @@ export default {
         };
 
         this.webSocket.onclose = () => {
+          this.triggerVariable += 1;
           console.log('WebSocket closed. Clear pong interval.', this.pongInterval);
           window.clearInterval(this.pongInterval);
           // reset value, as it is not done automatically: https://stackoverflow.com/a/5978560/3623608
           this.pongInterval = 0;
+          // TODO: Attempt reconnect the WebSocket
         };
       } else {
         // WebSocket connection is still established
@@ -359,6 +367,7 @@ export default {
       :chat-enabled="messageExchangeStore.chatEnabled()"
       :groups="messageExchangeStore.groups"
       :incoming-message-types="incomingMessageTypes"
+      :is-web-socket-connected="isWebSocketConnected"
       :message-exchange="messageExchangeStore.items"
       :notes-and-peer-solution-visible="displayStore.notesAndPeerSolutionOpen && messageExchangeStore.notesEnabled()"
       :notes-enabled="messageExchangeStore.notesEnabled()"
@@ -370,6 +379,7 @@ export default {
       :peer-solution-command-enabled="messageExchangeStore.peerSolutionCommandEnabled()"
       :state-updates="messageExchangeStore.stateUpdates"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
+      @reconnectWebSocket="handleWebSocketConnection(false)"
       @sendAssistanceObject="sendWebSocketMessage"
       v-else
     />
