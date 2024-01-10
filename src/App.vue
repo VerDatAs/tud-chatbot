@@ -277,6 +277,10 @@ export default {
         messageToSend.parameters = [new AssistanceParameter('solution_response', this.notesAndPeerSolutionStore.notes)];
         this.sendWebSocketMessage(messageToSend);
       }
+      // enable_notes will automatically open the notes and peer solution
+      else if (parameterValue(receivedMessage, 'operation') === 'enable_notes') {
+        this.displayStore.changeNotesAndPeerSolutionOpen(true);
+      }
       // the template for the solution is provided
       else if (checkForKeyPresence(receivedMessage, 'solution_template')) {
         this.notesAndPeerSolutionStore.setTemplate(parameterValue(receivedMessage, 'solution_template'));
