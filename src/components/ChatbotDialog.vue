@@ -9,7 +9,7 @@ import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
 import ChatbotOnlineIndicator from '@/components/shared/ChatbotOnlineIndicator.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
-import { checkForKeyPresence } from '@/util/assistanceObjectHelper';
+import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
 
 export default {
   data: () => ({
@@ -87,6 +87,7 @@ export default {
     this.initChatbotDialog();
   },
   methods: {
+    parameterValue,
     initChatbotDialog() {
       const dialogContainer = document.getElementById('dialogContainer');
       if (!dialogContainer) {
@@ -214,7 +215,7 @@ export default {
         this.$emit('reconnectWebSocket', true);
       }
     },
-    findRelatedItems(responseOption: AssistanceObjectCommunication, key: string) {
+    findRelatedItem(responseOption: AssistanceObjectCommunication, key: string) {
       return this.messageExchange.find(
         (message) =>
           message.aId === responseOption.aId &&
@@ -306,8 +307,7 @@ export default {
             <ChatbotGroupStatusMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
-              :group-initiation="true"
-              v-else-if="checkForKeyPresence(message, 'group')"
+              v-else-if="checkForKeyPresence(message, 'related_users')"
             />
             <ChatbotStateUpdate
               :assistance-object="message"
@@ -332,7 +332,15 @@ export default {
               :bot-image-path="botImagePath"
               :incoming="true"
               :key-to-display="'message'"
-              :related-group="findRelatedItems(message, 'group')"
+              :link-value="parameterValue(message, 'uri')"
+              v-else-if="checkForKeyPresence(message, 'uri')"
+            />
+            <ChatbotTextMessage
+              :assistance-object="message"
+              :bot-image-path="botImagePath"
+              :incoming="true"
+              :key-to-display="'message'"
+              :related-group="findRelatedItem(message, 'related_users')"
               v-else-if="checkForKeyPresence(message, 'message')"
             />
           </div>
@@ -340,13 +348,13 @@ export default {
             <ChatbotTextMessage
               :assistance-object="message"
               :key-to-display="'message_response'"
-              :related-group="findRelatedItems(message, 'group')"
+              :related-group="findRelatedItem(message, 'related_users')"
               v-if="checkForKeyPresence(message, 'message_response')"
             />
             <ChatbotTextMessage
               :assistance-object="message"
               :key-to-display="'options_response'"
-              :related-options="findRelatedItems(message, 'options')"
+              :related-options="findRelatedItem(message, 'options')"
               v-else-if="checkForKeyPresence(message, 'options_response')"
             />
           </div>

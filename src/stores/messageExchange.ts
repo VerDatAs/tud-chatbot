@@ -79,7 +79,7 @@ export const useMessageExchangeStore = defineStore({
       }
     },
     addOrRemoveGroup(assistanceObject: AssistanceObjectCommunication) {
-      if (checkForKeyPresence(assistanceObject, 'group')) {
+      if (checkForKeyPresence(assistanceObject, 'related_users')) {
         this.groups.push(assistanceObject);
       } else if (parameterValue(assistanceObject, 'state_update')?.status === 'completed'
         || parameterValue(assistanceObject, 'state_update_response')?.status === 'completed') {

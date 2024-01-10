@@ -2,7 +2,7 @@
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
-import { formatDate } from '@/util/assistanceObjectHelper';
+import { formatDate, parameterValue } from '@/util/assistanceObjectHelper';
 
 export default {
   components: {
@@ -14,6 +14,10 @@ export default {
       required: true
     },
     botImagePath: {
+      type: String,
+      required: false
+    },
+    linkValue: {
       type: String,
       required: false
     },
@@ -40,22 +44,11 @@ export default {
       return this.keyToDisplay === 'user_message'
     },
     numberOfGroupMembers() {
-      // exemplary content of "this.groups[0]":
-      // {"aId":"...", "aoId":"...","parameters":[
-      //   {"key":"message","value":"..."},
-      //   {"key":"group","value":[
-      //     {"key":"groupId","value":"..."},
-      //     {"key":"members","value":[
-      //       {"key":"userId","value":"user1"},
-      //       {"key":"userId","value":"user2"}
-      //     ]}
-      //   ]}
-      // ]}
-      return (
-        this.relatedGroup?.parameters
-          ?.find((param: any) => param?.key === 'group')
-          ?.value?.find((groupParam: any) => groupParam.key === 'members')?.value?.length || 0
-      );
+      if (this.relatedGroup) {
+        return parameterValue(this.relatedGroup, 'related_users')?.length ?? 0;
+      } else {
+        return 0;
+      }
     },
     validTimestamp() {
       return this.assistanceObject.timestamp && formatDate(this.assistanceObject.timestamp) !== 'Invalid date';
@@ -63,8 +56,7 @@ export default {
   },
   methods: {
     getAssistanceObjectText() {
-      let textToDisplay =
-        this.assistanceObject.parameters?.find((param) => param.key === this.keyToDisplay)?.value || '';
+      let textToDisplay = parameterValue(this.assistanceObject, this.keyToDisplay);
       // Properly display the value of the options_response
       if (this.keyToDisplay === 'options_response' && this.relatedOptions?.parameters) {
         const options = this.relatedOptions.parameters?.find((param) => param.key === 'options')?.value;
@@ -86,11 +78,16 @@ export default {
   <ChatbotIcon
     :bot-image-path="botImagePath"
     :is-group-message="!!relatedGroup || isUserMessage"
+    :is-link-message="!!linkValue"
     :number-of-group-members="numberOfGroupMembers"
     v-if="incoming && botImagePath"
   />
   <div class="messageContainer">
     <span>{{ getAssistanceObjectText() }}</span>
+    <div v-if="!!linkValue">
+      <hr>
+      <a :href="linkValue" target="_blank">{{ linkValue }}</a>
+    </div>
     <div class="messageTimestamp" v-if="validTimestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>
 </template>

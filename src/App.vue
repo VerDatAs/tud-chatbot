@@ -37,7 +37,7 @@ export default {
     notesAndPeerSolutionStore: useNotesAndPeerSolutionStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
-    incomingMessageTypes: ['message', 'user_message', 'options', 'group', 'state_update', 'system_message'],
+    incomingMessageTypes: ['message', 'options', 'related_users', 'state_update', 'system_message', 'uri', 'user_message'],
     outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
     pongInterval: 0 as number,
     // use triggerVariable to update changed webSocket: https://stackoverflow.com/a/64009199
