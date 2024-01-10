@@ -106,6 +106,12 @@ export const useMessageExchangeStore = defineStore({
     },
     notesCommandEnabled: (state) => {
       return () => checkLastOperationIsEnabledValue(state, 'enable_notes_command', 'disable_notes_command');
+    },
+    peerSolutionEnabled: (state) => {
+      return () => checkLastOperationIsEnabledValue(state, 'enable_peer_solution', 'disable_peer_solution');
+    },
+    peerSolutionCommandEnabled: (state) => {
+      return () => checkLastOperationIsEnabledValue(state, 'enable_peer_solution_command', 'disable_peer_solution_command');
     }
   },
   persist: true

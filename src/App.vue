@@ -6,7 +6,7 @@ import { AssistanceObjectQueueItem } from '@/components/types/assistance-object-
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
 import { useChatbotDataStore } from '@/stores/chatbotData';
 import { useDisplayStore } from '@/stores/display';
-import { useNotesStore } from '@/stores/notes';
+import { useNotesAndPeerSolutionStore } from '@/stores/notesAndPeerSolution';
 import { useMessageExchangeStore } from '@/stores/messageExchange';
 import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
 
@@ -34,7 +34,7 @@ export default {
     webSocket: null as any,
     chatbotDataStore: useChatbotDataStore(),
     displayStore: useDisplayStore(),
-    notesStore: useNotesStore(),
+    notesAndPeerSolutionStore: useNotesAndPeerSolutionStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
     incomingMessageTypes: ['message', 'user_message', 'options', 'group', 'state_update', 'system_message'],
@@ -274,12 +274,16 @@ export default {
         const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
         // Use aId of the received message to answer it
         messageToSend.aId = receivedMessage.aId;
-        messageToSend.parameters = [new AssistanceParameter('solution_response', this.notesStore.text)];
+        messageToSend.parameters = [new AssistanceParameter('solution_response', this.notesAndPeerSolutionStore.notes)];
         this.sendWebSocketMessage(messageToSend);
       }
       // the template for the solution is provided
       else if (checkForKeyPresence(receivedMessage, 'solution_template')) {
-        this.notesStore.setTemplate(parameterValue(receivedMessage, 'solution_template'));
+        this.notesAndPeerSolutionStore.setTemplate(parameterValue(receivedMessage, 'solution_template'));
+      }
+      // the peer solution is provided
+      else if (checkForKeyPresence(receivedMessage, 'peer_solution')) {
+        this.notesAndPeerSolutionStore.setPeerSolution(parameterValue(receivedMessage, 'peer_solution'));
       }
     },
     // acknowledge the reception of the message
@@ -309,7 +313,7 @@ export default {
           this.displayStore.dialogOpen = dialogVisible;
           // The ref must exist before it is addressed
           setTimeout(() => {
-            (this.$refs.chatbotDialog as typeof ChatbotDialog).fadeIn();
+            (this.$refs.chatbotDialog as typeof ChatbotDialog)?.fadeIn();
           }, 1);
         }, 300);
       } else {
@@ -318,7 +322,7 @@ export default {
           this.displayStore.dialogOpen = dialogVisible;
           // The ref must exist before it is addressed
           setTimeout(() => {
-            (this.$refs.chatbotWidget as typeof ChatbotWidget).fadeIn();
+            (this.$refs.chatbotWidget as typeof ChatbotWidget)?.fadeIn();
           }, 1);
         }, 300);
       }
@@ -352,11 +356,14 @@ export default {
       :groups="messageExchangeStore.groups"
       :incoming-message-types="incomingMessageTypes"
       :message-exchange="messageExchangeStore.items"
+      :notes-and-peer-solution-visible="displayStore.notesAndPeerSolutionOpen && messageExchangeStore.notesEnabled()"
       :notes-enabled="messageExchangeStore.notesEnabled()"
       :notes-command-enabled="messageExchangeStore.notesCommandEnabled()"
-      :notes-visible="displayStore.notesOpen && messageExchangeStore.notesEnabled()"
-      :notes="notesStore.text"
+      :notes="notesAndPeerSolutionStore.notes"
       :outgoing-message-types="outgoingMessageTypes"
+      :peer-solution="notesAndPeerSolutionStore.peerSolution"
+      :peer-solution-enabled="messageExchangeStore.peerSolutionEnabled()"
+      :peer-solution-command-enabled="messageExchangeStore.peerSolutionCommandEnabled()"
       :state-updates="messageExchangeStore.stateUpdates"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       @sendAssistanceObject="sendWebSocketMessage"

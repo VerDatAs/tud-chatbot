@@ -2,18 +2,22 @@ import { defineStore, acceptHMRUpdate } from 'pinia';
 
 const defaultTemplate = 'Definition des Problems:\n*\n*\n*\n\nAnalyse der Ursache:\n*\n*\n*\n\nVorschläge zur Lösung:\n*\n*\n*\n\nBewertung der Vorschläge:\n*\n*\n*\n';
 
-export const useNotesStore = defineStore({
-  id: 'notes',
+export const useNotesAndPeerSolutionStore = defineStore({
+  id: 'notesAndPeerSolution',
   state: () => ({
-    text: defaultTemplate as string,
+    notes: defaultTemplate as string,
+    peerSolution: defaultTemplate as string,
     template: defaultTemplate as string
   }),
   actions: {
     resetNotes() {
-      this.text = this.template;
+      this.notes = this.template;
     },
     setNotes(notes: string) {
-      this.text = notes;
+      this.notes = notes;
+    },
+    setPeerSolution(peerSolution: string) {
+      this.peerSolution = peerSolution;
     },
     setTemplate(templateString: string) {
       this.template = templateString;
@@ -27,5 +31,5 @@ export const useNotesStore = defineStore({
 });
 
 if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useNotesStore, import.meta.hot));
+  import.meta.hot.accept(acceptHMRUpdate(useNotesAndPeerSolutionStore, import.meta.hot));
 }

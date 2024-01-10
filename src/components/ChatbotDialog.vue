@@ -1,6 +1,6 @@
 <script lang="ts">
 import ChatbotGroupStatusMessage from '@/components/dialog/ChatbotGroupStatusMessage.vue';
-import ChatbotNotes from '@/components/dialog/ChatbotNotes.vue';
+import ChatbotNotesAndPeerSolution from '@/components/dialog/ChatbotNotesAndPeerSolution.vue';
 import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
 import ChatbotStateUpdate from '@/components/dialog/ChatbotStateUpdate.vue';
 import ChatbotSystemMessage from '@/components/dialog/ChatbotSystemMessage.vue';
@@ -39,8 +39,17 @@ export default {
       type: Boolean,
       default: false
     },
-    notesVisible: Boolean,
+    notesAndPeerSolutionVisible: Boolean,
     notes: String,
+    peerSolution: String,
+    peerSolutionEnabled: {
+      type: Boolean,
+      default: false
+    },
+    peerSolutionCommandEnabled: {
+      type: Boolean,
+      default: false
+    },
     incomingMessageTypes: {
       type: Array<String>,
       default: []
@@ -55,13 +64,13 @@ export default {
     }
   },
   components: {
+    ChatbotIcon,
     ChatbotGroupStatusMessage,
-    ChatbotNotes,
+    ChatbotNotesAndPeerSolution,
     ChatbotOptionsMessage,
     ChatbotStateUpdate,
     ChatbotSystemMessage,
-    ChatbotTextMessage,
-    ChatbotIcon
+    ChatbotTextMessage
   },
   computed: {
     hasScrolledButReceivedNewMessages() {
@@ -158,6 +167,18 @@ export default {
         this.messageToSend = '';
       }, 50);
     },
+    acknowledgePeerSolution(acknowledge: boolean) {
+      if (acknowledge) {
+        const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
+        // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
+        const lastItemWithAssistanceId = this.messageExchange.slice().reverse().find(ao => !!ao.aId);
+        if (lastItemWithAssistanceId) {
+          messageToSend.aId = lastItemWithAssistanceId.aId;
+          messageToSend.parameters = [new AssistanceParameter('state_update_response', 'standby')];
+          this.emitAssistanceObject(messageToSend);
+        }
+      }
+    },
     sendSolution(solution: string) {
       const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
       // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
@@ -222,11 +243,15 @@ export default {
 
 <template>
   <div id="chatbotDialog" class="animate__animated">
-    <ChatbotNotes
+    <ChatbotNotesAndPeerSolution
+      :notes="notes"
+      :notes-and-peer-solution-visible="notesAndPeerSolutionVisible"
       :notes-enabled="notesEnabled"
       :notes-command-enabled="notesCommandEnabled"
-      :notes-visible="notesVisible"
-      :notes="notes"
+      :peer-solution="peerSolution"
+      :peer-solution-enabled="peerSolutionEnabled"
+      :peer-solution-command-enabled="peerSolutionCommandEnabled"
+      @acknowledgePeerSolution="acknowledgePeerSolution"
       @sendSolution="sendSolution"
     />
     <div id="dialogHeader">
@@ -302,11 +327,6 @@ export default {
               :key-to-display="'options_response'"
               :related-options="findRelatedItems(message, 'options')"
               v-else-if="checkForKeyPresence(message, 'options_response')"
-            />
-            <ChatbotGroupStatusMessage
-              :assistance-object="findRelatedItems(message, 'group')"
-              :group-initiation="false"
-              v-else-if="checkForKeyPresence(message, 'state_update_response')"
             />
           </div>
         </div>
