@@ -16,7 +16,8 @@ export default {
     messageToSend: '' as string,
     messageUpdate: false as boolean,
     hasScrolled: false as boolean,
-    wasScrolledAutomatically: false as boolean
+    wasScrolledAutomatically: false as boolean,
+    sendChatDisabled: false as boolean
   }),
   props: {
     botImagePath: String,
@@ -138,6 +139,10 @@ export default {
         this.messageToSend = '';
         return;
       }
+      // do not send messages, if the chat button is disabled (empty enter commands are returned before)
+      if (this.sendChatDisabled) {
+        return;
+      }
       // prepare message to be sent
       const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
       // check if message starts with @group and a group was formed previously -> group message
@@ -175,10 +180,15 @@ export default {
           return;
         }
       }
+      this.sendChatDisabled = true;
       this.emitAssistanceObject(messageToSend);
       // Reset message input
       setTimeout(() => {
         this.messageToSend = '';
+        // Reset send chat disable
+        setTimeout(() => {
+          this.sendChatDisabled = false;
+        }, 1500);
       }, 50);
     },
     acknowledgePeerSolution(acknowledge: boolean) {
@@ -376,7 +386,7 @@ export default {
             @keyup.enter.exact="sendMessage(null)"
             :disabled="!chatEnabled"
           ></textarea>
-          <button type="submit" class="sendBtn" :disabled="!chatEnabled">Senden</button>
+          <button type="submit" class="sendBtn" :disabled="!chatEnabled || sendChatDisabled">Senden</button>
         </form>
       </div>
     </div>
