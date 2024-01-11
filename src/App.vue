@@ -192,7 +192,7 @@ export default {
             }
 
             // iterate messages (array of AssistanceObjectQueueItems)
-            messagesQueue.forEach((queueItem: AssistanceObjectQueueItem) => {
+            messagesQueue.forEach((queueItem: AssistanceObjectQueueItem, index: number) => {
               const receivedMessage: AssistanceObjectCommunication = queueItem.assistanceObject;
               if (!receivedMessage?.parameters) {
                 return;
@@ -203,13 +203,14 @@ export default {
               // console.log(receivedMessage instanceof AssistanceObjectCommunication);
               this.messageExchangeStore.addItem(Object.assign(new AssistanceObjectCommunication(), receivedMessage));
 
-              // If message was not part of previous_messages, acknowledge it and check if it requires an action afterward
+              // if the message was not part of previous_messages, acknowledge it
               if (queueItem.requiresAcknowledgement) {
                 this.acknowledgeMessage(receivedMessage);
-                this.checkIncomingMessageForAction(receivedMessage);
               }
+              // next, check, if it requires an additional action
+              this.checkIncomingMessageForAction(receivedMessage, queueItem.requiresAcknowledgement, messagesQueue.length === (index - 1));
             });
-            // If the user has just logged in, display the chatbot dialog
+            // if the user has just logged in, display the chatbot dialog
             if (this.hasJustLoggedIn) {
               this.updateChatbotDialogVisible(true);
             }
@@ -276,22 +277,34 @@ export default {
       }
     },
     // check incoming message for an action to execute
-    checkIncomingMessageForAction(receivedMessage: AssistanceObjectCommunication) {
-      // it is requested to automatically send the solution
-      if (parameterValue(receivedMessage, 'operation') === 'send_solution') {
+    checkIncomingMessageForAction(receivedMessage: AssistanceObjectCommunication, isLiveMessage: boolean, isLastItem: boolean) {
+      // actions that are executed when the message is retrieved in real-time
+      if (isLiveMessage) {
+        // it is requested to automatically send the solution
+        if (parameterValue(receivedMessage, 'operation') === 'send_solution') {
+          const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
+          // Use aId of the received message to answer it
+          messageToSend.aId = receivedMessage.aId;
+          messageToSend.parameters = [new AssistanceParameter('solution_response', this.notesAndPeerSolutionStore.notes)];
+          this.sendWebSocketMessage(messageToSend);
+        }
+        // disable_chat will automatically reset the input field
+        else if (parameterValue(receivedMessage, 'operation') === 'disable_chat') {
+          (this.$refs.chatbotDialog as typeof ChatbotDialog)?.resetInput();
+        }
+      }
+      // the solution might also need to be sent, if it is the last message in previous_messages
+      else if (isLastItem && parameterValue(receivedMessage, 'operation') === 'send_solution') {
         const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
         // Use aId of the received message to answer it
         messageToSend.aId = receivedMessage.aId;
         messageToSend.parameters = [new AssistanceParameter('solution_response', this.notesAndPeerSolutionStore.notes)];
         this.sendWebSocketMessage(messageToSend);
       }
+      // actions that are executed in any case
       // enable_notes will automatically open the notes and peer solution
-      else if (parameterValue(receivedMessage, 'operation') === 'enable_notes') {
+      if (parameterValue(receivedMessage, 'operation') === 'enable_notes') {
         this.displayStore.changeNotesAndPeerSolutionOpen(true);
-      }
-      // disable_chat will automatically reset the input field
-      else if (parameterValue(receivedMessage, 'operation') === 'disable_chat') {
-        (this.$refs.chatbotDialog as typeof ChatbotDialog)?.resetInput();
       }
       // the template for the solution is provided
       else if (checkForKeyPresence(receivedMessage, 'solution_template')) {
