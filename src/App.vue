@@ -3,9 +3,10 @@ import ChatbotDialog from '@/components/ChatbotDialog.vue';
 import ChatbotWidget from '@/components/ChatbotWidget.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceObjectQueueItem } from '@/components/types/assistance-object-queue-item';
+import { AssistanceParameter } from '@/components/types/assistance-parameter';
 import { useChatbotDataStore } from '@/stores/chatbotData';
 import { useDisplayStore } from '@/stores/display';
-import { useNotesStore } from '@/stores/notes';
+import { useNotesAndPeerSolutionStore } from '@/stores/notesAndPeerSolution';
 import { useMessageExchangeStore } from '@/stores/messageExchange';
 import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
 
@@ -33,12 +34,14 @@ export default {
     webSocket: null as any,
     chatbotDataStore: useChatbotDataStore(),
     displayStore: useDisplayStore(),
-    notesStore: useNotesStore(),
+    notesAndPeerSolutionStore: useNotesAndPeerSolutionStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
-    incomingMessageTypes: ['message', 'user_message', 'options', 'group', 'state_update', 'system_message'],
+    incomingMessageTypes: ['message', 'options', 'related_users', 'state_update', 'system_message', 'uri', 'user_message'],
     outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
-    pongInterval: 0 as number
+    pongInterval: 0 as number,
+    // use triggerVariable to update changed webSocket: https://stackoverflow.com/a/64009199
+    triggerVariable: 0
   }),
   components: {
     ChatbotDialog,
@@ -47,6 +50,9 @@ export default {
   computed: {
     botImagePath() {
       return this.pluginPath + (!this.isRunLocally ? '/templates' : '') + '/veri.png';
+    },
+    isWebSocketConnected() {
+      return this.triggerVariable > 0 && this.webSocket?.readyState === 1;
     }
   },
   created() {
@@ -105,6 +111,7 @@ export default {
         };
 
         this.webSocket.onmessage = (event: any) => {
+          this.triggerVariable += 1;
           // console.log('incoming message event', event);
           // extract content between \n\n and \0
           const message: string = event.data.substring(event.data.indexOf('\n\n') + 2, event.data.lastIndexOf('\0'));
@@ -196,9 +203,10 @@ export default {
               // console.log(receivedMessage instanceof AssistanceObjectCommunication);
               this.messageExchangeStore.addItem(Object.assign(new AssistanceObjectCommunication(), receivedMessage));
 
-              // Acknowledge retrieval of message, if they were not part of the previous_messages
+              // If message was not part of previous_messages, acknowledge it and check if it requires an action afterward
               if (queueItem.requiresAcknowledgement) {
                 this.acknowledgeMessage(receivedMessage);
+                this.checkIncomingMessageForAction(receivedMessage);
               }
             });
             // If the user has just logged in, display the chatbot dialog
@@ -210,10 +218,12 @@ export default {
         };
 
         this.webSocket.onclose = () => {
+          this.triggerVariable += 1;
           console.log('WebSocket closed. Clear pong interval.', this.pongInterval);
           window.clearInterval(this.pongInterval);
           // reset value, as it is not done automatically: https://stackoverflow.com/a/5978560/3623608
           this.pongInterval = 0;
+          // TODO: Attempt reconnect the WebSocket
         };
       } else {
         // WebSocket connection is still established
@@ -265,6 +275,33 @@ export default {
         this.updateDialogScroll();
       }
     },
+    // check incoming message for an action to execute
+    checkIncomingMessageForAction(receivedMessage: AssistanceObjectCommunication) {
+      // it is requested to automatically send the solution
+      if (parameterValue(receivedMessage, 'operation') === 'send_solution') {
+        const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
+        // Use aId of the received message to answer it
+        messageToSend.aId = receivedMessage.aId;
+        messageToSend.parameters = [new AssistanceParameter('solution_response', this.notesAndPeerSolutionStore.notes)];
+        this.sendWebSocketMessage(messageToSend);
+      }
+      // enable_notes will automatically open the notes and peer solution
+      else if (parameterValue(receivedMessage, 'operation') === 'enable_notes') {
+        this.displayStore.changeNotesAndPeerSolutionOpen(true);
+      }
+      // disable_chat will automatically reset the input field
+      else if (parameterValue(receivedMessage, 'operation') === 'disable_chat') {
+        (this.$refs.chatbotDialog as typeof ChatbotDialog)?.resetInput();
+      }
+      // the template for the solution is provided
+      else if (checkForKeyPresence(receivedMessage, 'solution_template')) {
+        this.notesAndPeerSolutionStore.setTemplate(parameterValue(receivedMessage, 'solution_template'));
+      }
+      // the peer solution is provided
+      else if (checkForKeyPresence(receivedMessage, 'peer_solution')) {
+        this.notesAndPeerSolutionStore.setPeerSolution(parameterValue(receivedMessage, 'peer_solution'));
+      }
+    },
     // acknowledge the reception of the message
     acknowledgeMessage(receivedMessage: AssistanceObjectCommunication) {
       if (receivedMessage?.messageId) {
@@ -292,7 +329,7 @@ export default {
           this.displayStore.dialogOpen = dialogVisible;
           // The ref must exist before it is addressed
           setTimeout(() => {
-            (this.$refs.chatbotDialog as typeof ChatbotDialog).fadeIn();
+            (this.$refs.chatbotDialog as typeof ChatbotDialog)?.fadeIn();
           }, 1);
         }, 300);
       } else {
@@ -301,7 +338,7 @@ export default {
           this.displayStore.dialogOpen = dialogVisible;
           // The ref must exist before it is addressed
           setTimeout(() => {
-            (this.$refs.chatbotWidget as typeof ChatbotWidget).fadeIn();
+            (this.$refs.chatbotWidget as typeof ChatbotWidget)?.fadeIn();
           }, 1);
         }, 300);
       }
@@ -334,14 +371,19 @@ export default {
       :chat-enabled="messageExchangeStore.chatEnabled()"
       :groups="messageExchangeStore.groups"
       :incoming-message-types="incomingMessageTypes"
+      :is-web-socket-connected="isWebSocketConnected"
       :message-exchange="messageExchangeStore.items"
+      :notes-and-peer-solution-visible="displayStore.notesAndPeerSolutionOpen && messageExchangeStore.notesEnabled()"
       :notes-enabled="messageExchangeStore.notesEnabled()"
       :notes-command-enabled="messageExchangeStore.notesCommandEnabled()"
-      :notes-visible="displayStore.notesOpen && messageExchangeStore.notesEnabled()"
-      :notes="notesStore.text"
+      :notes="notesAndPeerSolutionStore.notes"
       :outgoing-message-types="outgoingMessageTypes"
+      :peer-solution="notesAndPeerSolutionStore.peerSolution"
+      :peer-solution-enabled="messageExchangeStore.peerSolutionEnabled()"
+      :peer-solution-command-enabled="messageExchangeStore.peerSolutionCommandEnabled()"
       :state-updates="messageExchangeStore.stateUpdates"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
+      @reconnectWebSocket="handleWebSocketConnection(false)"
       @sendAssistanceObject="sendWebSocketMessage"
       v-else
     />

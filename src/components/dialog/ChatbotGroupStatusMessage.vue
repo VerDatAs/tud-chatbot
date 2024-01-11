@@ -16,14 +16,12 @@ export default {
     botImagePath: {
       type: String,
       required: false
-    },
-    groupInitiation: {
-      type: Boolean,
-      required: false,
-      default: true
     }
   },
   computed: {
+    numberOfGroupMembers() {
+      return parameterValue(this.assistanceObject, 'related_users')?.length ?? 0;
+    },
     validTimestamp() {
       return this.assistanceObject.timestamp && formatDate(this.assistanceObject.timestamp) !== 'Invalid date';
     }
@@ -37,34 +35,14 @@ export default {
 </script>
 
 <template>
-  <ChatbotIcon :botImagePath="botImagePath" v-if="botImagePath" />
+  <ChatbotIcon
+    :bot-image-path="botImagePath"
+    :is-group-message="true"
+    :number-of-group-members="numberOfGroupMembers"
+    v-if="botImagePath"
+  />
   <div class="messageContainer">
-    <template v-if="groupInitiation">
-      {{ parameterValue(assistanceObject, 'message') }}
-      <hr />
-    </template>
-    <div class="groupInformation" v-if="parameterValue(assistanceObject, 'group')">
-      <span class="text-decoration-underline">
-        {{ groupInitiation ? 'Gruppeninformationen' : 'Abbruch der Gruppenkollaboration'
-        }}{{ assistanceObject ? ':' : '' }}
-      </span>
-      <ul>
-        <li v-if="parameterValue(assistanceObject, 'group')?.find((ao: any) => ao.key === 'groupId')">
-          Gruppen-ID: {{ parameterValue(assistanceObject, 'group').find((ao: any) => ao.key === 'groupId').value }}
-        </li>
-        <li v-if="parameterValue(assistanceObject, 'group')?.find((ao: any) => ao.key === 'members').value">
-          Anzahl Mitglieder:
-          {{ parameterValue(assistanceObject, 'group').find((ao: any) => ao.key === 'members').value.length }}
-        </li>
-      </ul>
-    </div>
-    <template v-if="groupInitiation">
-      <hr />
-      <span class="text-decoration-underline">Hinweis:</span>
-      Benutze
-      <span class="fw-bold">@group</span>
-      um eine Nachricht an deine Gruppe zu senden.
-    </template>
+    {{ parameterValue(assistanceObject, 'message') }}
     <div class="messageTimestamp" v-if="validTimestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>
 </template>

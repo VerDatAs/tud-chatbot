@@ -35,8 +35,8 @@ export const useMessageExchangeStore = defineStore({
       });
     },
     addItem(assistanceObject: AssistanceObjectCommunication) {
-      // only push or check items that do not already exist
-      if (!this.items.some((item: AssistanceObjectCommunication) => item.messageId === assistanceObject.messageId)) {
+      // only push or check items that do not already exist (messageId must exist)
+      if (!this.items.some((item: AssistanceObjectCommunication) => assistanceObject.messageId && item.messageId === assistanceObject.messageId)) {
         this.items.push(assistanceObject);
         this.checkForTypeMatching(assistanceObject);
         this.addOrRemoveGroup(assistanceObject);
@@ -79,7 +79,7 @@ export const useMessageExchangeStore = defineStore({
       }
     },
     addOrRemoveGroup(assistanceObject: AssistanceObjectCommunication) {
-      if (checkForKeyPresence(assistanceObject, 'group')) {
+      if (checkForKeyPresence(assistanceObject, 'related_users')) {
         this.groups.push(assistanceObject);
       } else if (parameterValue(assistanceObject, 'state_update')?.status === 'completed'
         || parameterValue(assistanceObject, 'state_update_response')?.status === 'completed') {
@@ -106,6 +106,12 @@ export const useMessageExchangeStore = defineStore({
     },
     notesCommandEnabled: (state) => {
       return () => checkLastOperationIsEnabledValue(state, 'enable_notes_command', 'disable_notes_command');
+    },
+    peerSolutionEnabled: (state) => {
+      return () => checkLastOperationIsEnabledValue(state, 'enable_peer_solution', 'disable_peer_solution');
+    },
+    peerSolutionCommandEnabled: (state) => {
+      return () => checkLastOperationIsEnabledValue(state, 'enable_peer_solution_command', 'disable_peer_solution_command');
     }
   },
   persist: true

@@ -1,14 +1,15 @@
 <script lang="ts">
 import ChatbotGroupStatusMessage from '@/components/dialog/ChatbotGroupStatusMessage.vue';
-import ChatbotNotes from '@/components/dialog/ChatbotNotes.vue';
+import ChatbotNotesAndPeerSolution from '@/components/dialog/ChatbotNotesAndPeerSolution.vue';
 import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
 import ChatbotStateUpdate from '@/components/dialog/ChatbotStateUpdate.vue';
 import ChatbotSystemMessage from '@/components/dialog/ChatbotSystemMessage.vue';
 import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
+import ChatbotOnlineIndicator from '@/components/shared/ChatbotOnlineIndicator.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
-import { checkForKeyPresence } from '@/util/assistanceObjectHelper';
+import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
 
 export default {
   data: () => ({
@@ -27,6 +28,10 @@ export default {
       type: Array<AssistanceObjectCommunication>,
       default: []
     },
+    isWebSocketConnected: {
+      type: Boolean,
+      default: false
+    },
     messageExchange: {
       type: Array<AssistanceObjectCommunication>,
       default: []
@@ -39,8 +44,17 @@ export default {
       type: Boolean,
       default: false
     },
-    notesVisible: Boolean,
+    notesAndPeerSolutionVisible: Boolean,
     notes: String,
+    peerSolution: String,
+    peerSolutionEnabled: {
+      type: Boolean,
+      default: false
+    },
+    peerSolutionCommandEnabled: {
+      type: Boolean,
+      default: false
+    },
     incomingMessageTypes: {
       type: Array<String>,
       default: []
@@ -55,13 +69,14 @@ export default {
     }
   },
   components: {
+    ChatbotIcon,
     ChatbotGroupStatusMessage,
-    ChatbotNotes,
+    ChatbotNotesAndPeerSolution,
+    ChatbotOnlineIndicator,
     ChatbotOptionsMessage,
     ChatbotStateUpdate,
     ChatbotSystemMessage,
-    ChatbotTextMessage,
-    ChatbotIcon
+    ChatbotTextMessage
   },
   computed: {
     hasScrolledButReceivedNewMessages() {
@@ -72,6 +87,7 @@ export default {
     this.initChatbotDialog();
   },
   methods: {
+    parameterValue,
     initChatbotDialog() {
       const dialogContainer = document.getElementById('dialogContainer');
       if (!dialogContainer) {
@@ -92,6 +108,9 @@ export default {
           this.messageUpdate = false;
         }
       };
+    },
+    resetInput() {
+      this.messageToSend = '';
     },
     closeChatbotDialog() {
       this.$emit('closeChatbotDialog');
@@ -158,6 +177,18 @@ export default {
         this.messageToSend = '';
       }, 50);
     },
+    acknowledgePeerSolution(acknowledge: boolean) {
+      if (acknowledge) {
+        const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
+        // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
+        const lastItemWithAssistanceId = this.messageExchange.slice().reverse().find(ao => !!ao.aId);
+        if (lastItemWithAssistanceId) {
+          messageToSend.aId = lastItemWithAssistanceId.aId;
+          messageToSend.parameters = [new AssistanceParameter('state_update_response', 'standby')];
+          this.emitAssistanceObject(messageToSend);
+        }
+      }
+    },
     sendSolution(solution: string) {
       const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
       // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
@@ -179,7 +210,12 @@ export default {
       }
       this.$emit('sendAssistanceObject', assistanceObject);
     },
-    findRelatedItems(responseOption: AssistanceObjectCommunication, key: string) {
+    reconnectWebSocket(reconnect: boolean) {
+      if (reconnect) {
+        this.$emit('reconnectWebSocket', true);
+      }
+    },
+    findRelatedItem(responseOption: AssistanceObjectCommunication, key: string) {
       return this.messageExchange.find(
         (message) =>
           message.aId === responseOption.aId &&
@@ -222,17 +258,28 @@ export default {
 
 <template>
   <div id="chatbotDialog" class="animate__animated">
-    <ChatbotNotes
+    <ChatbotNotesAndPeerSolution
+      :notes="notes"
+      :notes-and-peer-solution-visible="notesAndPeerSolutionVisible"
       :notes-enabled="notesEnabled"
       :notes-command-enabled="notesCommandEnabled"
-      :notes-visible="notesVisible"
-      :notes="notes"
+      :peer-solution="peerSolution"
+      :peer-solution-enabled="peerSolutionEnabled"
+      :peer-solution-command-enabled="peerSolutionCommandEnabled"
+      @acknowledgePeerSolution="acknowledgePeerSolution"
       @sendSolution="sendSolution"
+      v-if="notesEnabled"
     />
     <div id="dialogHeader">
       <ChatbotIcon :botImagePath="botImagePath" :headerIcon="true" />
-      <span class="headerName">VERI</span>
-      <span class="headerDescription">Supporting lecturers</span>
+      <div class="headerName">
+        VERI
+        <ChatbotOnlineIndicator
+          :is-web-socket-connected="isWebSocketConnected"
+          @reconnect-web-socket="reconnectWebSocket"
+        />
+      </div>
+      <span class="headerDescription">Unterstützung von Lehrenden</span>
       <span class="closeBtn" @click="closeChatbotDialog()">&times;</span>
     </div>
     <div id="dialogContainer">
@@ -260,8 +307,7 @@ export default {
             <ChatbotGroupStatusMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
-              :group-initiation="true"
-              v-else-if="checkForKeyPresence(message, 'group')"
+              v-else-if="checkForKeyPresence(message, 'related_users')"
             />
             <ChatbotStateUpdate
               :assistance-object="message"
@@ -286,7 +332,15 @@ export default {
               :bot-image-path="botImagePath"
               :incoming="true"
               :key-to-display="'message'"
-              :related-group="findRelatedItems(message, 'group')"
+              :link-value="parameterValue(message, 'uri')"
+              v-else-if="checkForKeyPresence(message, 'uri')"
+            />
+            <ChatbotTextMessage
+              :assistance-object="message"
+              :bot-image-path="botImagePath"
+              :incoming="true"
+              :key-to-display="'message'"
+              :related-group="findRelatedItem(message, 'related_users')"
               v-else-if="checkForKeyPresence(message, 'message')"
             />
           </div>
@@ -294,19 +348,14 @@ export default {
             <ChatbotTextMessage
               :assistance-object="message"
               :key-to-display="'message_response'"
-              :related-group="findRelatedItems(message, 'group')"
+              :related-group="findRelatedItem(message, 'related_users')"
               v-if="checkForKeyPresence(message, 'message_response')"
             />
             <ChatbotTextMessage
               :assistance-object="message"
               :key-to-display="'options_response'"
-              :related-options="findRelatedItems(message, 'options')"
+              :related-options="findRelatedItem(message, 'options')"
               v-else-if="checkForKeyPresence(message, 'options_response')"
-            />
-            <ChatbotGroupStatusMessage
-              :assistance-object="findRelatedItems(message, 'group')"
-              :group-initiation="false"
-              v-else-if="checkForKeyPresence(message, 'state_update_response')"
             />
           </div>
         </div>
@@ -350,7 +399,6 @@ export default {
     }
 
     .headerName {
-      display: block;
       line-height: 12px;
       font-weight: 600;
       font-size: 14px;

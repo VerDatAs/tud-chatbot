@@ -1,13 +1,11 @@
 <script lang="ts">
 import { useDisplayStore } from '@/stores/display';
-import { useNotesStore } from '@/stores/notes';
+import { useNotesAndPeerSolutionStore } from '@/stores/notesAndPeerSolution';
 
 export default {
   data: () => ({
     displayStore: useDisplayStore(),
-    notesStore: useNotesStore(),
-    notesPlaceholder:
-      'Definition des Problems:\n*\n*\n*\n\nAnalyse der Ursache:\n*\n*\n*\n\nVorschläge zur Lösung:\n*\n*\n*\n\nBewertung der Vorschläge:\n*\n*\n*\n'
+    notesAndPeerSolutionStore: useNotesAndPeerSolutionStore(),
   }),
   props: {
     notes: String,
@@ -19,37 +17,54 @@ export default {
       type: Boolean,
       default: false
     },
-    notesVisible: {
+    notesAndPeerSolutionVisible: {
+      type: Boolean,
+      default: false
+    },
+    peerSolution: String,
+    peerSolutionEnabled: {
+      type: Boolean,
+      default: false
+    },
+    peerSolutionCommandEnabled: {
       type: Boolean,
       default: false
     }
   },
-  emits: ['sendSolution'],
+  computed: {
+    notesPlaceholder() {
+      return this.notesAndPeerSolutionStore.template;
+    }
+  },
+  emits: ['acknowledgePeerSolution', 'sendSolution'],
   methods: {
-    toggleNotes(notesOpen: boolean) {
+    toggleNotes(notesAndPeerSolutionOpen: boolean) {
       if (this.notesEnabled) {
-        this.displayStore.changeNotesOpen(notesOpen);
+        this.displayStore.changeNotesAndPeerSolutionOpen(notesAndPeerSolutionOpen);
       }
     },
     // related issue for specifying the correct type for the event
     // https://stackoverflow.com/questions/44321326/property-value-does-not-exist-on-type-eventtarget-in-typescript
     notesInput(event: Event) {
       const text = (event.target as HTMLInputElement)?.value;
-      this.notesStore.setNotes(text);
+      this.notesAndPeerSolutionStore.setNotes(text);
     },
     resetNotes() {
-      this.notesStore.resetNotes();
+      this.notesAndPeerSolutionStore.resetNotes();
     },
     sendSolution() {
-      this.$emit('sendSolution', this.notesStore.text);
+      this.$emit('sendSolution', this.notesAndPeerSolutionStore.notes);
+    },
+    acknowledgePeerSolution() {
+      this.$emit('acknowledgePeerSolution', true);
     }
   }
 };
 </script>
 
 <template>
-  <div id="chatbotNotes" :class="!notesEnabled ? 'disabledState' : ''">
-    <div class="notesIcon" @click="toggleNotes(true)" v-if="!notesVisible">
+  <div id="chatbotNotesAndPeerSolution" :class="!notesEnabled ? 'disabledState' : ''">
+    <div class="notesIcon" @click="toggleNotes(true)" v-if="!notesAndPeerSolutionVisible">
       <!-- note taking icon: https://fonts.google.com/icons?selected=Material%20Symbols%20Outlined%3Aedit_note%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024 -->
       <svg xmlns="http://www.w3.org/2000/svg" height="32" width="32" viewBox="0 -960 960 960">
         <path
@@ -57,7 +72,7 @@ export default {
         />
       </svg>
     </div>
-    <div class="notesIcon" @click="toggleNotes(false)" v-if="notesVisible" style="padding: 5px">
+    <div class="notesIcon" @click="toggleNotes(false)" v-if="notesAndPeerSolutionVisible" style="padding: 5px">
       <!-- arrows right icon: https://fonts.google.com/icons?selected=Material%20Symbols%20Outlined%3Akeyboard_double_arrow_right%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024 -->
       <svg xmlns="http://www.w3.org/2000/svg" height="26" width="26" viewBox="0 -960 960 960">
         <path
@@ -65,7 +80,7 @@ export default {
         />
       </svg>
     </div>
-    <div class="notesContainer" v-if="notesVisible">
+    <div class="messageContainer notesContainer" v-if="notesAndPeerSolutionVisible">
       <div class="header">
         <h4>Notizen:</h4>
         <div class="resetButton" @click="resetNotes()">
@@ -80,6 +95,15 @@ export default {
       <textarea :placeholder="notesPlaceholder" :value="notes" @input="notesInput" :disabled="!notesEnabled"></textarea>
       <div class="footer text-right">
         <button @click="sendSolution()" :disabled="!notesCommandEnabled">Absenden</button>
+      </div>
+    </div>
+    <div class="messageContainer peerSolutionContainer" v-if="notesAndPeerSolutionVisible && peerSolutionEnabled">
+      <div class="header">
+        <h4>Lösung des Peers:</h4>
+      </div>
+      <textarea :placeholder="notesPlaceholder" :value="peerSolution" disabled></textarea>
+      <div class="footer text-right">
+        <button @click="acknowledgePeerSolution()" :disabled="!peerSolutionCommandEnabled">Weiter</button>
       </div>
     </div>
   </div>
@@ -105,16 +129,23 @@ export default {
   cursor: not-allowed !important;
 }
 
-.notesContainer {
+.messageContainer {
   width: 275px;
   height: 100%;
   padding: 8px;
   background: #eee;
   position: absolute;
-  left: -275px;
   border: 1px solid #bbb;
   top: 0;
   z-index: 99;
+
+  &.notesContainer {
+    left: -275px;
+  }
+
+  &.peerSolutionContainer {
+    left: -550px;
+  }
 
   .header {
     height: 32px;
