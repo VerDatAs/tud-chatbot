@@ -8,7 +8,8 @@ export default {
   data: () => ({
     displayStore: useDisplayStore(),
     notesAndPeerSolutionStore: useNotesAndPeerSolutionStore(),
-    dialog: null as any
+    dialog: null as any,
+    sendingInProgress: false as boolean
   }),
   props: {
     notes: String,
@@ -85,7 +86,11 @@ export default {
       });
       this.dialog.reveal();
       this.dialog.onConfirm(() => {
+        this.sendingInProgress = true;
         this.$emit('sendSolution', this.notesAndPeerSolutionStore.notes);
+        setTimeout(() => {
+          this.sendingInProgress = false;
+        }, 1500);
       });
       this.dialog.onCancel(() => {
         this.dialog.close()
@@ -101,7 +106,11 @@ export default {
       });
       this.dialog.reveal();
       this.dialog.onConfirm(() => {
+        this.sendingInProgress = true;
         this.$emit('acknowledgePeerSolution', true);
+        setTimeout(() => {
+          this.sendingInProgress = false;
+        }, 1500);
       });
       this.dialog.onCancel(() => {
         this.dialog.close()
@@ -149,7 +158,7 @@ export default {
       >
       </textarea>
       <div class="footer text-right">
-        <button @click="sendSolution()" :disabled="!notesCommandEnabled">Absenden</button>
+        <button @click="sendSolution()" :disabled="!notesCommandEnabled || sendingInProgress">Absenden</button>
       </div>
     </div>
     <div class="messageContainer peerSolutionContainer" v-if="notesAndPeerSolutionVisible && peerSolutionEnabled">
@@ -158,7 +167,7 @@ export default {
       </div>
       <textarea :placeholder="notesPlaceholder" :value="peerSolution" disabled></textarea>
       <div class="footer text-right">
-        <button @click="acknowledgePeerSolution()" :disabled="!peerSolutionCommandEnabled">Weiter</button>
+        <button @click="acknowledgePeerSolution()" :disabled="!peerSolutionCommandEnabled || sendingInProgress">Weiter</button>
       </div>
     </div>
   </div>
