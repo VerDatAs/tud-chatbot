@@ -6,12 +6,15 @@ import App from './App.vue';
 import { ChatbotData } from '@/components/types/chatbot-data';
 import { useChatbotDataStore } from '@/stores/chatbotData';
 import axios from 'axios';
+import * as ConfirmDialog from 'vuejs-confirm-dialog'
 
 import './assets/main.scss';
 
 function initChatbot(initChatbotData: ChatbotData) {
   console.log('init chatbotApp', JSON.stringify(initChatbotData));
   const app = createApp(App);
+
+  app.use(ConfirmDialog);
 
   const pinia = createPinia();
   pinia.use(piniaPluginPersistedstate);
@@ -24,8 +27,10 @@ function initChatbot(initChatbotData: ChatbotData) {
 
 // Local development: Uncomment this lines and remove type from "import type ..."
 // TODO: Find a better solution for local development: https://stackoverflow.com/questions/70709987/how-to-load-environment-variables-from-env-file-using-vite
-// const backendUrl = 'http://localhost:8080';
-// const pseudoId = 'ca1910';
+// const backendUrl = 'https://tasverdatas.showcase.verdatas.inf.tu-dresden.de';
+// // use Safari as a second browser to simulate the cooperation
+// const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+// const pseudoId = isSafari ? 'verdatas2' : 'verdatas1';
 // const authUrl = backendUrl + '/api/v1/auth/login';
 // const request = {
 //   actorAccountName: pseudoId

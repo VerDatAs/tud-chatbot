@@ -389,6 +389,7 @@ export default {
       v-else
     />
   </main>
+  <DialogsWrapper />
 </template>
 
 <style lang="scss" scoped>

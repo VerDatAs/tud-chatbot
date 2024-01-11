@@ -1,11 +1,14 @@
 <script lang="ts">
 import { useDisplayStore } from '@/stores/display';
 import { useNotesAndPeerSolutionStore } from '@/stores/notesAndPeerSolution';
+import ModalDialog from '@/components/shared/ModalDialog.vue';
+import { createConfirmDialog } from 'vuejs-confirm-dialog'
 
 export default {
   data: () => ({
     displayStore: useDisplayStore(),
     notesAndPeerSolutionStore: useNotesAndPeerSolutionStore(),
+    dialog: null as any
   }),
   props: {
     notes: String,
@@ -56,14 +59,53 @@ export default {
     resetNotes() {
       // only allow resetting notes, if the input is enabled
       if (this.notesInputEnabled) {
-        this.notesAndPeerSolutionStore.resetNotes();
+        // @ts-ignore
+        this.dialog = createConfirmDialog(ModalDialog, {
+          title: 'Notizen zurücksetzen',
+          question: 'Sind Sie sich sicher, dass Sie die Notizen zurücksetzen wollen?',
+          confirmTxt: 'Bestätigen',
+          cancelTxt: 'Abbrechen'
+        });
+        this.dialog.reveal();
+        this.dialog.onConfirm(() => {
+          this.notesAndPeerSolutionStore.resetNotes();
+        });
+        this.dialog.onCancel(() => {
+          this.dialog.close()
+        });
       }
     },
     sendSolution() {
-      this.$emit('sendSolution', this.notesAndPeerSolutionStore.notes);
+      // @ts-ignore
+      this.dialog = createConfirmDialog(ModalDialog, {
+        title: 'Lösung abschicken',
+        question: 'Sind Sie sich sicher, dass Sie die Lösung abschicken wollen? Dieser Schritt kann nicht rückgängig gemacht werden.',
+        confirmTxt: 'Bestätigen',
+        cancelTxt: 'Abbrechen'
+      });
+      this.dialog.reveal();
+      this.dialog.onConfirm(() => {
+        this.$emit('sendSolution', this.notesAndPeerSolutionStore.notes);
+      });
+      this.dialog.onCancel(() => {
+        this.dialog.close()
+      });
     },
     acknowledgePeerSolution() {
-      this.$emit('acknowledgePeerSolution', true);
+      // @ts-ignore
+      this.dialog = createConfirmDialog(ModalDialog, {
+        title: 'Weiterschalten',
+        question: 'Sind Sie sich sicher, dass Sie fortfahren wollen?',
+        confirmTxt: 'Bestätigen',
+        cancelTxt: 'Abbrechen'
+      });
+      this.dialog.reveal();
+      this.dialog.onConfirm(() => {
+        this.$emit('acknowledgePeerSolution', true);
+      });
+      this.dialog.onCancel(() => {
+        this.dialog.close()
+      });
     }
   }
 };
