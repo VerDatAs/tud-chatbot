@@ -9,6 +9,10 @@ export default {
   }),
   props: {
     notes: String,
+    notesAndPeerSolutionVisible: {
+      type: Boolean,
+      default: false
+    },
     notesEnabled: {
       type: Boolean,
       default: false
@@ -17,7 +21,7 @@ export default {
       type: Boolean,
       default: false
     },
-    notesAndPeerSolutionVisible: {
+    notesInputEnabled: {
       type: Boolean,
       default: false
     },
@@ -50,7 +54,10 @@ export default {
       this.notesAndPeerSolutionStore.setNotes(text);
     },
     resetNotes() {
-      this.notesAndPeerSolutionStore.resetNotes();
+      // only allow resetting notes, if the input is enabled
+      if (this.notesInputEnabled) {
+        this.notesAndPeerSolutionStore.resetNotes();
+      }
     },
     sendSolution() {
       this.$emit('sendSolution', this.notesAndPeerSolutionStore.notes);
@@ -83,7 +90,7 @@ export default {
     <div class="messageContainer notesContainer" v-if="notesAndPeerSolutionVisible">
       <div class="header">
         <h4>Notizen:</h4>
-        <div class="resetButton" @click="resetNotes()">
+        <div class="resetButton" :class="!notesInputEnabled ? 'disabledState' : ''" @click="resetNotes()">
           <!-- delete icon: https://fonts.google.com/icons?selected=Material%20Symbols%20Outlined%3Adelete%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024 -->
           <svg xmlns="http://www.w3.org/2000/svg" height="21" width="21" viewBox="0 -960 960 960">
             <path
@@ -92,7 +99,13 @@ export default {
           </svg>
         </div>
       </div>
-      <textarea :placeholder="notesPlaceholder" :value="notes" @input="notesInput" :disabled="!notesEnabled"></textarea>
+      <textarea
+        :placeholder="notesPlaceholder"
+        :value="notes"
+        @input="notesInput"
+        :disabled="!notesEnabled || !notesInputEnabled"
+      >
+      </textarea>
       <div class="footer text-right">
         <button @click="sendSolution()" :disabled="!notesCommandEnabled">Absenden</button>
       </div>
@@ -124,9 +137,18 @@ export default {
   z-index: 100;
 }
 
-.disabledState .notesIcon {
-  background: #eee !important;
-  cursor: not-allowed !important;
+.disabledState {
+  // this currently never applies, as the note icon does not display, when being disabled
+  .notesIcon {
+    background: #eee !important;
+    cursor: not-allowed !important;
+  }
+  &.resetButton {
+    cursor: not-allowed !important;
+    svg {
+      fill: #979797 !important;
+    }
+  }
 }
 
 .messageContainer {

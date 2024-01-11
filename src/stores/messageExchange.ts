@@ -104,6 +104,9 @@ export const useMessageExchangeStore = defineStore({
     notesEnabled: (state) => {
       return () => checkLastOperationIsEnabledValue(state, 'enable_notes', 'disable_notes');
     },
+    notesInputEnabled: (state) => {
+      return () => checkLastOperationIsEnabledValue(state, 'enable_notes_input', 'disable_notes_input');
+    },
     notesCommandEnabled: (state) => {
       return () => checkLastOperationIsEnabledValue(state, 'enable_notes_command', 'disable_notes_command');
     },

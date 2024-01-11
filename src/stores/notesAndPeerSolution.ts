@@ -1,6 +1,6 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
 
-const defaultTemplate = 'Definition des Problems:\n*\n*\n*\n\nAnalyse der Ursache:\n*\n*\n*\n\nVorschläge zur Lösung:\n*\n*\n*\n\nBewertung der Vorschläge:\n*\n*\n*\n';
+const defaultTemplate = 'Anforderungen des Szenarios:\n*\n*\n*\n\nRanking der Cloud-Provider:\n*\n*\n*\n\nAuswahl des am besten geeigneten Providers:\n*\n*\n*\n\nBegründung der Auswahl:\n*\n*\n*\n';
 
 export const useNotesAndPeerSolutionStore = defineStore({
   id: 'notesAndPeerSolution',

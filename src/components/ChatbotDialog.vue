@@ -36,6 +36,8 @@ export default {
       type: Array<AssistanceObjectCommunication>,
       default: []
     },
+    notes: String,
+    notesAndPeerSolutionVisible: Boolean,
     notesEnabled: {
       type: Boolean,
       default: false
@@ -44,8 +46,10 @@ export default {
       type: Boolean,
       default: false
     },
-    notesAndPeerSolutionVisible: Boolean,
-    notes: String,
+    notesInputEnabled: {
+      type: Boolean,
+      default: false
+    },
     peerSolution: String,
     peerSolutionEnabled: {
       type: Boolean,
@@ -263,6 +267,7 @@ export default {
       :notes-and-peer-solution-visible="notesAndPeerSolutionVisible"
       :notes-enabled="notesEnabled"
       :notes-command-enabled="notesCommandEnabled"
+      :notes-input-enabled="notesInputEnabled"
       :peer-solution="peerSolution"
       :peer-solution-enabled="peerSolutionEnabled"
       :peer-solution-command-enabled="peerSolutionCommandEnabled"
