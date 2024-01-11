@@ -284,7 +284,7 @@ export default {
           @reconnect-web-socket="reconnectWebSocket"
         />
       </div>
-      <span class="headerDescription">Unterstützung von Lehrenden</span>
+      <span class="headerDescription">Unterstützung von Lernenden</span>
       <span class="closeBtn" @click="closeChatbotDialog()">&times;</span>
     </div>
     <div id="dialogContainer">
