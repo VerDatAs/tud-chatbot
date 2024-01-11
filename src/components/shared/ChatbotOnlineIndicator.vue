@@ -17,8 +17,8 @@ export default {
 
 <template>
   <div class="onlineIndicator">
-    <div class="onlineBubble" v-if="isWebSocketConnected"></div>
-    <div class="offlineBubble" @click="reconnectWebSocket()" v-else></div>
+    <div class="onlineBubble" title="WebSocket verbunden" v-if="isWebSocketConnected"></div>
+    <div class="offlineBubble" title="WebSocket getrennt" @click="reconnectWebSocket()" v-else></div>
   </div>
 </template>
 
