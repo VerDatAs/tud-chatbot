@@ -128,11 +128,10 @@ export default {
           }
           // Other, "real" messages
           else {
-            // TODO: Due to the message mocking, the message has to be parsed again -> need to be fixed
-            // currently, the objects sent by /chatbot-messages and /sendAssistanceTest are quite different
-            const receivedMessageParsed: AssistanceObjectCommunication = JSON.parse(message).msg
-              ? JSON.parse(JSON.parse(message).msg)
-              : JSON.parse(message);
+            // it is necessary to parse the message
+            // hint: even though this might be huge objects (tested with 8000 messages), this takes like 30ms to execute
+            const receivedMessageParsed: AssistanceObjectCommunication = JSON.parse(message);
+            console.time('messageDelivering');
             // if "previous_messages" or "unacknowledged_messages" do exist in the parameter keys, the value will be an Array of AssistanceObjectCommunications
             // else, it is a single AssistanceObjectCommunication
             // idea, use a queue of AssistanceObjectQueueItems containing correctly parsed AssistanceObjectCommunication objects
@@ -215,6 +214,7 @@ export default {
               this.updateChatbotDialogVisible(true);
             }
             this.updateDialogScroll();
+            console.timeEnd('messageDelivering');
           }
         };
 
