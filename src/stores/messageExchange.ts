@@ -2,7 +2,7 @@ import { defineStore, acceptHMRUpdate } from 'pinia';
 import { GenericStringKeyToAnyValueMapping } from '@/components/types/generic-string-key-to-any-value-mapping';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { useChatbotDataStore } from '@/stores/chatbotData';
-import { checkForKeyPresence, checkLastOperationIsEnabledValue, parameterValue } from '@/util/assistanceObjectHelper';
+import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
 import axios from 'axios';
 
 export const useMessageExchangeStore = defineStore({
@@ -11,7 +11,6 @@ export const useMessageExchangeStore = defineStore({
     items: [] as AssistanceObjectCommunication[],
     itemMessageIds: [] as string[],
     groups: [] as AssistanceObjectCommunication[],
-    operationItems: [] as AssistanceObjectCommunication[],
     assistanceIdToCurrentPhaseMatching: {} as GenericStringKeyToAnyValueMapping,
     assistanceIdToTypeMatching: {} as GenericStringKeyToAnyValueMapping,
     idsRequested: [] as string[],
@@ -23,7 +22,6 @@ export const useMessageExchangeStore = defineStore({
       this.items = [];
       this.itemMessageIds = [];
       this.groups = [];
-      this.operationItems = [];
       this.assistanceIdToCurrentPhaseMatching = {};
       this.assistanceIdToTypeMatching = {};
       this.idsRequested = [];
@@ -68,7 +66,6 @@ export const useMessageExchangeStore = defineStore({
         }
         this.checkForTypeMatching(assistanceObject);
         this.addOrRemoveGroup(assistanceObject);
-        this.addOperationItem(assistanceObject);
       }
     },
     checkForTypeMatching(assistanceObject: AssistanceObjectCommunication) {
@@ -112,31 +109,6 @@ export const useMessageExchangeStore = defineStore({
         || parameterValue(assistanceObject, 'state_update_response')?.status === 'completed') {
         this.groups = this.groups.filter((item) => item.aId !== assistanceObject.aId || item.aoId !== assistanceObject.aoId);
       }
-    },
-    addOperationItem(assistanceObject: AssistanceObjectCommunication) {
-      if (checkForKeyPresence(assistanceObject, 'operation')) {
-        this.operationItems.push(assistanceObject);
-      }
-    }
-  },
-  getters: {
-    chatEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_chat', 'disable_chat');
-    },
-    notesEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_notes', 'disable_notes');
-    },
-    notesInputEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_notes_input', 'disable_notes_input');
-    },
-    notesCommandEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_notes_command', 'disable_notes_command');
-    },
-    peerSolutionEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_peer_solution', 'disable_peer_solution');
-    },
-    peerSolutionCommandEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_peer_solution_command', 'disable_peer_solution_command');
     }
   },
   persist: true

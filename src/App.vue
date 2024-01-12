@@ -306,9 +306,14 @@ export default {
         this.sendWebSocketMessage(messageToSend);
       }
       // actions that are executed in any case
-      // enable_notes will automatically open the notes and peer solution
-      if (parameterValue(receivedMessage, 'operation') === 'enable_notes') {
-        this.displayStore.changeNotesAndPeerSolutionOpen(true);
+      // operations have to be processed
+      if (checkForKeyPresence(receivedMessage, 'operation')) {
+        // process every operation message
+        this.displayStore.processOperation(receivedMessage);
+        // enable_notes will automatically open the notes and peer solution
+        if (parameterValue(receivedMessage, 'operation') === 'enable_notes') {
+          this.displayStore.changeNotesAndPeerSolutionOpen(true);
+        }
       }
       // the template for the solution is provided
       else if (checkForKeyPresence(receivedMessage, 'solution_template')) {
@@ -385,20 +390,20 @@ export default {
     <ChatbotDialog
       ref="chatbotDialog"
       :bot-image-path="botImagePath"
-      :chat-enabled="messageExchangeStore.chatEnabled()"
+      :chat-enabled="displayStore.chatEnabled"
       :groups="messageExchangeStore.groups"
       :incoming-message-types="incomingMessageTypes"
       :is-web-socket-connected="isWebSocketConnected"
       :message-exchange="messageExchangeStore.items"
       :notes="notesAndPeerSolutionStore.notes"
-      :notes-and-peer-solution-visible="displayStore.notesAndPeerSolutionOpen && messageExchangeStore.notesEnabled()"
-      :notes-enabled="messageExchangeStore.notesEnabled()"
-      :notes-command-enabled="messageExchangeStore.notesCommandEnabled()"
-      :notes-input-enabled="messageExchangeStore.notesInputEnabled()"
+      :notes-and-peer-solution-visible="displayStore.notesAndPeerSolutionOpen && displayStore.notesEnabled"
+      :notes-enabled="displayStore.notesEnabled"
+      :notes-command-enabled="displayStore.notesCommandEnabled"
+      :notes-input-enabled="displayStore.notesInputEnabled"
       :outgoing-message-types="outgoingMessageTypes"
       :peer-solution="notesAndPeerSolutionStore.peerSolution"
-      :peer-solution-enabled="messageExchangeStore.peerSolutionEnabled()"
-      :peer-solution-command-enabled="messageExchangeStore.peerSolutionCommandEnabled()"
+      :peer-solution-enabled="displayStore.peerSolutionEnabled"
+      :peer-solution-command-enabled="displayStore.peerSolutionCommandEnabled"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       @reconnectWebSocket="handleWebSocketConnection(false)"
       @sendAssistanceObject="sendWebSocketMessage"
