@@ -82,12 +82,10 @@ export default {
       if (this.hasJustLoggedIn) {
         // On login, reset potentially send messages
         this.messageExchangeStore.clearItems();
+        // Also reset the displaying parameters
+        this.displayStore.resetValues();
       }
       await this.handleWebSocketConnection(true);
-      // TODO: Remove as soon as the previous messages are sent
-      if (this.hasJustLoggedIn) {
-        this.updateChatbotDialogVisible(true);
-      }
     },
     async handleWebSocketConnection(switchedPage: boolean) {
       console.log('handleWebSocketConnection');
@@ -209,7 +207,8 @@ export default {
               // next, check, if it requires an additional action
               this.checkIncomingMessageForAction(receivedMessage, queueItem.requiresAcknowledgement, messagesQueue.length === (index - 1));
             });
-            // if the user has just logged in, display the chatbot dialog
+            // if the user has just logged in, automatically display the chatbot dialog
+            // TODO: the chatbot might be invisible some time when the view is rendered
             if (this.hasJustLoggedIn) {
               this.updateChatbotDialogVisible(true);
             }

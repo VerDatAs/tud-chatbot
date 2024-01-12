@@ -12,6 +12,10 @@ export const useDisplayStore = defineStore({
     },
     changeNotesAndPeerSolutionOpen(notesAndPeerSolutionOpen: boolean) {
       this.notesAndPeerSolutionOpen = notesAndPeerSolutionOpen;
+    },
+    resetValues() {
+      this.dialogOpen = false;
+      this.notesAndPeerSolutionOpen = false;
     }
   },
   persist: true
