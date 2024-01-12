@@ -67,10 +67,6 @@ export default {
     outgoingMessageTypes: {
       type: Array<String>,
       default: []
-    },
-    stateUpdates: {
-      type: Array<AssistanceObjectCommunication>,
-      default: []
     }
   },
   components: {
@@ -309,38 +305,33 @@ export default {
         <div v-for="(message, messageIndex) in messageExchange" :key="'message' + messageIndex">
           <div
             class="message messageIncoming animate__animated animate__fadeInLeft"
-            :class="checkForKeyPresence(message, 'state_update') ? 'systemMessage' : ''"
+            :class="message.type === 'state_update' ? 'systemMessage' : ''"
             v-if="isIncomingMessage(message)"
           >
-            <ChatbotOptionsMessage
-              :bot-image-path="botImagePath"
-              :assistance-object="message"
-              :is-last-item="messageIndex === messageExchange.length - 1"
-              v-if="checkForKeyPresence(message, 'options')"
-              @select-option="selectOption"
-            />
-            <ChatbotGroupStatusMessage
-              :assistance-object="message"
-              :bot-image-path="botImagePath"
-              v-else-if="checkForKeyPresence(message, 'related_users')"
-            />
             <ChatbotStateUpdate
               :assistance-object="message"
               :key-of-interest="'state_update'"
-              :state-updates="stateUpdates"
-              v-else-if="checkForKeyPresence(message, 'state_update')"
+              v-if="message.type === 'state_update'"
+            />
+            <ChatbotTextMessage
+              :assistance-object="message"
+              :bot-image-path="botImagePath"
+              :incoming="true"
+              :key-to-display="'message'"
+              :related-group="findRelatedItem(message, 'related_users')"
+              v-if="message.type === 'message'"
             />
             <ChatbotSystemMessage
               :assistance-object="message"
               :key-to-display="'system_message'"
-              v-else-if="checkForKeyPresence(message, 'system_message')"
+              v-else-if="message.type === 'system_message'"
             />
             <ChatbotTextMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
               :incoming="true"
               :key-to-display="'user_message'"
-              v-else-if="checkForKeyPresence(message, 'user_message')"
+              v-else-if="message.type === 'user_message'"
             />
             <ChatbotTextMessage
               :assistance-object="message"
@@ -348,15 +339,19 @@ export default {
               :incoming="true"
               :key-to-display="'message'"
               :link-value="parameterValue(message, 'uri')"
-              v-else-if="checkForKeyPresence(message, 'uri')"
+              v-else-if="message.type === 'uri'"
             />
-            <ChatbotTextMessage
+            <ChatbotGroupStatusMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
-              :incoming="true"
-              :key-to-display="'message'"
-              :related-group="findRelatedItem(message, 'related_users')"
-              v-else-if="checkForKeyPresence(message, 'message')"
+              v-else-if="message.type === 'related_users'"
+            />
+            <ChatbotOptionsMessage
+              :bot-image-path="botImagePath"
+              :assistance-object="message"
+              :is-last-item="messageIndex === messageExchange.length - 1"
+              v-else-if="message.type === 'options'"
+              @select-option="selectOption"
             />
           </div>
           <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
@@ -364,13 +359,13 @@ export default {
               :assistance-object="message"
               :key-to-display="'message_response'"
               :related-group="findRelatedItem(message, 'related_users')"
-              v-if="checkForKeyPresence(message, 'message_response')"
+              v-if="message.type === 'message_response'"
             />
             <ChatbotTextMessage
               :assistance-object="message"
               :key-to-display="'options_response'"
               :related-options="findRelatedItem(message, 'options')"
-              v-else-if="checkForKeyPresence(message, 'options_response')"
+              v-else-if="message.type === 'options_response'"
             />
           </div>
         </div>

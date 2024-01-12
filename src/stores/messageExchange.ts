@@ -12,7 +12,7 @@ export const useMessageExchangeStore = defineStore({
     itemMessageIds: [] as string[],
     groups: [] as AssistanceObjectCommunication[],
     operationItems: [] as AssistanceObjectCommunication[],
-    stateUpdates: [] as AssistanceObjectCommunication[],
+    assistanceIdToCurrentPhaseMatching: {} as GenericStringKeyToAnyValueMapping,
     assistanceIdToTypeMatching: {} as GenericStringKeyToAnyValueMapping,
     idsRequested: [] as string[],
     typeToDataMatching: {} as GenericStringKeyToAnyValueMapping,
@@ -24,7 +24,7 @@ export const useMessageExchangeStore = defineStore({
       this.itemMessageIds = [];
       this.groups = [];
       this.operationItems = [];
-      this.stateUpdates = [];
+      this.assistanceIdToCurrentPhaseMatching = {};
       this.assistanceIdToTypeMatching = {};
       this.idsRequested = [];
       this.typeToDataMatching = {};
@@ -43,11 +43,32 @@ export const useMessageExchangeStore = defineStore({
         if (messageId) {
           this.itemMessageIds.push(messageId);
         }
-        this.items.push(assistanceObject);
+        let itemToIterate = true;
+        const paramList: string[] = [];
+        assistanceObject.parameters?.forEach((param) => {
+          if (['operation', 'peer_solution', 'solution_template', 'solution_response', 'state_update_response'].includes(param.key)) {
+            itemToIterate = false;
+          } else {
+            paramList.push(param.key);
+          }
+        });
+        if (itemToIterate) {
+          assistanceObject.type = paramList.length > 0 ? paramList[paramList.length - 1] : 'message';
+          // Only push first occurrence of state_updates
+          if (assistanceObject.type === 'state_update') {
+            const aId = assistanceObject.aId;
+            const phaseNumber = parameterValue(assistanceObject, 'state_update')?.phase ?? 0;
+            if (aId && (!this.assistanceIdToCurrentPhaseMatching[aId] || phaseNumber > this.assistanceIdToCurrentPhaseMatching[aId])) {
+              this.assistanceIdToCurrentPhaseMatching[aId] = phaseNumber;
+              this.items.push(assistanceObject);
+            }
+          } else {
+            this.items.push(assistanceObject);
+          }
+        }
         this.checkForTypeMatching(assistanceObject);
         this.addOrRemoveGroup(assistanceObject);
         this.addOperationItem(assistanceObject);
-        this.addStateUpdate(assistanceObject);
       }
     },
     checkForTypeMatching(assistanceObject: AssistanceObjectCommunication) {
@@ -95,11 +116,6 @@ export const useMessageExchangeStore = defineStore({
     addOperationItem(assistanceObject: AssistanceObjectCommunication) {
       if (checkForKeyPresence(assistanceObject, 'operation')) {
         this.operationItems.push(assistanceObject);
-      }
-    },
-    addStateUpdate(assistanceObject: AssistanceObjectCommunication) {
-      if (checkForKeyPresence(assistanceObject, 'state_update')) {
-        this.stateUpdates.push(assistanceObject);
       }
     }
   },

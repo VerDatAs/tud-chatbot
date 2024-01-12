@@ -211,6 +211,11 @@ export default {
             // TODO: the chatbot might be invisible some time when the view is rendered
             if (this.hasJustLoggedIn) {
               this.updateChatbotDialogVisible(true);
+              // dialog scrolling might be delayed due to message loading
+              // TODO: call method depending on the visibility of the component
+              setTimeout(() => {
+                this.updateDialogScroll();
+              }, 2000)
             }
             this.updateDialogScroll();
             console.timeEnd('messageDelivering');
@@ -394,7 +399,6 @@ export default {
       :peer-solution="notesAndPeerSolutionStore.peerSolution"
       :peer-solution-enabled="messageExchangeStore.peerSolutionEnabled()"
       :peer-solution-command-enabled="messageExchangeStore.peerSolutionCommandEnabled()"
-      :state-updates="messageExchangeStore.stateUpdates"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       @reconnectWebSocket="handleWebSocketConnection(false)"
       @sendAssistanceObject="sendWebSocketMessage"
