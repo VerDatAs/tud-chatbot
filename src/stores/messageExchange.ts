@@ -9,6 +9,7 @@ export const useMessageExchangeStore = defineStore({
   id: 'messageExchange',
   state: () => ({
     items: [] as AssistanceObjectCommunication[],
+    itemMessageIds: [] as string[],
     groups: [] as AssistanceObjectCommunication[],
     operationItems: [] as AssistanceObjectCommunication[],
     stateUpdates: [] as AssistanceObjectCommunication[],
@@ -20,6 +21,7 @@ export const useMessageExchangeStore = defineStore({
   actions: {
     clearItems() {
       this.items = [];
+      this.itemMessageIds = [];
       this.groups = [];
       this.operationItems = [];
       this.stateUpdates = [];
@@ -35,8 +37,12 @@ export const useMessageExchangeStore = defineStore({
       });
     },
     addItem(assistanceObject: AssistanceObjectCommunication) {
-      // only push or check items that do not already exist (messageId must exist)
-      if (!this.items.some((item: AssistanceObjectCommunication) => assistanceObject.messageId && item.messageId === assistanceObject.messageId)) {
+      const messageId = assistanceObject.messageId;
+      // only push or check items that do not already exist (for the check, the messageId must exist)
+      if (!messageId || !this.itemMessageIds.includes(messageId)) {
+        if (messageId) {
+          this.itemMessageIds.push(messageId);
+        }
         this.items.push(assistanceObject);
         this.checkForTypeMatching(assistanceObject);
         this.addOrRemoveGroup(assistanceObject);
