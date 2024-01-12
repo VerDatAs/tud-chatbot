@@ -51,6 +51,7 @@ export const useMessageExchangeStore = defineStore({
           }
         });
         if (itemToIterate) {
+          // TODO: This currently works, as the 'message' parameter is sent before the second (more important) parameter
           assistanceObject.type = paramList.length > 0 ? paramList[paramList.length - 1] : 'message';
           // Only push first occurrence of state_updates
           if (assistanceObject.type === 'state_update') {
