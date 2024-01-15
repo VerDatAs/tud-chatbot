@@ -5,5 +5,6 @@ export class AssistanceObjectCommunication {
   aoId?: string;
   messageId?: string;
   timestamp?: string;
+  type?: string;
   parameters?: AssistanceParameter[];
 }

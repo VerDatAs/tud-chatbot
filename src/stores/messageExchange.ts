@@ -2,7 +2,7 @@ import { defineStore, acceptHMRUpdate } from 'pinia';
 import { GenericStringKeyToAnyValueMapping } from '@/components/types/generic-string-key-to-any-value-mapping';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { useChatbotDataStore } from '@/stores/chatbotData';
-import { checkForKeyPresence, checkLastOperationIsEnabledValue, parameterValue } from '@/util/assistanceObjectHelper';
+import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
 import axios from 'axios';
 
 export const useMessageExchangeStore = defineStore({
@@ -11,8 +11,7 @@ export const useMessageExchangeStore = defineStore({
     items: [] as AssistanceObjectCommunication[],
     itemMessageIds: [] as string[],
     groups: [] as AssistanceObjectCommunication[],
-    operationItems: [] as AssistanceObjectCommunication[],
-    stateUpdates: [] as AssistanceObjectCommunication[],
+    assistanceIdToCurrentPhaseMatching: {} as GenericStringKeyToAnyValueMapping,
     assistanceIdToTypeMatching: {} as GenericStringKeyToAnyValueMapping,
     idsRequested: [] as string[],
     typeToDataMatching: {} as GenericStringKeyToAnyValueMapping,
@@ -23,8 +22,7 @@ export const useMessageExchangeStore = defineStore({
       this.items = [];
       this.itemMessageIds = [];
       this.groups = [];
-      this.operationItems = [];
-      this.stateUpdates = [];
+      this.assistanceIdToCurrentPhaseMatching = {};
       this.assistanceIdToTypeMatching = {};
       this.idsRequested = [];
       this.typeToDataMatching = {};
@@ -43,11 +41,32 @@ export const useMessageExchangeStore = defineStore({
         if (messageId) {
           this.itemMessageIds.push(messageId);
         }
-        this.items.push(assistanceObject);
+        let itemToIterate = true;
+        const paramList: string[] = [];
+        assistanceObject.parameters?.forEach((param) => {
+          if (['operation', 'peer_solution', 'solution_template', 'solution_response', 'state_update_response'].includes(param.key)) {
+            itemToIterate = false;
+          } else {
+            paramList.push(param.key);
+          }
+        });
+        if (itemToIterate) {
+          // TODO: This currently works, as the 'message' parameter is sent before the second (more important) parameter
+          assistanceObject.type = paramList.length > 0 ? paramList[paramList.length - 1] : 'message';
+          // Only push first occurrence of state_updates
+          if (assistanceObject.type === 'state_update') {
+            const aId = assistanceObject.aId;
+            const phaseNumber = parameterValue(assistanceObject, 'state_update')?.phase ?? 0;
+            if (aId && (!this.assistanceIdToCurrentPhaseMatching[aId] || phaseNumber > this.assistanceIdToCurrentPhaseMatching[aId])) {
+              this.assistanceIdToCurrentPhaseMatching[aId] = phaseNumber;
+              this.items.push(assistanceObject);
+            }
+          } else {
+            this.items.push(assistanceObject);
+          }
+        }
         this.checkForTypeMatching(assistanceObject);
         this.addOrRemoveGroup(assistanceObject);
-        this.addOperationItem(assistanceObject);
-        this.addStateUpdate(assistanceObject);
       }
     },
     checkForTypeMatching(assistanceObject: AssistanceObjectCommunication) {
@@ -91,36 +110,6 @@ export const useMessageExchangeStore = defineStore({
         || parameterValue(assistanceObject, 'state_update_response')?.status === 'completed') {
         this.groups = this.groups.filter((item) => item.aId !== assistanceObject.aId || item.aoId !== assistanceObject.aoId);
       }
-    },
-    addOperationItem(assistanceObject: AssistanceObjectCommunication) {
-      if (checkForKeyPresence(assistanceObject, 'operation')) {
-        this.operationItems.push(assistanceObject);
-      }
-    },
-    addStateUpdate(assistanceObject: AssistanceObjectCommunication) {
-      if (checkForKeyPresence(assistanceObject, 'state_update')) {
-        this.stateUpdates.push(assistanceObject);
-      }
-    }
-  },
-  getters: {
-    chatEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_chat', 'disable_chat');
-    },
-    notesEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_notes', 'disable_notes');
-    },
-    notesInputEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_notes_input', 'disable_notes_input');
-    },
-    notesCommandEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_notes_command', 'disable_notes_command');
-    },
-    peerSolutionEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_peer_solution', 'disable_peer_solution');
-    },
-    peerSolutionCommandEnabled: (state) => {
-      return () => checkLastOperationIsEnabledValue(state, 'enable_peer_solution_command', 'disable_peer_solution_command');
     }
   },
   persist: true

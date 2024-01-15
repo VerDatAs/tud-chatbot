@@ -9,13 +9,6 @@ export const parameterValue = (assistanceObject: AssistanceObjectCommunication, 
   return assistanceObject.parameters?.find((param) => param.key === key)?.value ?? '';
 };
 
-export const checkLastOperationIsEnabledValue = (state: any, enabledValue: string, disabledValue: string) => {
-  // find last operation with the value enabledValue or disabledValue
-  const lastChatOperation = state.operationItems.slice().reverse().find((ao: AssistanceObjectCommunication) => [enabledValue, disabledValue].includes(parameterValue(ao, 'operation')));
-  // return true, if the last operation exists and has the value enabledValue
-  return lastChatOperation && parameterValue(lastChatOperation, 'operation') === enabledValue;
-}
-
 // Retrieved from https://jerickson.net/how-to-format-dates-in-vue-3/
 export const formatDate = (dateTime: any) => {
   // Retrieve dateTime from dateTimeString: https://stackoverflow.com/a/1353710
