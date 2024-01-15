@@ -19,12 +19,20 @@ export const useNotesAndPeerSolutionStore = defineStore({
     setPeerSolution(peerSolution: string) {
       this.peerSolution = peerSolution;
     },
+    setSolutionResponse(solutionResponse: string) {
+      // only overwrite the notes, if those are equal to the template
+      if (this.notes === this.template || this.notes === defaultTemplate) {
+        this.setNotes(solutionResponse);
+      }
+    },
     setTemplate(templateString: string) {
       this.template = templateString;
-      // if the template is sent, reset the notes (to it).
-      // this ensures executing the scenario multiple times correctly.
-      // an alternative could be to keep the existing solution and just display a hint to reload.
-      this.resetNotes();
+      // check, whether the notes still contain the defaultTemplate -> if true, reset the notes
+      // do not always reset the notes, as logout and login again will reset the notes, if no solution_response was sent.
+      if (this.notes === defaultTemplate) {
+        this.resetNotes();
+      }
+      // TODO: Think about supporting multiple consecutive collaborations
     }
   },
   persist: true

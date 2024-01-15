@@ -319,6 +319,10 @@ export default {
       else if (checkForKeyPresence(receivedMessage, 'solution_template')) {
         this.notesAndPeerSolutionStore.setTemplate(parameterValue(receivedMessage, 'solution_template'));
       }
+      // the solution_response is provided
+      else if (checkForKeyPresence(receivedMessage, 'solution_response')) {
+        this.notesAndPeerSolutionStore.setSolutionResponse(parameterValue(receivedMessage, 'solution_response'))
+      }
       // the peer solution is provided
       else if (checkForKeyPresence(receivedMessage, 'peer_solution')) {
         this.notesAndPeerSolutionStore.setPeerSolution(parameterValue(receivedMessage, 'peer_solution'));
