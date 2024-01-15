@@ -296,6 +296,10 @@ export default {
         else if (parameterValue(receivedMessage, 'operation') === 'disable_chat') {
           (this.$refs.chatbotDialog as typeof ChatbotDialog)?.resetInput();
         }
+        // reset_notes will reset the notes to the template
+        else if (parameterValue(receivedMessage, 'operation') === 'reset_notes') {
+          this.notesAndPeerSolutionStore.resetNotes();
+        }
       }
       // the solution might also need to be sent, if it is the last message in previous_messages
       else if (isLastItem && parameterValue(receivedMessage, 'operation') === 'send_solution') {
