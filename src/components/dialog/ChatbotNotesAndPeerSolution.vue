@@ -249,6 +249,7 @@ export default {
     border: 1px solid #bbb;
     border-radius: 3px;
     outline: none;
+    resize: none;
   }
 
   .footer {
