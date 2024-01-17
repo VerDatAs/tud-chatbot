@@ -25,7 +25,7 @@ export default {
 .confirmationModal {
   z-index: 1000;
   // css only modal: https://codepen.io/denic/pen/ZEbKgPp
-  position: absolute;
+  position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
