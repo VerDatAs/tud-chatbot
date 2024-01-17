@@ -126,9 +126,8 @@ export default {
           // verdatas-backend sends JSON data in body of STOMP messages that can be deserialized
           // If no message ('') is received, it is the connect message
           if (!message) {
-            console.log('Connected message. Initialize pong message interval and ping timeout check.');
+            console.log('Connected message. Initialize pong message interval.');
             this.initializePongMessageInterval();
-            this.clearAndResetPingTimeout();
             // reset potentially set values for the case that the connection was successful
             this.reconnectAttempted = false;
             this.sendWebSocketReconnectAttempted = false;
@@ -137,6 +136,7 @@ export default {
           // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/client.js#L74
           else if (message === BYTES.LF) {
             console.log('Ping message received.');
+            // the first ping message also starts the reset ping timeout
             this.clearAndResetPingTimeout();
           }
           // Other, "real" messages
@@ -399,11 +399,11 @@ export default {
         window.clearTimeout(this.pingTimeout);
         this.pingTimeout = 0;
       }
-      // If no ping message is received within 10 seconds, force disconnection of the WebSocket
+      // If no ping message is received within 20 seconds, force disconnection of the WebSocket
       this.pingTimeout = window.setTimeout(() => {
         this.forceDisconnect = true;
         this.webSocket.close();
-      }, 10000);
+      }, 20000);
     },
     updateDialogScroll() {
       // https://stackoverflow.com/a/76297364/3623608
