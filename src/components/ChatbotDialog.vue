@@ -126,8 +126,8 @@ export default {
       if (event) {
         event.preventDefault();
       }
-      // do not send messages, if the chat is disabled
-      if (!this.chatEnabled) {
+      // do not send messages, if the chat is disabled or the length of the message is too large
+      if (!this.chatEnabled || this.messageToSend.length > 9999) {
         return;
       }
       // check message with removed linebreaks and trimmed whitespaces to be empty
@@ -379,6 +379,7 @@ export default {
             v-model="messageToSend"
             placeholder="Sag etwas zu VERI."
             @keyup.enter.exact="sendMessage(null)"
+            :maxlength="9999"
             :disabled="!chatEnabled"
           ></textarea>
           <button type="submit" class="sendBtn" :disabled="!chatEnabled || sendChatDisabled">Senden</button>

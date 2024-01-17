@@ -86,11 +86,13 @@ export default {
       });
       this.dialog.reveal();
       this.dialog.onConfirm(() => {
-        this.sendingInProgress = true;
-        this.$emit('sendSolution', this.notesAndPeerSolutionStore.notes);
-        setTimeout(() => {
-          this.sendingInProgress = false;
-        }, 1500);
+        if (this.notesAndPeerSolutionStore.notes?.length <= 9999) {
+          this.sendingInProgress = true;
+          this.$emit('sendSolution', this.notesAndPeerSolutionStore.notes);
+          setTimeout(() => {
+            this.sendingInProgress = false;
+          }, 1500);
+        }
       });
       this.dialog.onCancel(() => {
         this.dialog.close()
@@ -154,9 +156,9 @@ export default {
         :placeholder="notesPlaceholder"
         :value="notes"
         @input="notesInput"
+        :maxlength="9999"
         :disabled="!notesEnabled || !notesInputEnabled"
-      >
-      </textarea>
+      ></textarea>
       <div class="footer text-right">
         <button @click="sendSolution()" :disabled="!notesCommandEnabled || sendingInProgress">Absenden</button>
       </div>
@@ -165,7 +167,11 @@ export default {
       <div class="header">
         <h4>Lösung des Peers:</h4>
       </div>
-      <textarea :placeholder="notesPlaceholder" :value="peerSolution" disabled></textarea>
+      <textarea
+        :placeholder="notesPlaceholder"
+        :value="peerSolution"
+        disabled
+      ></textarea>
       <div class="footer text-right">
         <button @click="acknowledgePeerSolution()" :disabled="!peerSolutionCommandEnabled || sendingInProgress">Weiter</button>
       </div>
