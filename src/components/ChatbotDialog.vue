@@ -377,7 +377,7 @@ export default {
             id="messageInput"
             v-model="messageToSend"
             placeholder="Sag etwas zu VERI."
-            @keyup.enter.exact="sendMessage(null)"
+            @keydown.enter.exact.prevent="sendMessage(null)"
             :maxlength="9999"
             :disabled="!chatEnabled"
           ></textarea>
