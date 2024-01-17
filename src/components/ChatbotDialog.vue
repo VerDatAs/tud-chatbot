@@ -299,7 +299,6 @@ export default {
       </div>
       <div
         id="messageExchange"
-        :style="hasScrolledButReceivedNewMessages ? 'margin-top: 50px;' : ''"
         v-if="messageExchange.length > 0"
       >
         <div v-for="(message, messageIndex) in messageExchange" :key="'message' + messageIndex">
@@ -432,7 +431,6 @@ export default {
   }
 
   #dialogContainer {
-    padding: 15px;
     // header height - footer height
     // TODO: Fix height to work without fixed heights
     max-height: calc(100% - 56px - 80px);
@@ -440,9 +438,16 @@ export default {
     overflow-x: hidden;
     overflow-y: auto;
 
+    #messageExchange {
+      padding: 15px;
+    }
+
     .scrolledButNewMessages {
-      position: fixed;
-      top: 56px;
+      // https://www.w3schools.com/howto/howto_css_sticky_element.asp
+      // https://caniuse.com/css-sticky
+      position: -webkit-sticky; /* Safari */
+      position: sticky;
+      top: 0;
       left: 0;
       padding: 10px;
       width: 100%;
