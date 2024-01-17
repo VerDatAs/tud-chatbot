@@ -40,6 +40,7 @@ export default {
     incomingMessageTypes: ['message', 'options', 'related_users', 'state_update', 'system_message', 'uri', 'user_message'],
     outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
     pongInterval: 0 as number,
+    pingTimeout: 0 as number,
     // use triggerVariable to update changed webSocket: https://stackoverflow.com/a/64009199
     triggerVariable: 0
   }),
@@ -116,13 +117,15 @@ export default {
           // verdatas-backend sends JSON data in body of STOMP messages that can be deserialized
           // If no message ('') is received, it is the connect message
           if (!message) {
-            console.log('Connected message. Initialize pong message interval.');
+            console.log('Connected message. Initialize pong message interval and ping timeout check.');
             this.initializePongMessageInterval();
+            this.clearAndResetPingTimeout();
           }
           // If BYTES.LF is received, it is a ping message
           // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/client.js#L74
           else if (message === BYTES.LF) {
             console.log('Ping message received.');
+            this.clearAndResetPingTimeout();
           }
           // Other, "real" messages
           else {
@@ -224,8 +227,12 @@ export default {
 
         this.webSocket.onclose = () => {
           this.triggerVariable += 1;
-          console.log('WebSocket closed. Clear pong interval.', this.pongInterval);
+          console.log('WebSocket closed. Clear pong interval and ping timeout.', this.pongInterval);
           window.clearInterval(this.pongInterval);
+          if (this.pingTimeout) {
+            window.clearTimeout(this.pingTimeout);
+            this.pingTimeout = 0;
+          }
           // reset value, as it is not done automatically: https://stackoverflow.com/a/5978560/3623608
           this.pongInterval = 0;
           // TODO: Attempt reconnect the WebSocket
@@ -347,6 +354,16 @@ export default {
         this.webSocket.send(BYTES.LF);
         console.log('Pong message sent.');
       }, 3000);
+    },
+    clearAndResetPingTimeout() {
+      if (this.pingTimeout) {
+        window.clearTimeout(this.pingTimeout);
+        this.pingTimeout = 0;
+      }
+      // If no ping message is received within 10 seconds, force disconnection of the WebSocket
+      this.pingTimeout = window.setTimeout(() => {
+        this.webSocket.close();
+      }, 10000);
     },
     updateDialogScroll() {
       // https://stackoverflow.com/a/76297364/3623608
