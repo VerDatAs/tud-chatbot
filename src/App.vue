@@ -43,6 +43,7 @@ export default {
     pingTimeout: 0 as number,
     forceDisconnect: false as boolean,
     reconnectAttempted: false as boolean,
+    sendWebSocketReconnectAttempted: false as boolean,
     // use triggerVariable to update changed webSocket: https://stackoverflow.com/a/64009199
     triggerVariable: 0
   }),
@@ -130,6 +131,7 @@ export default {
             this.clearAndResetPingTimeout();
             // reset potentially set values for the case that the connection was successful
             this.reconnectAttempted = false;
+            this.sendWebSocketReconnectAttempted = false;
           }
           // If BYTES.LF is received, it is a ping message
           // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/client.js#L74
@@ -257,6 +259,7 @@ export default {
       }
     },
     attemptReconnect() {
+      console.log('Attempt reconnecting WebSocket.');
       this.reconnectAttempted = true;
       this.reconnectWebSocket();
     },
@@ -289,22 +292,38 @@ export default {
       }, 250);
     },
     // handle message sending over the WebSocket
-    sendWebSocketMessage(messageToSend: AssistanceObjectCommunication) {
+    async sendWebSocketMessage(messageToSend: AssistanceObjectCommunication) {
       const messageAsJson = JSON.stringify(messageToSend);
-      this.webSocket.send(
-        'MESSAGE\ndestination:' +
+      if (this.isWebSocketConnected) {
+        this.webSocket.send(
+          'MESSAGE\ndestination:' +
           webSocketDestination +
           '\ncontent-length:' +
           this.countBytes(messageAsJson) +
           '\n\n' +
           messageAsJson +
           '\0'
-      );
+        );
 
-      // add any valid outgoing message to the messageExchangeStore
-      if (messageToSend?.parameters?.find((param) => this.outgoingMessageTypes.includes(param.key))) {
-        this.messageExchangeStore.addItem(messageToSend);
-        this.updateDialogScroll();
+        // add any valid outgoing message to the messageExchangeStore
+        if (messageToSend?.parameters?.find((param) => this.outgoingMessageTypes.includes(param.key))) {
+          this.messageExchangeStore.addItem(messageToSend);
+          this.updateDialogScroll();
+        }
+
+        // reset WebSocket reconnection value
+        this.sendWebSocketReconnectAttempted = false;
+      }
+      else {
+        // attempt reconnecting once, if the sending of a message failed
+        if (!this.sendWebSocketReconnectAttempted) {
+          console.log('Sending message failed. Attempt reconnecting WebSocket and send again after 0.5 seconds.');
+          await this.reconnectWebSocket();
+          setTimeout(() => {
+            this.sendWebSocketMessage(messageToSend);
+            this.sendWebSocketReconnectAttempted = true;
+          }, 500);
+        }
       }
     },
     // check incoming message for an action to execute
