@@ -41,6 +41,8 @@ export default {
     outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
     pongInterval: 0 as number,
     pingTimeout: 0 as number,
+    forceDisconnect: false as boolean,
+    reconnectAttempted: false as boolean,
     // use triggerVariable to update changed webSocket: https://stackoverflow.com/a/64009199
     triggerVariable: 0
   }),
@@ -62,13 +64,17 @@ export default {
       import('./assets/local-dev.scss');
     }
   },
+  beforeUnmount() {
+    this.forceDisconnect = true;
+    this.webSocket.close();
+  },
   methods: {
     async initChatbotApp() {
       // add listener for visibility changes
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           console.log('The tab gets visible again.', this.webSocket?.readyState);
-          this.handleWebSocketConnection(false);
+          this.reconnectWebSocket();
         }
       });
       this.isRunLocally = this.chatbotDataStore.data?.isRunLocally ?? false;
@@ -104,6 +110,8 @@ export default {
           // dirty workaround to not send SUBSCRIBE before CONNECTED was received
           setTimeout(() => {
             this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:' + webSocketDestination + '\n\n\0');
+            // reset potentially set values
+            this.forceDisconnect = false;
             // potentially send wake-up message
             this.handleWakeUpMessageSending(switchedPage);
           }, 50);
@@ -120,6 +128,8 @@ export default {
             console.log('Connected message. Initialize pong message interval and ping timeout check.');
             this.initializePongMessageInterval();
             this.clearAndResetPingTimeout();
+            // reset potentially set values for the case that the connection was successful
+            this.reconnectAttempted = false;
           }
           // If BYTES.LF is received, it is a ping message
           // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/client.js#L74
@@ -235,13 +245,23 @@ export default {
           }
           // reset value, as it is not done automatically: https://stackoverflow.com/a/5978560/3623608
           this.pongInterval = 0;
-          // TODO: Attempt reconnect the WebSocket
+          // attempt reconnecting the WebSocket (if disconnect was not forced or the reconnect was not already attempted)
+          if (!this.forceDisconnect && !this.reconnectAttempted) {
+            this.attemptReconnect();
+          }
         };
       } else {
         // WebSocket connection is still established
         // potentially send wake-up message
         this.handleWakeUpMessageSending(switchedPage);
       }
+    },
+    attemptReconnect() {
+      this.reconnectAttempted = true;
+      this.reconnectWebSocket();
+    },
+    async reconnectWebSocket() {
+      await this.handleWebSocketConnection(false);
     },
     // https://stackoverflow.com/a/60617142
     checkForKeyPresence,
@@ -362,6 +382,7 @@ export default {
       }
       // If no ping message is received within 10 seconds, force disconnection of the WebSocket
       this.pingTimeout = window.setTimeout(() => {
+        this.forceDisconnect = true;
         this.webSocket.close();
       }, 10000);
     },
@@ -430,7 +451,7 @@ export default {
       :peer-solution-enabled="displayStore.peerSolutionEnabled"
       :peer-solution-command-enabled="displayStore.peerSolutionCommandEnabled"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
-      @reconnectWebSocket="handleWebSocketConnection(false)"
+      @reconnectWebSocket="reconnectWebSocket"
       @sendAssistanceObject="sendWebSocketMessage"
       v-else
     />
