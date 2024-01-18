@@ -132,11 +132,15 @@ export default {
           // verdatas-backend sends JSON data in body of STOMP messages that can be deserialized
           // If no message ('') is received, it is the connect message
           if (!message) {
-            console.log('Connected message. Initialize pong message interval.');
-            this.initializePongMessageInterval();
-            // reset potentially set values for the case that the connection was successful
-            this.reconnectAttempted = false;
-            this.sendWebSocketReconnectAttempted = false;
+            if (event.data?.startsWith('CONNECTED')) {
+              console.log('Connected message. Initialize pong message interval.');
+              this.initializePongMessageInterval();
+              // reset potentially set values for the case that the connection was successful
+              this.reconnectAttempted = false;
+              this.sendWebSocketReconnectAttempted = false;
+            } else if (event.data?.startsWith('ERROR')) {
+              console.error(event);
+            }
           }
           // If BYTES.LF is received, it is a ping message
           // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/client.js#L74
