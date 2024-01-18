@@ -53,7 +53,7 @@ export default {
   #notificationBubble {
     position: absolute;
     top: -8px;
-    left: -8px;
+    right: -8px;
     padding: 3px 8px;
     border-radius: 50%;
     background: #ee2336;
