@@ -17,7 +17,8 @@ export const useMessageExchangeStore = defineStore({
     assistanceIdToTypeMatching: {} as GenericStringKeyToAnyValueMapping,
     idsRequested: [] as string[],
     typeToDataMatching: {} as GenericStringKeyToAnyValueMapping,
-    typesRequested: [] as string[]
+    typesRequested: [] as string[],
+    messageToSend: ''
   }),
   actions: {
     clearItems() {
@@ -30,6 +31,7 @@ export const useMessageExchangeStore = defineStore({
       this.idsRequested = [];
       this.typeToDataMatching = {};
       this.typesRequested = [];
+      this.messageToSend = '';
     },
     setItems(items: AssistanceObjectCommunication[]) {
       this.items = [];

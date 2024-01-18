@@ -60,6 +60,10 @@ export default {
       type: Boolean,
       default: false
     },
+    storedMessageToSend: {
+      type: String,
+      default: ''
+    },
     incomingMessageTypes: {
       type: Array<String>,
       default: []
@@ -78,6 +82,11 @@ export default {
     ChatbotStateUpdate,
     ChatbotSystemMessage,
     ChatbotTextMessage
+  },
+  watch: {
+    messageToSend: function (newValue, oldValue) {
+      this.$emit('updateMessageToSend', newValue);
+    }
   },
   computed: {
     hasScrolledButReceivedNewMessages() {
@@ -109,6 +118,7 @@ export default {
           this.messageUpdate = false;
         }
       };
+      this.messageToSend = this.storedMessageToSend;
     },
     resetInput() {
       this.messageToSend = '';

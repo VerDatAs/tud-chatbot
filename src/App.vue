@@ -435,6 +435,9 @@ export default {
         }, 300);
       }
     },
+    updateMessageToSend(messageToSend: string) {
+      this.messageExchangeStore.messageToSend = messageToSend;
+    },
     // Solution retrieved from https://github.com/rabbitmq/rabbitmq-web-stomp-examples/issues/2
     countBytes(message: string) {
       const escapedStr = encodeURI(message);
@@ -476,9 +479,11 @@ export default {
       :peer-solution="notesAndPeerSolutionStore.peerSolution"
       :peer-solution-enabled="displayStore.peerSolutionEnabled"
       :peer-solution-command-enabled="displayStore.peerSolutionCommandEnabled"
+      :stored-message-to-send="messageExchangeStore.messageToSend"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       @reconnectWebSocket="reconnectWebSocket"
       @sendAssistanceObject="sendWebSocketMessage"
+      @updateMessageToSend="updateMessageToSend"
       v-else
     />
   </main>
