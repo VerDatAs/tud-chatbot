@@ -33,6 +33,7 @@ export default {
 
 <style lang="scss" scoped>
 #chatbotWidget {
+  position: relative;
   margin-right: 40px;
   margin-bottom: 40px;
   max-width: 59px;

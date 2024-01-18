@@ -40,3 +40,8 @@
     --animate-duration: 0.3s;
   }
 }
+
+// avoid displaying alerts if users are going online
+.il-toast-container {
+  display: none !important;
+}
