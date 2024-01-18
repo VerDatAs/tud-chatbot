@@ -256,6 +256,10 @@ export default {
     border-radius: 3px;
     outline: none;
     resize: none;
+
+    &:disabled, &[disabled] {
+      cursor: not-allowed;
+    }
   }
 
   .footer {

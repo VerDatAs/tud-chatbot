@@ -546,6 +546,10 @@ export default {
         width: 100%;
         border: none;
         resize: none;
+
+        &:disabled, &[disabled] {
+          cursor: not-allowed;
+        }
       }
 
       .sendBtn {
