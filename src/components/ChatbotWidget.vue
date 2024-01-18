@@ -1,7 +1,15 @@
 <script lang="ts">
 export default {
   props: {
-    botImagePath: String
+    botImagePath: String,
+    initialLoadAfterLogin: {
+      type: Boolean,
+      default: false
+    },
+    newItems: {
+      type: Number,
+      default: 0
+    }
   },
   methods: {
     fadeIn() {
@@ -16,6 +24,9 @@ export default {
 
 <template>
   <div id="chatbotWidget" class="animate__animated">
+    <div id="notificationBubble" v-if="newItems > 0 && !initialLoadAfterLogin">
+      {{ newItems }}
+    </div>
     <img :src="botImagePath" width="35" height="35" alt="Chatbot Icon" />
   </div>
 </template>
@@ -37,6 +48,17 @@ export default {
 
   &:hover {
     cursor: pointer;
+  }
+
+  #notificationBubble {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    padding: 3px 8px;
+    border-radius: 50%;
+    background: #ee2336;
+    color: #fff;
+    font-size: 11px;
   }
 }
 </style>

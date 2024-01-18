@@ -24,6 +24,7 @@ const webSocketDestination = '/user/queue/chat';
 export default {
   data: () => ({
     hasJustLoggedIn: false as boolean,
+    initialLoadAfterLogin: false as boolean,
     backendUrl: '' as string,
     pluginPath: '' as string,
     isRunLocally: false as boolean,
@@ -92,6 +93,11 @@ export default {
         this.messageExchangeStore.clearItems();
         // Also reset the displaying parameters
         this.displayStore.resetValues();
+        // Hold variable to hide new items number
+        this.initialLoadAfterLogin = true;
+        setTimeout(() => {
+          this.initialLoadAfterLogin = false;
+        }, 3000);
       }
       await this.handleWebSocketConnection(true);
     },
@@ -227,7 +233,9 @@ export default {
             if (this.hasJustLoggedIn) {
               this.updateChatbotDialogVisible(true);
             }
-            this.updateDialogScroll();
+            if (this.displayStore.dialogOpen) {
+              this.updateDialogScroll();
+            }
             console.timeEnd('messageDelivering');
           }
         };
@@ -409,6 +417,8 @@ export default {
         (this.$refs.chatbotWidget as typeof ChatbotWidget)?.fadeOut();
         setTimeout(() => {
           this.displayStore.dialogOpen = dialogVisible;
+          // If the dialog gets visible, reset the newItems counter
+          this.messageExchangeStore.newItems = 0;
           // The ref must exist before it is addressed
           setTimeout(() => {
             (this.$refs.chatbotDialog as typeof ChatbotDialog)?.fadeIn();
@@ -443,7 +453,9 @@ export default {
   <main :style="isRunLocally ? 'position: fixed; bottom: 0; right: 0; z-index: 998;' : ''">
     <ChatbotWidget
       ref="chatbotWidget"
-      :botImagePath="botImagePath"
+      :bot-image-path="botImagePath"
+      :initial-load-after-login="initialLoadAfterLogin"
+      :new-items="messageExchangeStore.newItems"
       @click="updateChatbotDialogVisible(!displayStore.dialogOpen)"
       v-if="!displayStore.dialogOpen"
     />

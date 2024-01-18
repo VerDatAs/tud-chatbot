@@ -2,6 +2,7 @@ import { defineStore, acceptHMRUpdate } from 'pinia';
 import { GenericStringKeyToAnyValueMapping } from '@/components/types/generic-string-key-to-any-value-mapping';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { useChatbotDataStore } from '@/stores/chatbotData';
+import { useDisplayStore } from '@/stores/display';
 import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
 import axios from 'axios';
 
@@ -10,6 +11,7 @@ export const useMessageExchangeStore = defineStore({
   state: () => ({
     items: [] as AssistanceObjectCommunication[],
     itemMessageIds: [] as string[],
+    newItems: 0 as number,
     groups: [] as AssistanceObjectCommunication[],
     assistanceIdToCurrentPhaseMatching: {} as GenericStringKeyToAnyValueMapping,
     assistanceIdToTypeMatching: {} as GenericStringKeyToAnyValueMapping,
@@ -21,6 +23,7 @@ export const useMessageExchangeStore = defineStore({
     clearItems() {
       this.items = [];
       this.itemMessageIds = [];
+      this.newItems = 0;
       this.groups = [];
       this.assistanceIdToCurrentPhaseMatching = {};
       this.assistanceIdToTypeMatching = {};
@@ -63,6 +66,10 @@ export const useMessageExchangeStore = defineStore({
             }
           } else {
             this.items.push(assistanceObject);
+            // new items unequal state_update are count into newItems, if the dialog is hidden
+            if (!useDisplayStore().dialogOpen) {
+              this.newItems += 1;
+            }
           }
         }
         this.checkForTypeMatching(assistanceObject);
