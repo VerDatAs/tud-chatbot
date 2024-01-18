@@ -24,6 +24,7 @@ const webSocketDestination = '/user/queue/chat';
 export default {
   data: () => ({
     hasJustLoggedIn: false as boolean,
+    wasOpenedAutomaticallyOnce: false as boolean,
     initialLoadAfterLogin: false as boolean,
     backendUrl: '' as string,
     pluginPath: '' as string,
@@ -236,8 +237,9 @@ export default {
             });
             // if the user has just logged in, automatically display the chatbot dialog
             // TODO: the chatbot might be invisible some time when the view is rendered
-            if (this.hasJustLoggedIn) {
+            if (this.hasJustLoggedIn && !this.wasOpenedAutomaticallyOnce) {
               this.updateChatbotDialogVisible(true);
+              this.wasOpenedAutomaticallyOnce = true;
             }
             if (this.displayStore.dialogOpen) {
               this.updateDialogScroll();
