@@ -265,6 +265,10 @@ export default {
     button {
       padding: 4px 7px;
       width: 100%;
+
+      &:disabled, &[disabled] {
+        cursor: not-allowed;
+      }
     }
   }
 }

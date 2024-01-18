@@ -258,6 +258,10 @@ export default {
     },
     fadeIn() {
       document.getElementById('chatbotDialog')?.classList.add('animate__fadeInRight');
+      // after fade in, scroll down the view
+      setTimeout(() => {
+        this.scrollDown();
+      }, 50);
     },
     fadeOut() {
       document.getElementById('chatbotDialog')?.classList.add('animate__fadeOutRight');
@@ -376,7 +380,7 @@ export default {
           <textarea
             id="messageInput"
             v-model="messageToSend"
-            placeholder="Sag etwas zu VERI."
+            placeholder="Geben Sie Ihre Nachricht ein"
             @keydown.enter.exact.prevent="sendMessage(null)"
             :maxlength="9999"
             :disabled="!chatEnabled"
@@ -550,6 +554,10 @@ export default {
         top: 14px;
         right: 14px;
         padding: 5px 10px;
+
+        &:disabled, &[disabled] {
+          cursor: not-allowed;
+        }
       }
     }
   }

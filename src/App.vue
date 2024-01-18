@@ -226,11 +226,6 @@ export default {
             // TODO: the chatbot might be invisible some time when the view is rendered
             if (this.hasJustLoggedIn) {
               this.updateChatbotDialogVisible(true);
-              // dialog scrolling might be delayed due to message loading
-              // TODO: call method depending on the visibility of the component
-              setTimeout(() => {
-                this.updateDialogScroll();
-              }, 2000)
             }
             this.updateDialogScroll();
             console.timeEnd('messageDelivering');
