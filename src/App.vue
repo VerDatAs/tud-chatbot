@@ -147,6 +147,8 @@ export default {
           }
           // Other, "real" messages
           else {
+            // normal messages will also reset the ping timeout
+            this.clearAndResetPingTimeout();
             // it is necessary to parse the message
             // hint: even though this might be huge objects (tested with 8000 messages), this takes like 30ms to execute
             const receivedMessageParsed: AssistanceObjectCommunication = JSON.parse(message);
