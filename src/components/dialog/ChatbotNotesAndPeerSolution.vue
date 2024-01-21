@@ -91,7 +91,7 @@ export default {
           this.$emit('sendSolution', this.notesAndPeerSolutionStore.notes);
           setTimeout(() => {
             this.sendingInProgress = false;
-          }, 1500);
+          }, 5000);
         }
       });
       this.dialog.onCancel(() => {
@@ -112,7 +112,7 @@ export default {
         this.$emit('acknowledgePeerSolution', true);
         setTimeout(() => {
           this.sendingInProgress = false;
-        }, 1500);
+        }, 5000);
       });
       this.dialog.onCancel(() => {
         this.dialog.close()
