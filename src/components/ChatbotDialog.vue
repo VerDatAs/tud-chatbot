@@ -309,7 +309,7 @@ export default {
     </div>
     <div id="dialogContainer">
       <div class="scrolledButNewMessages" v-if="hasScrolledButReceivedNewMessages" @click="scrollDown">
-        New messages available!
+        Neue Nachrichten verfügbar!
       </div>
       <div
         id="messageExchange"
