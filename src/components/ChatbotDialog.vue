@@ -453,7 +453,7 @@ export default {
     overflow-y: auto;
 
     #messageExchange {
-      padding: 15px;
+      padding: 12px;
     }
 
     .scrolledButNewMessages {
@@ -475,7 +475,7 @@ export default {
 
     .message {
       position: relative;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       color: #fff;
       white-space: pre-wrap;
       word-break: break-word;
@@ -489,18 +489,31 @@ export default {
         .messageContainer {
           display: inline-block;
           padding: 0.5rem 0.75rem;
-          border-radius: 15px;
+          border-radius: 12px;
+
+          span {
+            /* These are technically the same, but use both */
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+
+            -ms-word-break: break-word;
+            word-break: break-word;
+          }
 
           .messageTimestamp {
-            margin-top: 8px;
+            margin-top: 5px;
             font-size: 10px;
           }
+        }
+
+        .alert-info {
+          margin-bottom: 14px !important;
         }
       }
 
       &.messageIncoming {
-        padding-left: 45px;
-        padding-right: 18px;
+        padding-left: 44px;
+        padding-right: 14px;
 
         .messageContainer {
           border-top-left-radius: 0;
@@ -517,7 +530,7 @@ export default {
 
       &.messageOutgoing {
         text-align: right;
-        padding-left: 18px;
+        padding-left: 14px;
 
         .messageContainer {
           border-bottom-right-radius: 0;

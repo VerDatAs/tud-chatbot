@@ -91,3 +91,10 @@ export default {
     <div class="messageTimestamp" v-if="validTimestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>
 </template>
+
+<style lang="scss" scoped>
+  hr {
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+</style>
