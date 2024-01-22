@@ -73,13 +73,6 @@ export default {
   },
   methods: {
     async initChatbotApp() {
-      // add listener for visibility changes
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          console.log('The tab gets visible again.', this.webSocket?.readyState);
-          this.reconnectWebSocket();
-        }
-      });
       this.isRunLocally = this.chatbotDataStore.data?.isRunLocally ?? false;
       this.pluginPath = this.chatbotDataStore.data.pluginPath;
       this.backendUrl = this.chatbotDataStore.data.backendUrl;
@@ -87,6 +80,16 @@ export default {
       this.userToken = this.chatbotDataStore.data.token;
       this.hasJustLoggedIn = this.chatbotDataStore.data.hasJustLoggedIn;
       await this.retrieveTokenAndHandleMessageExchange();
+      // add listener for visibility changes
+      // additionally delay creation of the listener to avoid conflicts with the initialization of the chatbot
+      setTimeout(() => {
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            console.log('The tab gets visible again.', this.webSocket?.readyState);
+            this.reconnectWebSocket();
+          }
+        });
+      }, 100);
     },
     async retrieveTokenAndHandleMessageExchange() {
       if (this.hasJustLoggedIn) {
