@@ -132,6 +132,8 @@ export default {
               // temporary set the hasJustLoggedIn value to true to request the prior_messages again
               this.hasJustLoggedIn = true;
               this.handleWakeUpMessageSending(true);
+              // reset the last logged in user
+              this.chatbotDataStore.lastLoggedInUser = this.pseudoId;
               // reset the hasJustLoggedIn value back to its existing value (false)
               setTimeout(() => {
                 this.hasJustLoggedIn = false;
