@@ -4,7 +4,8 @@ import type { ChatbotData } from '@/components/types/chatbot-data';
 export const useChatbotDataStore = defineStore({
   id: 'chatbotData',
   state: () => ({
-    data: {} as ChatbotData
+    data: {} as ChatbotData,
+    lastLoggedInUser: ''
   }),
   actions: {
     setChatbotData(chatbotData: ChatbotData) {

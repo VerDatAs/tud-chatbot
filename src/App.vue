@@ -93,6 +93,8 @@ export default {
     },
     async retrieveTokenAndHandleMessageExchange() {
       if (this.hasJustLoggedIn) {
+        // On login, set the last logged in user
+        this.chatbotDataStore.lastLoggedInUser = this.pseudoId;
         // On login, reset potentially send messages
         this.messageExchangeStore.clearItems();
         // Also reset the displaying parameters
@@ -124,7 +126,19 @@ export default {
             // reset potentially set values
             this.forceDisconnect = false;
             // potentially send wake-up message
-            this.handleWakeUpMessageSending(switchedPage);
+            // check whether the logged in user is set correctly
+            if (this.chatbotDataStore.lastLoggedInUser !== this.pseudoId) {
+              this.messageExchangeStore.clearItems();
+              // temporary set the hasJustLoggedIn value to true to request the prior_messages again
+              this.hasJustLoggedIn = true;
+              this.handleWakeUpMessageSending(true);
+              // reset the hasJustLoggedIn value back to its existing value (false)
+              setTimeout(() => {
+                this.hasJustLoggedIn = false;
+              }, 250);
+            } else {
+              this.handleWakeUpMessageSending(switchedPage);
+            }
           }, 50);
         };
 
