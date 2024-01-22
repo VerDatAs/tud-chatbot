@@ -34,7 +34,7 @@ export default {
 </script>
 
 <template>
-  <div class="progress" role="progressbar" aria-label="Basic example" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100" v-if="currentPhase > 0">
+  <div class="progress" role="progressbar" aria-label="Basic example" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100" v-if="currentPhase > 0 && totalNumberOfPhases > 1">
     <div class="progress-bar" :style="{ width: width + '%' }">Phase {{ currentPhase }}</div>
   </div>
 </template>
