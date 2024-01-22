@@ -89,7 +89,7 @@ export default {
             this.reconnectWebSocket();
           }
         });
-      }, 100);
+      }, 500);
     },
     async retrieveTokenAndHandleMessageExchange() {
       if (this.hasJustLoggedIn) {
