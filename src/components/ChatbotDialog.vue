@@ -99,6 +99,14 @@ export default {
   methods: {
     parameterValue,
     initChatbotDialog() {
+      // check for toolcheck style adjustments
+      // TODO: Adjust bottom position as well
+      if (document.getElementsByClassName('toolcheck_header')?.length > 0) {
+        const chatbotDialog = document.getElementById('chatbotDialog')
+        if (chatbotDialog) {
+          chatbotDialog.style.height = 'calc(100vh - 117px)';
+        }
+      }
       const dialogContainer = document.getElementById('dialogContainer');
       if (!dialogContainer) {
         return;
