@@ -90,6 +90,100 @@ export default {
           }
         });
       }, 500);
+      this.checkForStyleAdjustments();
+      setTimeout(() => {
+        const body = document.getElementsByTagName('body')?.[0];
+        if (body) {
+          // add resize observer to adjust the height of the chatbot on resize
+          new ResizeObserver(() => {
+            this.checkForStyleAdjustments();
+          }).observe(body);
+          // add scroll detector for devices smaller equal 768px (adjust the height of the chatbot)
+          window.addEventListener('scroll', () => {
+            const bodyWidth = body?.offsetWidth || 1000;
+            if (bodyWidth <= 768) {
+              this.checkForStyleAdjustments();
+            }
+          });
+        }
+      }, 100);
+    },
+    // TODO: Code clean up necessary
+    checkForStyleAdjustments() {
+      // check for toolcheck style adjustments
+      if (document.getElementsByClassName('toolcheck_header')?.length > 0) {
+        // calculate height of the toolcheck header
+        let headerHeight = 0;
+        const headerElement = document.querySelector<HTMLElement>('.il-layout-page header');
+        if (headerElement) {
+          headerHeight = headerElement.offsetHeight;
+          // the padding should already be part of the offsetHeight
+          // if (parseFloat(window.getComputedStyle(headerElement, null)?.getPropertyValue('padding-bottom'))) {
+          //   headerHeight -= parseFloat(window.getComputedStyle(headerElement, null).getPropertyValue('padding-bottom'));
+          // }
+        }
+        // retrieve multiple elements of interest
+        const pageOverlay = document.querySelector<HTMLElement>('.il-page-overlay');
+        const pageOverlayDiv = document.querySelector<Element>('.il-page-overlay div');
+        const chatbotApp = document.getElementById('chatbotApp');
+        const chatbotDialog = document.getElementById('chatbotDialog');
+        // default height of the header
+        let pageOverlayHeight = 57;
+        if (pageOverlay && pageOverlayDiv) {
+          pageOverlayHeight = pageOverlay.offsetHeight;
+          // the margin has to be added manually to the offsetHeight
+          if (parseFloat(window.getComputedStyle(pageOverlayDiv, null)?.getPropertyValue('margin-top'))) {
+            pageOverlayHeight += parseFloat(window.getComputedStyle(pageOverlayDiv, null).getPropertyValue('margin-top'));
+          }
+        }
+        // calculate the height of the toolcheck footer depending on the body width
+        const bodyWidth = document.querySelector<HTMLElement>('body')?.offsetWidth || 1000;
+        // default height of the footer
+        let footerHeight = 0;
+        // if the page is smaller equal 768px, the navbar is displayed on the bottom
+        if (bodyWidth <= 768) {
+          // the page overlay is invisible if the user scrolls down
+          const htmlElementScrollTop = document.getElementsByTagName('html')?.[0]?.scrollTop;
+          if (htmlElementScrollTop) {
+            if ((pageOverlayHeight - htmlElementScrollTop) < 0) {
+              pageOverlayHeight = 0;
+            } else {
+              pageOverlayHeight -= htmlElementScrollTop;
+            }
+          }
+          // remove the border-top due to the margin of the header
+          if (chatbotDialog) {
+            chatbotDialog.style.borderTop = 'none';
+          }
+          // calculate the footer height based on the height of the main controls
+          const navbar = document.querySelector<HTMLElement>('.nav.il-maincontrols');
+          if (navbar) {
+            footerHeight = navbar.offsetHeight;
+          }
+        }
+        // otherwise, it is the different between the body padding-bottom and the height of the toolcheck header
+        else {
+          const bodyElement = document.getElementsByTagName('body')?.[0];
+          // get element padding: https://stackoverflow.com/questions/5227909/how-to-get-an-elements-padding-value-using-javascript#comment69593352_5240819
+          if (bodyElement && parseFloat(window.getComputedStyle(bodyElement, null)?.getPropertyValue('padding-bottom'))) {
+            footerHeight = parseFloat(window.getComputedStyle(bodyElement, null).getPropertyValue('padding-bottom')) - pageOverlayHeight;
+          }
+          // add back the removed border-top
+          if (chatbotDialog) {
+            chatbotDialog.style.borderTop = '1px solid #ddd';
+          }
+        }
+        // calculate the height that has to be subtracted from the view height
+        let heightToReduce = headerHeight + pageOverlayHeight;
+        heightToReduce += footerHeight;
+        // depending of the state of the chatbot, adjustments of different elements are necessary
+        if (chatbotApp) {
+          chatbotApp.style.bottom = footerHeight + 'px';
+        }
+        if (chatbotDialog) {
+          chatbotDialog.style.height = 'calc(100vh - ' + heightToReduce + 'px)';
+        }
+      }
     },
     async retrieveTokenAndHandleMessageExchange() {
       if (this.hasJustLoggedIn) {
@@ -507,6 +601,7 @@ export default {
       :peer-solution-enabled="displayStore.peerSolutionEnabled"
       :peer-solution-command-enabled="displayStore.peerSolutionCommandEnabled"
       :stored-message-to-send="messageExchangeStore.messageToSend"
+      @checkForStyleAdjustments="checkForStyleAdjustments"
       @closeChatbotDialog="updateChatbotDialogVisible(false)"
       @reconnectWebSocket="reconnectWebSocket"
       @sendAssistanceObject="sendWebSocketMessage"
