@@ -36,7 +36,6 @@ export default {
       const responseOption: Option = new Option('options_response', option.key);
       const responseObject: AssistanceObjectCommunication = new AssistanceObjectCommunication();
       responseObject.aId = this.assistanceObject.aId;
-      responseObject.aoId = this.assistanceObject.aoId;
       responseObject.parameters = [responseOption];
       this.$emit('selectOption', responseObject);
     }

@@ -236,13 +236,18 @@ export default {
         this.$emit('reconnectWebSocket', true);
       }
     },
-    findRelatedItem(responseOption: AssistanceObjectCommunication, key: string) {
-      return this.messageExchange.find(
-        (message) =>
-          message.aId === responseOption.aId &&
-          message.aoId === responseOption.aoId &&
-          this.checkForKeyPresence(message, key)
-      );
+    findRelatedItem(assistanceObject: AssistanceObjectCommunication, key: string) {
+      // as findLast is currently not well supported (https://github.com/microsoft/TypeScript/issues/48829),
+      // implement it as custom function
+      const length = this.messageExchange?.length ?? 0;
+      for (let i = length - 1; i >= 0; i--) {
+        const message = this.messageExchange[i];
+        // comparing the aId is sufficient in this case
+        if (message.aId === assistanceObject.aId && this.checkForKeyPresence(message, key)) {
+          return message;
+        }
+      }
+      return undefined;
     },
     // Retrieved from https://stackoverflow.com/a/18614545
     updateScroll() {
