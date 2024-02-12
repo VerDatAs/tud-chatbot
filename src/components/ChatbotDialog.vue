@@ -477,6 +477,7 @@ export default {
     .message {
       position: relative;
       margin-bottom: 14px;
+      max-width: 100%;
       color: #fff;
       white-space: pre-wrap;
       word-break: break-word;
@@ -490,6 +491,7 @@ export default {
         .messageContainer {
           display: inline-block;
           padding: 0.5rem 0.75rem;
+          max-width: 100%;
           border-radius: 12px;
 
           span {

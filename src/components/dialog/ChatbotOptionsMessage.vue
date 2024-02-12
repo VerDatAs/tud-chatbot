@@ -50,8 +50,7 @@ export default {
     {{ parameterValue(assistanceObject, 'message') }}
     <hr />
     <button
-      class="btn btn-default"
-      style="display: block; margin-bottom: 5px; width: 100%"
+      class="btn btn-default option-btn"
       v-for="option in parameterValue(assistanceObject, 'options')"
       @click="selectOption(option)"
       :key="assistanceObject.aId + option.key"
@@ -62,3 +61,14 @@ export default {
     <div class="messageTimestamp" v-if="validTimestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>
 </template>
+
+<style lang="scss" scoped>
+  .option-btn {
+    display: block;
+    margin-bottom: 5px;
+    width: 100%;
+    max-width: 100%;
+    // wrap text in button: https://stackoverflow.com/a/1194680
+    white-space: normal;
+  }
+</style>
