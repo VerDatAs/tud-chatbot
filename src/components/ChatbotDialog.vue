@@ -2,7 +2,6 @@
 import ChatbotGroupStatusMessage from '@/components/dialog/ChatbotGroupStatusMessage.vue';
 import ChatbotNotesAndPeerSolution from '@/components/dialog/ChatbotNotesAndPeerSolution.vue';
 import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
-import ChatbotPeerExchangeRequestMessage from '@/components/dialog/ChatbotPeerExchangeRequestMessage.vue';
 import ChatbotStateUpdate from '@/components/dialog/ChatbotStateUpdate.vue';
 import ChatbotSystemMessage from '@/components/dialog/ChatbotSystemMessage.vue';
 import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
@@ -22,10 +21,6 @@ export default {
   }),
   props: {
     abortExchangeCommandEnabled: {
-      type: Boolean,
-      default: false
-    },
-    acceptExchangeCommandEnabled: {
       type: Boolean,
       default: false
     },
@@ -92,7 +87,6 @@ export default {
     ChatbotNotesAndPeerSolution,
     ChatbotOnlineIndicator,
     ChatbotOptionsMessage,
-    ChatbotPeerExchangeRequestMessage,
     ChatbotStateUpdate,
     ChatbotSystemMessage,
     ChatbotTextMessage
@@ -410,15 +404,6 @@ export default {
               v-else-if="message.type === 'options'"
               @select-option="emitAssistanceObject"
             />
-            <ChatbotPeerExchangeRequestMessage
-              :accept-exchange-command-enabled="acceptExchangeCommandEnabled"
-              :assistance-object="message"
-              :bot-image-path="botImagePath"
-              :related-response-exists="!!findRelatedItem(message, 'peer_exchange_request_response')"
-              :related-state-update-exists="!!findRelatedStateUpdate(message)"
-              v-else-if="message.type === 'peer_exchange_request'"
-              @send-response="emitAssistanceObject"
-            />
           </div>
           <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
             <ChatbotTextMessage
@@ -432,11 +417,6 @@ export default {
               :key-to-display="'options_response'"
               :related-options="findRelatedItem(message, 'options')"
               v-else-if="message.type === 'options_response'"
-            />
-            <ChatbotTextMessage
-              :assistance-object="message"
-              :key-to-display="'peer_exchange_request_response'"
-              v-else-if="message.type === 'peer_exchange_request_response'"
             />
           </div>
         </div>

@@ -8,7 +8,6 @@ export const useDisplayStore = defineStore({
     dialogOpen: false as boolean,
     notesAndPeerSolutionOpen: false as boolean,
     abortExchangeCommandEnabled: false as boolean,
-    acceptExchangeCommandEnabled: false as boolean,
     chatEnabled: false as boolean,
     notesEnabled: false as boolean,
     notesInputEnabled: false as boolean,
@@ -28,7 +27,6 @@ export const useDisplayStore = defineStore({
       this.dialogOpen = false;
       this.notesAndPeerSolutionOpen = false;
       this.abortExchangeCommandEnabled = false;
-      this.acceptExchangeCommandEnabled = false;
       this.chatEnabled = false;
       this.notesEnabled = false;
       this.notesInputEnabled = false;
@@ -44,12 +42,6 @@ export const useDisplayStore = defineStore({
           break;
         case 'disable_abort_exchange_command':
           this.abortExchangeCommandEnabled = false;
-          break;
-        case 'enable_accept_exchange_command':
-          this.acceptExchangeCommandEnabled = true;
-          break;
-        case 'disable_accept_exchange_command':
-          this.acceptExchangeCommandEnabled = false;
           break;
         case 'enable_chat':
           this.chatEnabled = true;

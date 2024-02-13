@@ -39,8 +39,8 @@ export default {
     notesAndPeerSolutionStore: useNotesAndPeerSolutionStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
-    incomingMessageTypes: ['message', 'options', 'related_users', 'state_update', 'system_message', 'uri', 'user_message', 'peer_exchange_request'],
-    outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response', 'peer_exchange_request_response'],
+    incomingMessageTypes: ['message', 'options', 'related_users', 'state_update', 'system_message', 'uri', 'user_message'],
+    outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
     pongInterval: 0 as number,
     pingTimeout: 0 as number,
     forceDisconnect: false as boolean,
@@ -587,7 +587,6 @@ export default {
     <ChatbotDialog
       ref="chatbotDialog"
       :abort-exchange-command-enabled="displayStore.abortExchangeCommandEnabled"
-      :accept-exchange-command-enabled="displayStore.acceptExchangeCommandEnabled"
       :bot-image-path="botImagePath"
       :chat-enabled="displayStore.chatEnabled"
       :groups="messageExchangeStore.groups"
