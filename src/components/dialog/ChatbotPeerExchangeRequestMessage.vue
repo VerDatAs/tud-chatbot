@@ -21,15 +21,19 @@ export default {
       type: String,
       required: false
     },
-    relatedResponse: {
-      type: AssistanceObjectCommunication,
-      default: null
+    relatedResponseExists: {
+      type: Boolean,
+      default: false
+    },
+    relatedStateUpdateExists: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['sendResponse'],
   computed: {
     disableButton() {
-      return !this.acceptExchangeCommandEnabled || !!this.relatedResponse;
+      return !this.acceptExchangeCommandEnabled || this.relatedResponseExists || this.relatedStateUpdateExists;
     },
     validTimestamp() {
       return this.assistanceObject.timestamp && formatDate(this.assistanceObject.timestamp) !== 'Invalid date';

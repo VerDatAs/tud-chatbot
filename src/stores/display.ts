@@ -7,6 +7,7 @@ export const useDisplayStore = defineStore({
   state: () => ({
     dialogOpen: false as boolean,
     notesAndPeerSolutionOpen: false as boolean,
+    abortExchangeCommandEnabled: false as boolean,
     acceptExchangeCommandEnabled: false as boolean,
     chatEnabled: false as boolean,
     notesEnabled: false as boolean,
@@ -26,6 +27,7 @@ export const useDisplayStore = defineStore({
     resetValues() {
       this.dialogOpen = false;
       this.notesAndPeerSolutionOpen = false;
+      this.abortExchangeCommandEnabled = false;
       this.acceptExchangeCommandEnabled = false;
       this.chatEnabled = false;
       this.notesEnabled = false;
@@ -37,6 +39,12 @@ export const useDisplayStore = defineStore({
     },
     processOperation(assistanceObject: AssistanceObjectCommunication) {
       switch (parameterValue(assistanceObject, 'operation')) {
+        case 'enable_abort_exchange_command':
+          this.abortExchangeCommandEnabled = true;
+          break;
+        case 'disable_abort_exchange_command':
+          this.abortExchangeCommandEnabled = false;
+          break;
         case 'enable_accept_exchange_command':
           this.acceptExchangeCommandEnabled = true;
           break;

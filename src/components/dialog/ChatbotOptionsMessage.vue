@@ -21,15 +21,19 @@ export default {
       type: Boolean,
       default: false
     },
-    relatedResponse: {
-      type: AssistanceObjectCommunication,
-      default: null
+    relatedResponseExists: {
+      type: Boolean,
+      default: false
+    },
+    relatedStateUpdateExists: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['selectOption'],
   computed: {
     disableOptions() {
-      return !this.optionsEnabled || !!this.relatedResponse;
+      return !this.optionsEnabled || this.relatedResponseExists || this.relatedStateUpdateExists;
     },
     validTimestamp() {
       return this.assistanceObject.timestamp && formatDate(this.assistanceObject.timestamp) !== 'Invalid date';

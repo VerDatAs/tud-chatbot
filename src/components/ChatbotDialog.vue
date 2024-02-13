@@ -21,6 +21,10 @@ export default {
     sendChatDisabled: false as boolean
   }),
   props: {
+    abortExchangeCommandEnabled: {
+      type: Boolean,
+      default: false
+    },
     acceptExchangeCommandEnabled: {
       type: Boolean,
       default: false
@@ -186,10 +190,10 @@ export default {
         messageToSend.aoId = groupToTerminate.aoId;
         messageToSend.parameters = [new AssistanceParameter('state_update_response', { status: 'completed' })];
       } else {
-        // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
-        const lastItemWithAssistanceId = this.messageExchange.slice().reverse().find(ao => !!ao.aId);
-        if (lastItemWithAssistanceId) {
-          messageToSend.aId = lastItemWithAssistanceId.aId;
+        // Find last item in the history with an aId and related_users as key: https://stackoverflow.com/a/46822472
+        const lastItemWithAssistanceIdAndRelatedUsers = this.messageExchange.slice().reverse().find(ao => !!ao.aId && checkForKeyPresence(ao, 'related_users'));
+        if (lastItemWithAssistanceIdAndRelatedUsers) {
+          messageToSend.aId = lastItemWithAssistanceIdAndRelatedUsers.aId;
           // Remove newlines (and all other whitespace) at the end: https://stackoverflow.com/a/48080903
           messageToSend.parameters = [new AssistanceParameter('message_response', this.messageToSend.trim())];
         } else {
@@ -211,6 +215,7 @@ export default {
     acknowledgePeerSolution(acknowledge: boolean) {
       if (acknowledge) {
         const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
+        // TODO: This might not work, if the user logs in again and "welcome back" is sent as last message
         // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
         const lastItemWithAssistanceId = this.messageExchange.slice().reverse().find(ao => !!ao.aId);
         if (lastItemWithAssistanceId) {
@@ -222,6 +227,7 @@ export default {
     },
     sendSolution(solution: string) {
       const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
+      // TODO: This might not work, if the user logs in again and "welcome back" is sent as last message
       // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
       const lastItemWithAssistanceId = this.messageExchange.slice().reverse().find(ao => !!ao.aId);
       if (lastItemWithAssistanceId) {
@@ -255,6 +261,29 @@ export default {
         }
       }
       return undefined;
+    },
+    findRelatedStateUpdate(assistanceObject: AssistanceObjectCommunication) {
+      // as findLast is currently not well supported (https://github.com/microsoft/TypeScript/issues/48829),
+      // implement it as custom function
+      const length = this.messageExchange?.length ?? 0;
+      for (let i = length - 1; i >= 0; i--) {
+        const message = this.messageExchange[i];
+        // comparing the aId is sufficient in this case
+        if (message.aId === assistanceObject.aId && (this.parameterValue(message, 'state_update')?.status === 'completed' || this.parameterValue(message, 'state_update')?.status === 'aborted')) {
+          return message;
+        }
+      }
+      return undefined;
+    },
+    abortExchange() {
+      const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
+      // Find last item in the history with an aId and related_users as key: https://stackoverflow.com/a/46822472
+      const lastItemWithAssistanceIdAndRelatedUsers = this.messageExchange.slice().reverse().find(ao => !!ao.aId && checkForKeyPresence(ao, 'related_users'));
+      if (lastItemWithAssistanceIdAndRelatedUsers) {
+        messageToSend.aId = lastItemWithAssistanceIdAndRelatedUsers.aId;
+        messageToSend.parameters = [new AssistanceParameter('state_update_response', 'completed')];
+        this.emitAssistanceObject(messageToSend);
+      }
     },
     // Retrieved from https://stackoverflow.com/a/18614545
     updateScroll() {
@@ -376,7 +405,8 @@ export default {
               :assistance-object="message"
               :bot-image-path="botImagePath"
               :options-enabled="optionsEnabled"
-              :related-response="findRelatedItem(message, 'options_response')"
+              :related-response-exists="!!findRelatedItem(message, 'options_response')"
+              :related-state-update-exists="!!findRelatedStateUpdate(message)"
               v-else-if="message.type === 'options'"
               @select-option="emitAssistanceObject"
             />
@@ -384,7 +414,8 @@ export default {
               :accept-exchange-command-enabled="acceptExchangeCommandEnabled"
               :assistance-object="message"
               :bot-image-path="botImagePath"
-              :related-response="findRelatedItem(message, 'peer_exchange_request_response')"
+              :related-response-exists="!!findRelatedItem(message, 'peer_exchange_request_response')"
+              :related-state-update-exists="!!findRelatedStateUpdate(message)"
               v-else-if="message.type === 'peer_exchange_request'"
               @send-response="emitAssistanceObject"
             />
@@ -412,7 +443,7 @@ export default {
       </div>
     </div>
     <div id="dialogInput">
-      <div class="inputContainer">
+      <div class="inputContainer" :class="abortExchangeCommandEnabled ? 'abortBtnIncluded' : ''">
         <form @submit="sendMessage($event)">
           <textarea
             id="messageInput"
@@ -424,6 +455,7 @@ export default {
           ></textarea>
           <button type="submit" class="sendBtn" :disabled="!chatEnabled || sendChatDisabled">Senden</button>
         </form>
+        <button class="abortBtn" v-if="abortExchangeCommandEnabled" @click="abortExchange()">Beenden</button>
       </div>
     </div>
   </div>
@@ -613,6 +645,27 @@ export default {
 
         &:disabled, &[disabled] {
           cursor: not-allowed;
+        }
+      }
+
+      &.abortBtnIncluded {
+        padding-right: 110px;
+
+        .sendBtn, .abortBtn {
+          width: 85px;
+          display: inline-block;
+          height: 25px;
+          padding: 0 10px;
+        }
+
+        .sendBtn {
+          top: 12px;
+        }
+
+        .abortBtn {
+          position: absolute;
+          top: 42px;
+          right: 14px;
         }
       }
     }
