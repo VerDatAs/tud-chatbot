@@ -56,8 +56,10 @@ export const useMessageExchangeStore = defineStore({
           }
         });
         if (itemToIterate) {
-          // TODO: This currently works, as the 'message' parameter is sent before the second (more important) parameter
-          assistanceObject.type = paramList.length > 0 ? paramList[paramList.length - 1] : 'message';
+          // check parameters without taking into account 'message'
+          // default to 'message', if no result was found
+          const paramListWithoutMessages = paramList.filter(param => param !== 'message');
+          assistanceObject.type = paramListWithoutMessages?.length > 0 ? paramListWithoutMessages[paramListWithoutMessages.length - 1] : 'message';
           // Only push first occurrence of state_updates
           if (assistanceObject.type === 'state_update') {
             const aId = assistanceObject.aId;

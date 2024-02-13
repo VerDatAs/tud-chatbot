@@ -57,6 +57,10 @@ export default {
   methods: {
     getAssistanceObjectText() {
       let textToDisplay = parameterValue(this.assistanceObject, this.keyToDisplay);
+      // TODO: Remove workaround if related items were added for this type
+      if (this.keyToDisplay === 'peer_exchange_request_response' && textToDisplay === 'accepted') {
+        textToDisplay = 'Akzeptiert';
+      }
       // Properly display the value of the options_response
       if (this.keyToDisplay === 'options_response' && this.relatedOptions?.parameters) {
         const options = this.relatedOptions.parameters?.find((param) => param.key === 'options')?.value;

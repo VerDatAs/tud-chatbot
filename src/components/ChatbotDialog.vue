@@ -2,6 +2,7 @@
 import ChatbotGroupStatusMessage from '@/components/dialog/ChatbotGroupStatusMessage.vue';
 import ChatbotNotesAndPeerSolution from '@/components/dialog/ChatbotNotesAndPeerSolution.vue';
 import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
+import ChatbotPeerExchangeRequestMessage from '@/components/dialog/ChatbotPeerExchangeRequestMessage.vue';
 import ChatbotStateUpdate from '@/components/dialog/ChatbotStateUpdate.vue';
 import ChatbotSystemMessage from '@/components/dialog/ChatbotSystemMessage.vue';
 import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
@@ -79,6 +80,7 @@ export default {
     ChatbotNotesAndPeerSolution,
     ChatbotOnlineIndicator,
     ChatbotOptionsMessage,
+    ChatbotPeerExchangeRequestMessage,
     ChatbotStateUpdate,
     ChatbotSystemMessage,
     ChatbotTextMessage
@@ -219,9 +221,6 @@ export default {
         messageToSend.parameters = [new AssistanceParameter('solution_response', solution)];
         this.emitAssistanceObject(messageToSend);
       }
-    },
-    selectOption(optionResponse: AssistanceObjectCommunication) {
-      this.emitAssistanceObject(optionResponse);
     },
     emitAssistanceObject(assistanceObject: AssistanceObjectCommunication) {
       // TODO: Remove, if this causes problems
@@ -366,11 +365,18 @@ export default {
               v-else-if="message.type === 'related_users'"
             />
             <ChatbotOptionsMessage
-              :bot-image-path="botImagePath"
               :assistance-object="message"
+              :bot-image-path="botImagePath"
               :is-last-item="messageIndex === messageExchange.length - 1"
               v-else-if="message.type === 'options'"
-              @select-option="selectOption"
+              @select-option="emitAssistanceObject"
+            />
+            <ChatbotPeerExchangeRequestMessage
+              :assistance-object="message"
+              :bot-image-path="botImagePath"
+              :is-last-item="messageIndex === messageExchange.length - 1"
+              v-else-if="message.type === 'peer_exchange_request'"
+              @send-response="emitAssistanceObject"
             />
           </div>
           <div class="message messageOutgoing animate__animated animate__fadeInRight" v-else>
@@ -385,6 +391,11 @@ export default {
               :key-to-display="'options_response'"
               :related-options="findRelatedItem(message, 'options')"
               v-else-if="message.type === 'options_response'"
+            />
+            <ChatbotTextMessage
+              :assistance-object="message"
+              :key-to-display="'peer_exchange_request_response'"
+              v-else-if="message.type === 'peer_exchange_request_response'"
             />
           </div>
         </div>

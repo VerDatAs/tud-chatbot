@@ -39,8 +39,8 @@ export default {
     notesAndPeerSolutionStore: useNotesAndPeerSolutionStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
-    incomingMessageTypes: ['message', 'options', 'related_users', 'state_update', 'system_message', 'uri', 'user_message'],
-    outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
+    incomingMessageTypes: ['message', 'options', 'related_users', 'state_update', 'system_message', 'uri', 'user_message', 'peer_exchange_request'],
+    outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response', 'peer_exchange_request_response'],
     pongInterval: 0 as number,
     pingTimeout: 0 as number,
     forceDisconnect: false as boolean,
@@ -109,6 +109,7 @@ export default {
       }, 100);
     },
     // TODO: Code clean up necessary
+    // TODO: Some of the adjustments should also be done without skin, e.g., the offset due to the mobile mainbar
     checkForStyleAdjustments() {
       // check for toolcheck style adjustments
       if (document.getElementsByClassName('toolcheck_header')?.length > 0) {
