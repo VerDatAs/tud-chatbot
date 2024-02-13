@@ -17,13 +17,20 @@ export default {
       type: String,
       required: false
     },
-    isLastItem: {
+    optionsEnabled: {
       type: Boolean,
       default: false
+    },
+    relatedResponse: {
+      type: AssistanceObjectCommunication,
+      default: null
     }
   },
   emits: ['selectOption'],
   computed: {
+    disableOptions() {
+      return !this.optionsEnabled || !!this.relatedResponse;
+    },
     validTimestamp() {
       return this.assistanceObject.timestamp && formatDate(this.assistanceObject.timestamp) !== 'Invalid date';
     }
@@ -53,7 +60,7 @@ export default {
       v-for="option in parameterValue(assistanceObject, 'options')"
       @click="selectOption(option)"
       :key="assistanceObject.aId + option.key"
-      :disabled="!isLastItem"
+      :disabled="disableOptions"
     >
       {{ option.value }}
     </button>

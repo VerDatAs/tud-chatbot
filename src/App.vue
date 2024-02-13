@@ -597,6 +597,7 @@ export default {
       :notes-enabled="displayStore.notesEnabled"
       :notes-command-enabled="displayStore.notesCommandEnabled"
       :notes-input-enabled="displayStore.notesInputEnabled"
+      :options-enabled="displayStore.optionsEnabled"
       :outgoing-message-types="outgoingMessageTypes"
       :peer-solution="notesAndPeerSolutionStore.peerSolution"
       :peer-solution-enabled="displayStore.peerSolutionEnabled"

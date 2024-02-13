@@ -52,6 +52,10 @@ export default {
       type: Boolean,
       default: false
     },
+    optionsEnabled: {
+      type: Boolean,
+      default: false
+    },
     peerSolution: String,
     peerSolutionEnabled: {
       type: Boolean,
@@ -367,7 +371,8 @@ export default {
             <ChatbotOptionsMessage
               :assistance-object="message"
               :bot-image-path="botImagePath"
-              :is-last-item="messageIndex === messageExchange.length - 1"
+              :options-enabled="optionsEnabled"
+              :related-response="findRelatedItem(message, 'options_response')"
               v-else-if="message.type === 'options'"
               @select-option="emitAssistanceObject"
             />

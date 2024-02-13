@@ -11,6 +11,7 @@ export const useDisplayStore = defineStore({
     notesEnabled: false as boolean,
     notesInputEnabled: false as boolean,
     notesCommandEnabled: false as boolean,
+    optionsEnabled: false as boolean,
     peerSolutionEnabled: false as boolean,
     peerSolutionCommandEnabled: false as boolean
   }),
@@ -28,6 +29,7 @@ export const useDisplayStore = defineStore({
       this.notesEnabled = false;
       this.notesInputEnabled = false;
       this.notesCommandEnabled = false;
+      this.optionsEnabled = false;
       this.peerSolutionEnabled = false;
       this.peerSolutionCommandEnabled = false;
     },
@@ -56,6 +58,12 @@ export const useDisplayStore = defineStore({
           break;
         case 'disable_notes_command':
           this.notesCommandEnabled = false;
+          break;
+        case 'enable_options':
+          this.optionsEnabled = true;
+          break;
+        case 'disable_options':
+          this.optionsEnabled = false;
           break;
         case 'enable_peer_solution':
           this.peerSolutionEnabled = true;
