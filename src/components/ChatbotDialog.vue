@@ -7,12 +7,16 @@ import ChatbotSystemMessage from '@/components/dialog/ChatbotSystemMessage.vue';
 import ChatbotTextMessage from '@/components/dialog/ChatbotTextMessage.vue';
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
 import ChatbotOnlineIndicator from '@/components/shared/ChatbotOnlineIndicator.vue';
+import ModalDialog from '@/components/shared/ModalDialog.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
 import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
+import { createConfirmDialog } from 'vuejs-confirm-dialog';
 
 export default {
   data: () => ({
+    abortingInProgress: false,
+    dialog: null as any,
     messageToSend: '' as string,
     messageUpdate: false as boolean,
     hasScrolled: false as boolean,
@@ -270,14 +274,32 @@ export default {
       return undefined;
     },
     abortExchange() {
-      const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
-      // Find last item in the history with an aId and related_users as key: https://stackoverflow.com/a/46822472
-      const lastItemWithAssistanceIdAndRelatedUsers = this.messageExchange.slice().reverse().find(ao => !!ao.aId && checkForKeyPresence(ao, 'related_users'));
-      if (lastItemWithAssistanceIdAndRelatedUsers) {
-        messageToSend.aId = lastItemWithAssistanceIdAndRelatedUsers.aId;
-        messageToSend.parameters = [new AssistanceParameter('state_update_response', 'completed')];
-        this.emitAssistanceObject(messageToSend);
-      }
+      // @ts-ignore
+      this.dialog = createConfirmDialog(ModalDialog, {
+        title: 'Kollaboration beenden',
+        question: 'Sind Sie sich sicher, dass Sie die Kollaboration beenden wollen?',
+        confirmTxt: 'Bestätigen',
+        cancelTxt: 'Abbrechen'
+      });
+      this.dialog.reveal();
+      this.dialog.onConfirm(() => {
+        this.abortingInProgress = true;
+        const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
+        // Find last item in the history with an aId and related_users as key: https://stackoverflow.com/a/46822472
+        const lastItemWithAssistanceIdAndRelatedUsers = this.messageExchange.slice().reverse().find(ao => !!ao.aId && checkForKeyPresence(ao, 'related_users'));
+        if (lastItemWithAssistanceIdAndRelatedUsers) {
+          messageToSend.aId = lastItemWithAssistanceIdAndRelatedUsers.aId;
+          messageToSend.parameters = [new AssistanceParameter('state_update_response', 'completed')];
+          this.emitAssistanceObject(messageToSend);
+        }
+        setTimeout(() => {
+          this.abortingInProgress = false;
+        }, 5000);
+      });
+      this.dialog.onCancel(() => {
+        this.dialog.close();
+        this.abortingInProgress = false;
+      });
     },
     // Retrieved from https://stackoverflow.com/a/18614545
     updateScroll() {
@@ -435,7 +457,7 @@ export default {
           ></textarea>
           <button type="submit" class="sendBtn" :disabled="!chatEnabled || sendChatDisabled">Senden</button>
         </form>
-        <button class="abortBtn" v-if="abortExchangeCommandEnabled" @click="abortExchange()">Beenden</button>
+        <button class="abortBtn" v-if="abortExchangeCommandEnabled" :disabled="abortingInProgress" @click="abortExchange()">Beenden</button>
       </div>
     </div>
   </div>
@@ -602,11 +624,11 @@ export default {
 
     .inputContainer {
       position: relative;
-      padding: 15px 100px 15px 15px;
+      padding: 13px 100px 13px 15px;
 
       textarea {
         padding: 5px 10px;
-        height: 48px;
+        height: 54px;
         width: 100%;
         border: none;
         resize: none;
@@ -633,18 +655,18 @@ export default {
 
         .sendBtn, .abortBtn {
           width: 85px;
-          display: inline-block;
-          height: 25px;
           padding: 0 10px;
         }
 
         .sendBtn {
-          top: 12px;
+          top: 10px;
+          height: 32px;
         }
 
         .abortBtn {
           position: absolute;
-          top: 42px;
+          height: 24px;
+          top: 45px;
           right: 14px;
         }
       }

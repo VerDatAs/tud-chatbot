@@ -2,7 +2,7 @@
 import { useDisplayStore } from '@/stores/display';
 import { useNotesAndPeerSolutionStore } from '@/stores/notesAndPeerSolution';
 import ModalDialog from '@/components/shared/ModalDialog.vue';
-import { createConfirmDialog } from 'vuejs-confirm-dialog'
+import { createConfirmDialog } from 'vuejs-confirm-dialog';
 
 export default {
   data: () => ({
