@@ -9,6 +9,10 @@ export default {
     ChatbotIcon
   },
   props: {
+    acceptExchangeCommandEnabled: {
+      type: Boolean,
+      default: false
+    },
     assistanceObject: {
       type: AssistanceObjectCommunication,
       required: true
@@ -17,13 +21,16 @@ export default {
       type: String,
       required: false
     },
-    isLastItem: {
-      type: Boolean,
-      default: false
+    relatedResponse: {
+      type: AssistanceObjectCommunication,
+      default: null
     }
   },
   emits: ['sendResponse'],
   computed: {
+    disableButton() {
+      return !this.acceptExchangeCommandEnabled || !!this.relatedResponse;
+    },
     validTimestamp() {
       return this.assistanceObject.timestamp && formatDate(this.assistanceObject.timestamp) !== 'Invalid date';
     }
@@ -51,7 +58,7 @@ export default {
   <div class="messageContainer">
     {{ parameterValue(assistanceObject, 'message') }}
     <hr>
-    <button class="btn btn-primary" :disabled="!isLastItem" @click="acceptRequest()">Akzeptieren</button>
+    <button class="btn btn-primary" :disabled="disableButton" @click="acceptRequest()">Akzeptieren</button>
     <div class="messageTimestamp" v-if="validTimestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>
 </template>

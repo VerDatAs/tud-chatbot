@@ -21,6 +21,10 @@ export default {
     sendChatDisabled: false as boolean
   }),
   props: {
+    acceptExchangeCommandEnabled: {
+      type: Boolean,
+      default: false
+    },
     botImagePath: String,
     chatEnabled: {
       type: Boolean,
@@ -377,9 +381,10 @@ export default {
               @select-option="emitAssistanceObject"
             />
             <ChatbotPeerExchangeRequestMessage
+              :accept-exchange-command-enabled="acceptExchangeCommandEnabled"
               :assistance-object="message"
               :bot-image-path="botImagePath"
-              :is-last-item="messageIndex === messageExchange.length - 1"
+              :related-response="findRelatedItem(message, 'peer_exchange_request_response')"
               v-else-if="message.type === 'peer_exchange_request'"
               @send-response="emitAssistanceObject"
             />

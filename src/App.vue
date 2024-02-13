@@ -586,6 +586,7 @@ export default {
     />
     <ChatbotDialog
       ref="chatbotDialog"
+      :accept-exchange-command-enabled="displayStore.acceptExchangeCommandEnabled"
       :bot-image-path="botImagePath"
       :chat-enabled="displayStore.chatEnabled"
       :groups="messageExchangeStore.groups"
