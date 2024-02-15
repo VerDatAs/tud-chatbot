@@ -445,17 +445,17 @@ export default {
       </div>
     </div>
     <div id="dialogInput">
-      <div class="inputContainer" :class="abortExchangeCommandEnabled ? 'abortBtnIncluded' : ''">
+      <div class="inputContainer" :class="{ abortBtnIncluded: abortExchangeCommandEnabled, sendBtnIsVisible: chatEnabled }">
         <form @submit="sendMessage($event)">
           <textarea
             id="messageInput"
             v-model="messageToSend"
-            placeholder="Geben Sie Ihre Nachricht ein"
+            :placeholder="chatEnabled ? 'Geben Sie Ihre Nachricht ein' : 'Der Chat wird aktiviert, wenn Interaktion möglich ist.'"
             @keydown.enter.exact.prevent="sendMessage(null)"
             :maxlength="9999"
             :disabled="!chatEnabled"
           ></textarea>
-          <button type="submit" class="sendBtn" :disabled="!chatEnabled || sendChatDisabled">Senden</button>
+          <button type="submit" class="sendBtn" v-if="chatEnabled" :disabled="sendChatDisabled">Senden</button>
         </form>
         <button class="abortBtn" v-if="abortExchangeCommandEnabled" :disabled="abortingInProgress" @click="abortExchange()">Beenden</button>
       </div>
@@ -624,7 +624,11 @@ export default {
 
     .inputContainer {
       position: relative;
-      padding: 13px 100px 13px 15px;
+      padding: 13px 15px;
+
+      &.sendBtnIsVisible {
+        padding-right: 100px;
+      }
 
       textarea {
         padding: 5px 10px;
