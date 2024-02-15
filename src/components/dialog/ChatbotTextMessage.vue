@@ -41,7 +41,10 @@ export default {
   },
   computed: {
     isUserMessage() {
-      return this.keyToDisplay === 'user_message'
+      return this.keyToDisplay === 'user_message';
+    },
+    isInternalLink() {
+      return this.linkValue?.includes(window.location.origin);
     },
     numberOfGroupMembers() {
       if (this.relatedGroup) {
@@ -86,7 +89,8 @@ export default {
     <span>{{ getAssistanceObjectText() }}</span>
     <div v-if="!!linkValue">
       <hr>
-      <a :href="linkValue" target="_blank">{{ linkValue }}</a>
+      <a class="btn btn-primary" :href="linkValue" v-if="isInternalLink">Interner Link</a>
+      <a class="btn btn-primary" :href="linkValue" target="_blank" v-else>Externer Link</a>
     </div>
     <div class="messageTimestamp" v-if="validTimestamp">{{ formatDate(assistanceObject.timestamp) }}</div>
   </div>
