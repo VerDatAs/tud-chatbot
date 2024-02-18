@@ -90,7 +90,9 @@ export default {
           }
         });
       }, 500);
+      // initially check for style adjustments
       this.checkForStyleAdjustments();
+      // after a minor timeout, add handlers to detect both resizing and scrolling (further style adjustments might be necessary)
       setTimeout(() => {
         const body = document.getElementsByTagName('body')?.[0];
         if (body) {
@@ -108,82 +110,70 @@ export default {
         }
       }, 100);
     },
-    // TODO: Code clean up necessary
-    // TODO: Some of the adjustments should also be done without skin, e.g., the offset due to the mobile mainbar
     checkForStyleAdjustments() {
-      // check for toolcheck style adjustments
-      if (document.getElementsByClassName('toolcheck_header')?.length > 0) {
-        // calculate height of the toolcheck header
-        let headerHeight = 0;
-        const headerElement = document.querySelector<HTMLElement>('.il-layout-page header');
-        if (headerElement) {
-          headerHeight = headerElement.offsetHeight;
-          // the padding should already be part of the offsetHeight
-          // if (parseFloat(window.getComputedStyle(headerElement, null)?.getPropertyValue('padding-bottom'))) {
-          //   headerHeight -= parseFloat(window.getComputedStyle(headerElement, null).getPropertyValue('padding-bottom'));
-          // }
-        }
-        // retrieve multiple elements of interest
-        const pageOverlay = document.querySelector<HTMLElement>('.il-page-overlay');
-        const pageOverlayDiv = document.querySelector<Element>('.il-page-overlay div');
-        const chatbotApp = document.getElementById('chatbotApp');
-        const chatbotDialog = document.getElementById('chatbotDialog');
-        // default height of the header
-        let pageOverlayHeight = 57;
-        if (pageOverlay && pageOverlayDiv) {
-          pageOverlayHeight = pageOverlay.offsetHeight;
-          // the margin has to be added manually to the offsetHeight
-          if (parseFloat(window.getComputedStyle(pageOverlayDiv, null)?.getPropertyValue('margin-top'))) {
-            pageOverlayHeight += parseFloat(window.getComputedStyle(pageOverlayDiv, null).getPropertyValue('margin-top'));
+      // calculate the height of the ILIAS header
+      let headerHeight = 0;
+      const headerElement = document.querySelector<HTMLElement>('.il-layout-page header');
+      if (headerElement) {
+        headerHeight = headerElement.offsetHeight;
+      }
+      // retrieve the elements of interest that might be adjusted
+      const chatbotApp = document.getElementById('chatbotApp');
+      const chatbotDialog = document.getElementById('chatbotDialog');
+      // calculate the height of the page overlay
+      let pageOverlayHeight = 0;
+      const pageOverlay = document.querySelector<HTMLElement>('.il-page-overlay');
+      // check, if the toolcheck header is present
+      const isToolcheck = document.getElementsByClassName('toolcheck_header')?.length > 0 ?? false;
+      if (isToolcheck && pageOverlay) {
+        pageOverlayHeight = pageOverlay.offsetHeight;
+      }
+      // in the following, the width of the body has to be taken into account
+      const bodyWidth = document.querySelector<HTMLElement>('body')?.offsetWidth || 1000;
+      // default height of the "footer"
+      let footerHeight = 0;
+      // if the page is smaller equal 768px, the ILIAS navbar is displayed on the bottom
+      if (bodyWidth <= 768) {
+        // the page overlay gets invisible when being scrolled over
+        const htmlElementScrollTop = document.getElementsByTagName('html')?.[0]?.scrollTop;
+        if (htmlElementScrollTop) {
+          // the height cannot be smaller than 0
+          if ((pageOverlayHeight - htmlElementScrollTop) < 0) {
+            pageOverlayHeight = 0;
+          } else {
+            pageOverlayHeight -= htmlElementScrollTop;
           }
         }
-        // calculate the height of the toolcheck footer depending on the body width
-        const bodyWidth = document.querySelector<HTMLElement>('body')?.offsetWidth || 1000;
-        // default height of the footer
-        let footerHeight = 0;
-        // if the page is smaller equal 768px, the navbar is displayed on the bottom
-        if (bodyWidth <= 768) {
-          // the page overlay is invisible if the user scrolls down
-          const htmlElementScrollTop = document.getElementsByTagName('html')?.[0]?.scrollTop;
-          if (htmlElementScrollTop) {
-            if ((pageOverlayHeight - htmlElementScrollTop) < 0) {
-              pageOverlayHeight = 0;
-            } else {
-              pageOverlayHeight -= htmlElementScrollTop;
-            }
-          }
-          // remove the border-top due to the margin of the header
-          if (chatbotDialog) {
-            chatbotDialog.style.borderTop = 'none';
-          }
-          // calculate the footer height based on the height of the main controls
-          const navbar = document.querySelector<HTMLElement>('.nav.il-maincontrols');
-          if (navbar) {
-            footerHeight = navbar.offsetHeight;
-          }
-        }
-        // otherwise, it is the different between the body padding-bottom and the height of the toolcheck header
-        else {
-          const bodyElement = document.getElementsByTagName('body')?.[0];
-          // get element padding: https://stackoverflow.com/questions/5227909/how-to-get-an-elements-padding-value-using-javascript#comment69593352_5240819
-          if (bodyElement && parseFloat(window.getComputedStyle(bodyElement, null)?.getPropertyValue('padding-bottom'))) {
-            footerHeight = parseFloat(window.getComputedStyle(bodyElement, null).getPropertyValue('padding-bottom')) - pageOverlayHeight;
-          }
-          // add back the removed border-top
-          if (chatbotDialog) {
-            chatbotDialog.style.borderTop = '1px solid #ddd';
-          }
-        }
-        // calculate the height that has to be subtracted from the view height
-        let heightToReduce = headerHeight + pageOverlayHeight;
-        heightToReduce += footerHeight;
-        // depending of the state of the chatbot, adjustments of different elements are necessary
-        if (chatbotApp) {
-          chatbotApp.style.bottom = footerHeight + 'px';
-        }
+        // remove the border-top due to the none-removable margin-bottom of the header
         if (chatbotDialog) {
-          chatbotDialog.style.height = 'calc(100vh - ' + heightToReduce + 'px)';
+          chatbotDialog.style.borderTop = 'none';
         }
+        // calculate the footer height based on the height of the main controls (navbar)
+        const navbar = document.querySelector<HTMLElement>('.nav.il-maincontrols');
+        if (navbar) {
+          footerHeight = navbar.offsetHeight;
+        }
+      }
+      // otherwise, the footer height is the difference between the body padding-bottom and the height of the toolcheck header
+      else {
+        const bodyElement = document.getElementsByTagName('body')?.[0];
+        // get the element padding: https://stackoverflow.com/questions/5227909/how-to-get-an-elements-padding-value-using-javascript#comment69593352_5240819
+        if (isToolcheck && bodyElement && parseFloat(window.getComputedStyle(bodyElement, null)?.getPropertyValue('padding-bottom'))) {
+          footerHeight = parseFloat(window.getComputedStyle(bodyElement, null).getPropertyValue('padding-bottom')) - pageOverlayHeight;
+        }
+        // add back the removed border-top
+        if (chatbotDialog) {
+          chatbotDialog.style.borderTop = '1px solid #ddd';
+        }
+      }
+      // calculate the height that has to be subtracted from the view height
+      const heightToReduce = headerHeight + pageOverlayHeight + footerHeight;
+      // depending on the state of the chatbot, adjustments of different elements are necessary
+      if (chatbotApp) {
+        chatbotApp.style.bottom = footerHeight + 'px';
+      }
+      if (chatbotDialog) {
+        chatbotDialog.style.height = 'calc(100vh - ' + heightToReduce + 'px)';
       }
     },
     async retrieveTokenAndHandleMessageExchange() {
