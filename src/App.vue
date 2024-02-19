@@ -90,8 +90,9 @@ export default {
           }
         });
       }, 500);
-      // initially check for style adjustments
+      // initially check for style adjustments and the adjustment of the content container
       this.checkForStyleAdjustments();
+      this.adjustContentContainer(this.displayStore.dialogOpen);
       // after a minor timeout, add handlers to detect both resizing and scrolling (further style adjustments might be necessary)
       setTimeout(() => {
         const body = document.getElementsByTagName('body')?.[0];
@@ -99,6 +100,8 @@ export default {
           // add resize observer to adjust the height of the chatbot on resize
           new ResizeObserver(() => {
             this.checkForStyleAdjustments();
+            // on resize, additionally check for adjusting the content container
+            this.adjustContentContainer(this.displayStore.dialogOpen);
           }).observe(body);
           // add scroll detector for devices smaller equal 768px (adjust the height of the chatbot)
           window.addEventListener('scroll', () => {
@@ -174,6 +177,20 @@ export default {
       }
       if (chatbotDialog) {
         chatbotDialog.style.height = 'calc(100vh - ' + heightToReduce + 'px)';
+      }
+    },
+    adjustContentContainer(dialogVisible: boolean) {
+      // adjust the padding-right of the #fixed_content div of ILIAS to make space for the chatbot
+      const fixedContent = document.getElementById('fixed_content');
+      if (!fixedContent) {
+        return;
+      }
+      const bodyWidth = document.querySelector<HTMLElement>('body')?.offsetWidth || 1000;
+      // check, if the chatbot dialog is visible and the body width is larger than the breakpoint for mobile devices
+      if (dialogVisible && bodyWidth > 768) {
+        fixedContent.style.paddingRight = '360px';
+      } else if (parseFloat(window.getComputedStyle(fixedContent, null)?.getPropertyValue('padding-right')) > 0) {
+        fixedContent.style.paddingRight = '0';
       }
     },
     async retrieveTokenAndHandleMessageExchange() {
@@ -533,11 +550,13 @@ export default {
           this.messageExchangeStore.newItems = 0;
           // The ref must exist before it is addressed
           setTimeout(() => {
+            this.adjustContentContainer(true);
             (this.$refs.chatbotDialog as typeof ChatbotDialog)?.fadeIn();
           }, 1);
         }, 300);
       } else {
         (this.$refs.chatbotDialog as typeof ChatbotDialog)?.fadeOut();
+        this.adjustContentContainer(false);
         setTimeout(() => {
           this.displayStore.dialogOpen = dialogVisible;
           // The ref must exist before it is addressed
