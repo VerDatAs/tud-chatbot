@@ -63,9 +63,6 @@ export default {
   },
   created() {
     this.initChatbotApp();
-    if (this.isRunLocally) {
-      import('./assets/local-dev.scss');
-    }
   },
   beforeUnmount() {
     this.forceDisconnect = true;

@@ -5,10 +5,13 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
 import App from './App.vue';
 import { ChatbotData } from '@/components/types/chatbot-data';
 import { useChatbotDataStore } from '@/stores/chatbotData';
-import axios from 'axios';
 import * as ConfirmDialog from 'vuejs-confirm-dialog'
 
 import './assets/main.scss';
+
+function isDevelopmentBuild(): boolean {
+  return import.meta.env.MODE != 'production';
+}
 
 function initChatbot(initChatbotData: ChatbotData) {
   console.log('init chatbotApp', JSON.stringify(initChatbotData));
@@ -25,22 +28,28 @@ function initChatbot(initChatbotData: ChatbotData) {
   app.mount('#chatbotApp');
 }
 
-// Local development: Uncomment this lines and remove type from "import type ..."
-// TODO: Find a better solution for local development: https://stackoverflow.com/questions/70709987/how-to-load-environment-variables-from-env-file-using-vite
-// const backendUrl = 'https://tasverdatas.showcase.verdatas.inf.tu-dresden.de';
-// // use Safari as a second browser to simulate the cooperation
-// const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-// const pseudoId = isSafari ? 'verdatas2' : 'verdatas1';
-// const authUrl = backendUrl + '/api/v1/auth/login';
-// const request = {
-//   actorAccountName: pseudoId
-// };
-// const userData = axios.post(authUrl, request).then((data: any) => {
-//   const token = data.data?.token;
-//   const localChatbotData = new ChatbotData('', backendUrl, pseudoId, token, true)
-//   localChatbotData.isRunLocally = true
-//   initChatbot(localChatbotData);
-// });
+if (isDevelopmentBuild()) {
+  console.log('is development build');
+  // solution of conditional imports retrieved from https://stackoverflow.com/a/67059286
+  const axios = (await import('axios')).default;
+  import('./assets/local-dev.scss');
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  // use Safari as a second browser to simulate the cooperation
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const pseudoId = import.meta.env.VITE_PSEUDO_ID;
+  const alternativePseudoId = import.meta.env.VITE_ALTERNATIVE_PSEUDO_ID;
+  const username = isSafari ? alternativePseudoId : pseudoId;
+  const authUrl = backendUrl + '/api/v1/auth/login';
+  const request = {
+    actorAccountName: username
+  };
+  axios.post(authUrl, request).then((data: any) => {
+    const token = data.data?.token;
+    const localChatbotData = new ChatbotData('', backendUrl, username, token, true);
+    localChatbotData.isRunLocally = true;
+    initChatbot(localChatbotData);
+  });
+}
 
 export function init(initChatbotData: ChatbotData) {
   initChatbot(initChatbotData);
