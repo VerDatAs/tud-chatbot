@@ -45,3 +45,8 @@
 .il-toast-container {
   display: none !important;
 }
+
+// disable statistics tab by default
+#tab_statistics {
+  display: none;
+}
