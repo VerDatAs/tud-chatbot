@@ -82,21 +82,33 @@ export const useMessageExchangeStore = defineStore({
     },
     checkForTypeMatching(assistanceObject: AssistanceObjectCommunication) {
       if (assistanceObject.aId && !this.idsRequested.includes(assistanceObject.aId) && !this.assistanceIdToTypeMatching[assistanceObject.aId]) {
-        const url = useChatbotDataStore().data.backendUrl + '/api/v1/assistance/' + assistanceObject.aId + '/type';
-        const authHeader = {
-          'Content-Type': 'application/json;charset=UTF-8',
-          Authorization: 'Bearer ' + useChatbotDataStore().data.token
+        // the assistanceType should be part of the assistanceObject
+        if (assistanceObject.assistanceType) {
+          this.idsRequested.push(assistanceObject.aId);
+          if (assistanceObject.aId) {
+            const typeKey = assistanceObject.assistanceType;
+            this.assistanceIdToTypeMatching[assistanceObject.aId] = typeKey;
+            this.checkTypeKeyData(typeKey);
+          }
         }
-        this.idsRequested.push(assistanceObject.aId);
+        // otherwise, request it manually
+        else {
+          const url = useChatbotDataStore().data.backendUrl + '/api/v1/assistance/' + assistanceObject.aId + '/type';
+          const authHeader = {
+            'Content-Type': 'application/json;charset=UTF-8',
+            Authorization: 'Bearer ' + useChatbotDataStore().data.token
+          }
+          this.idsRequested.push(assistanceObject.aId);
 
-        axios.get(url, { headers: authHeader })
-          .then((data: any) => {
-            if (assistanceObject.aId) {
-              const typeKey = data.data?.typeKey;
-              this.assistanceIdToTypeMatching[assistanceObject.aId] = typeKey;
-              this.checkTypeKeyData(typeKey);
-            }
-          })
+          axios.get(url, { headers: authHeader })
+            .then((data: any) => {
+              if (assistanceObject.aId) {
+                const typeKey = data.data?.typeKey;
+                this.assistanceIdToTypeMatching[assistanceObject.aId] = typeKey;
+                this.checkTypeKeyData(typeKey);
+              }
+            })
+        }
       }
     },
     checkTypeKeyData(typeKey: string) {
