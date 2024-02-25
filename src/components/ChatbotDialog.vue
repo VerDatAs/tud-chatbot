@@ -117,7 +117,7 @@ export default {
       }
       this.$emit('checkForStyleAdjustments');
       dialogContainer.onscroll = () => {
-        console.log('hasScrolled');
+        // console.log('hasScrolled');
         // avoid setting hasScrolled for situations, in which the dialog was scrolled automatically
         if (!this.wasScrolledAutomatically) {
           this.hasScrolled = true;
@@ -303,7 +303,7 @@ export default {
     },
     // Retrieved from https://stackoverflow.com/a/18614545
     updateScroll() {
-      console.log('updateScroll');
+      // console.log('updateScroll');
       if (!this.hasScrolled) {
         setTimeout(() => {
           const element = document.getElementById('dialogContainer');

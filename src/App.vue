@@ -82,7 +82,7 @@ export default {
       setTimeout(() => {
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') {
-            console.log('The tab gets visible again.', this.webSocket?.readyState);
+            // console.log('The tab gets visible again.', this.webSocket?.readyState);
             this.reconnectWebSocket();
           }
         });
@@ -207,7 +207,7 @@ export default {
       await this.handleWebSocketConnection(true);
     },
     async handleWebSocketConnection(switchedPage: boolean) {
-      console.log('handleWebSocketConnection');
+      // console.log('handleWebSocketConnection');
       if (this.webSocket?.readyState !== 1) {
         const backendUrlProtocol = this.backendUrl.includes('https://') ? 'https://' : 'http://';
         const webSocketPrefix = backendUrlProtocol === 'https://' ? 'wss://' : 'ws://';
@@ -252,7 +252,7 @@ export default {
           // If no message ('') is received, it is the connect message
           if (!message) {
             if (event.data?.startsWith('CONNECTED')) {
-              console.log('Connected message. Initialize pong message interval.');
+              // console.log('Connected message. Initialize pong message interval.');
               this.initializePongMessageInterval();
               // reset potentially set values for the case that the connection was successful
               this.reconnectAttempted = false;
@@ -264,7 +264,7 @@ export default {
           // If BYTES.LF is received, it is a ping message
           // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/client.js#L74
           else if (message === BYTES.LF) {
-            console.log('Ping message received.');
+            // console.log('Ping message received.');
             // the first ping message also starts the reset ping timeout
             this.clearAndResetPingTimeout();
           }
@@ -275,7 +275,7 @@ export default {
             // it is necessary to parse the message
             // hint: even though this might be huge objects (tested with 8000 messages), this takes like 30ms to execute
             const receivedMessageParsed: AssistanceObjectCommunication = JSON.parse(message);
-            console.time('messageDelivering');
+            // console.time('messageDelivering');
             // if "previous_messages" or "unacknowledged_messages" do exist in the parameter keys, the value will be an Array of AssistanceObjectCommunications
             // else, it is a single AssistanceObjectCommunication
             // idea, use a queue of AssistanceObjectQueueItems containing correctly parsed AssistanceObjectCommunication objects
@@ -362,13 +362,13 @@ export default {
             if (this.displayStore.dialogOpen) {
               this.updateDialogScroll();
             }
-            console.timeEnd('messageDelivering');
+            // console.timeEnd('messageDelivering');
           }
         };
 
         this.webSocket.onclose = () => {
           this.triggerVariable += 1;
-          console.log('WebSocket closed. Clear pong interval and ping timeout.', this.pongInterval);
+          // console.log('WebSocket closed. Clear pong interval and ping timeout.', this.pongInterval);
           window.clearInterval(this.pongInterval);
           if (this.pingTimeout) {
             window.clearTimeout(this.pingTimeout);
@@ -388,7 +388,7 @@ export default {
       }
     },
     attemptReconnect() {
-      console.log('Attempt reconnecting WebSocket.');
+      // console.log('Attempt reconnecting WebSocket.');
       this.reconnectAttempted = true;
       this.reconnectWebSocket();
     },
@@ -446,7 +446,7 @@ export default {
       else {
         // attempt reconnecting once, if the sending of a message failed
         if (!this.sendWebSocketReconnectAttempted) {
-          console.log('Sending message failed. Attempt reconnecting WebSocket and send again after 0.5 seconds.');
+          // console.log('Sending message failed. Attempt reconnecting WebSocket and send again after 0.5 seconds.');
           await this.reconnectWebSocket();
           setTimeout(() => {
             this.sendWebSocketMessage(messageToSend);
@@ -520,7 +520,7 @@ export default {
       // Send pong every 3 seconds, as it is done in the stomp-websocket library
       this.pongInterval = window.setInterval(() => {
         this.webSocket.send(BYTES.LF);
-        console.log('Pong message sent.');
+        // console.log('Pong message sent.');
       }, 3000);
     },
     clearAndResetPingTimeout() {

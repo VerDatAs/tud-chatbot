@@ -14,7 +14,7 @@ function isDevelopmentBuild(): boolean {
 }
 
 function initChatbot(initChatbotData: ChatbotData) {
-  console.log('init chatbotApp', JSON.stringify(initChatbotData));
+  // console.log('init chatbotApp', JSON.stringify(initChatbotData));
   const app = createApp(App);
 
   app.use(ConfirmDialog);
