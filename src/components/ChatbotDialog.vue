@@ -410,7 +410,9 @@ export default {
               :incoming="true"
               :key-to-display="'message'"
               :link-value="parameterValue(message, 'uri')"
-              v-else-if="message.type === 'uri'"
+              :require-click-notification="parameterValue(message, 'require_click_notification') !== '' ? parameterValue(message, 'require_click_notification') : 0"
+              @click-notification-response="emitAssistanceObject"
+              v-else-if="message.type === 'require_click_notification' || message.type === 'uri'"
             />
             <ChatbotGroupStatusMessage
               :assistance-object="message"

@@ -14,7 +14,8 @@ export const useDisplayStore = defineStore({
     notesCommandEnabled: false as boolean,
     optionsEnabled: false as boolean,
     peerSolutionEnabled: false as boolean,
-    peerSolutionCommandEnabled: false as boolean
+    peerSolutionCommandEnabled: false as boolean,
+    showStatisticsTab: false as boolean
   }),
   actions: {
     changeDialogOpen(dialogOpen: boolean) {
@@ -34,6 +35,7 @@ export const useDisplayStore = defineStore({
       this.optionsEnabled = false;
       this.peerSolutionEnabled = false;
       this.peerSolutionCommandEnabled = false;
+      this.showStatisticsTab = false;
     },
     processOperation(assistanceObject: AssistanceObjectCommunication) {
       switch (parameterValue(assistanceObject, 'operation')) {

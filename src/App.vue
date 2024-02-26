@@ -39,7 +39,7 @@ export default {
     notesAndPeerSolutionStore: useNotesAndPeerSolutionStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
-    incomingMessageTypes: ['message', 'options', 'related_users', 'state_update', 'system_message', 'uri', 'user_message'],
+    incomingMessageTypes: ['message', 'options', 'related_users', 'require_click_notification', 'state_update', 'system_message', 'uri', 'user_message'],
     outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
     pongInterval: 0 as number,
     pingTimeout: 0 as number,
@@ -90,6 +90,11 @@ export default {
       // initially check for style adjustments and the adjustment of the content container
       this.checkForStyleAdjustments();
       this.adjustContentContainer(this.displayStore.dialogOpen);
+      // TODO: This is a hardcoded way to change the default CSS of the statistics tab of ILIAS
+      const tabStatistics = document.getElementById('tab_statistics');
+      if (tabStatistics && this.displayStore.showStatisticsTab) {
+        tabStatistics.style.display = 'block';
+      }
       // after a minor timeout, add handlers to detect both resizing and scrolling (further style adjustments might be necessary)
       setTimeout(() => {
         const body = document.getElementsByTagName('body')?.[0];

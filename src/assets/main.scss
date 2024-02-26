@@ -46,7 +46,7 @@
   display: none !important;
 }
 
-// disable statistics tab by default
+// disable statistics tab by default (faster than using the App.vue)
 #tab_statistics {
   display: none;
 }
