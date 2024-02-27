@@ -96,8 +96,8 @@ export default {
       const tabStatistics = document.getElementById('tab_statistics');
       if (tabStatistics) {
         tabStatistics.style.display = 'block';
-        this.displayStore.showStatisticsTab = true;
       }
+      this.displayStore.showStatisticsTab = true;
       // depending on the type of link, either open in the same window or in a new tab
       if (this.isInternalLink) {
         // https://stackoverflow.com/a/4813887/3623608
