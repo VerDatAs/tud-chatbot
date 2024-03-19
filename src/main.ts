@@ -8,6 +8,7 @@ import { useChatbotDataStore } from '@/stores/chatbotData';
 import * as ConfirmDialog from 'vuejs-confirm-dialog'
 
 import './assets/main.scss';
+import 'animate.css/animate.css';
 
 function isDevelopmentBuild(): boolean {
   return import.meta.env.MODE != 'production';
