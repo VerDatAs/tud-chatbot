@@ -14,7 +14,7 @@ export default defineConfig({
     vue(),
     banner('/**\n' +
       ' * Chatbot for the assistance system developed as part of the VerDatAs project\n' +
-      ' * Copyright (C) 2023-2024 TU Dresden (Tommy Kubica, Max Schaible)\n' +
+      ' * Copyright (C) 2023-2024 TU Dresden (Max Schaible, Tommy Kubica)\n' +
       ' *\n' +
       ' * This program is free software: you can redistribute it and/or modify\n' +
       ' * it under the terms of the GNU General Public License as published by\n' +
