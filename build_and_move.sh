@@ -11,7 +11,7 @@ elif [ "$1" = "ilias" ]; then
     npm run build
     mkdir -p ../verdatasbot/templates
     cp dist/assets/main.js ../verdatasbot/templates/main.js
-    cp dist/assets/vendor.LICENSE.txt ../verdatasbot/templates/vendor.LICENSE.txt
+    cp dist/THIRD-PARTY-tud-chatbot.md ../verdatasbot/templates/THIRD-PARTY-tud-chatbot.md
     cp dist/veri.png ../verdatasbot/templates/veri.png
     cd ../ilias-dev || return
     sh reload_directories.sh
