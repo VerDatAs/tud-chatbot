@@ -1,5 +1,24 @@
-var checker = require('license-checker');
-var fs = require('fs');
+/**
+ * Chatbot for the assistance system developed as part of the VerDatAs project
+ * Copyright (C) 2023-2024 TU Dresden (Tommy Kubica)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+const checker = require('license-checker');
+const fs = require('fs');
+const repositoryName = 'tud-chatbot';
+const repositoryLink = 'https://github.com/VerDatAs/tud-chatbot';
 
 checker.init(
   {
@@ -13,22 +32,24 @@ checker.init(
     } else {
       console.log(packages);
       const packageKeys = Object.keys(packages);
-      let markdownResult = '## The following libraries are used by [tud-chatbot](https://github.com/VerDatAs/tud-chatbot):\n\n';
+      let markdownResult = '## The following libraries are used by [' + repositoryName + '](' + repositoryLink + '):\n\n';
       markdownResult += '|    Name    |   Version  |   License  |     URL    |\n';
       markdownResult += '| ---------- | ---------- | ---------- | ---------- |\n';
       packageKeys.forEach((packageKey) => {
         const packageInformation = packages[packageKey];
         const splitPackageKey = packageKey.split('@');
-        // packages might begin with @
+        // Package names might begin with "@"
         const packageWithLeadingAt = packageKey.startsWith('@');
         const name = (packageWithLeadingAt && splitPackageKey.length > 2) ? '@' + splitPackageKey[1] : splitPackageKey[0];
         const version = (packageWithLeadingAt && splitPackageKey.length > 2) ? splitPackageKey[2] : splitPackageKey[1];
         const licenses = packageInformation.licenses;
-        let url = packageInformation.repository || packageInformation.url || 'No URL provided on npm'
+        let url = packageInformation.repository || packageInformation.url || 'No URL provided on npm';
+        // Quick fix for npm package that does not include its repository url
         if (name === 'vuejs-confirm-dialog') {
           url = 'https://github.com/harmyderoman/vuejs-confirm-dialog';
         }
-        if (name !== 'tud-chatbot') {
+        // Exclude own repository from the list of third-party libraries
+        if (name !== repositoryName) {
           markdownResult += '| ' + name + ' | ' + version + ' | ' + licenses + ' | ' + url + ' |\n';
         }
       });

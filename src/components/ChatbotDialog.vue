@@ -1,3 +1,20 @@
+<!--
+Chatbot for the assistance system developed as part of the VerDatAs project
+Copyright (C) 2023-2024 TU Dresden (Tommy Kubica)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
 <script lang="ts">
 import ChatbotGroupStatusMessage from '@/components/dialog/ChatbotGroupStatusMessage.vue';
 import ChatbotNotesAndPeerSolution from '@/components/dialog/ChatbotNotesAndPeerSolution.vue';
@@ -23,6 +40,16 @@ export default {
     wasScrolledAutomatically: false as boolean,
     sendChatDisabled: false as boolean
   }),
+  components: {
+    ChatbotIcon,
+    ChatbotGroupStatusMessage,
+    ChatbotNotesAndPeerSolution,
+    ChatbotOnlineIndicator,
+    ChatbotOptionsMessage,
+    ChatbotStateUpdate,
+    ChatbotSystemMessage,
+    ChatbotTextMessage
+  },
   props: {
     abortExchangeCommandEnabled: {
       type: Boolean,
@@ -85,22 +112,26 @@ export default {
       default: []
     }
   },
-  components: {
-    ChatbotIcon,
-    ChatbotGroupStatusMessage,
-    ChatbotNotesAndPeerSolution,
-    ChatbotOnlineIndicator,
-    ChatbotOptionsMessage,
-    ChatbotStateUpdate,
-    ChatbotSystemMessage,
-    ChatbotTextMessage
-  },
+  emits: [
+    'checkForStyleAdjustments',
+    'closeChatbotDialog',
+    'reconnectWebSocket',
+    'sendAssistanceObject',
+    'updateMessageToSend'
+  ],
   watch: {
-    messageToSend: function (newValue, oldValue) {
+    /**
+     * If the message to send is changed, emit an update of the new value.
+     * @param {string} newValue
+     */
+    messageToSend: function (newValue: string) {
       this.$emit('updateMessageToSend', newValue);
     }
   },
   computed: {
+    /**
+     * Return, whether the view was scrolled and a new message was received.
+     */
     hasScrolledButReceivedNewMessages() {
       return this.hasScrolled && this.messageUpdate;
     }
@@ -110,6 +141,9 @@ export default {
   },
   methods: {
     parameterValue,
+    /**
+     * Initialize the chatbot dialog by defining an onscroll listener.
+     */
     initChatbotDialog() {
       const dialogContainer = document.getElementById('dialogContainer');
       if (!dialogContainer) {
@@ -117,12 +151,11 @@ export default {
       }
       this.$emit('checkForStyleAdjustments');
       dialogContainer.onscroll = () => {
-        // console.log('hasScrolled');
-        // avoid setting hasScrolled for situations, in which the dialog was scrolled automatically
+        // Avoid setting hasScrolled for situations, in which the dialog was scrolled automatically
         if (!this.wasScrolledAutomatically) {
           this.hasScrolled = true;
         }
-        // reset hasScrolled, if the user manually scrolls to the bottom
+        // Reset hasScrolled, if the user manually scrolls to the bottom
         if (
           this.hasScrolled &&
           dialogContainer.scrollTop === dialogContainer.scrollHeight - dialogContainer.offsetHeight
@@ -133,89 +166,88 @@ export default {
       };
       this.messageToSend = this.storedMessageToSend;
     },
+    /**
+     * Reset the input of the message to send.
+     */
     resetInput() {
       this.messageToSend = '';
     },
+    /**
+     * Close the chatbot dialog by emitting an event.
+     */
     closeChatbotDialog() {
       this.$emit('closeChatbotDialog');
     },
+    /**
+     * Check, whether a given assistance object is an incoming message.
+     */
     isIncomingMessage(message: AssistanceObjectCommunication) {
       const parameterKeyArray = message?.parameters?.map((param) => param.key) || [];
       return parameterKeyArray.some((item) => this.incomingMessageTypes.includes(item));
     },
-    // https://stackoverflow.com/a/60617142
     checkForKeyPresence,
+    /**
+     * Handle the message sending by creating and emitting an assistance object.
+     * @param {Event | null} event
+     */
     sendMessage(event: Event | null) {
       if (event) {
         event.preventDefault();
       }
-      // do not send messages, if the chat is disabled or the length of the message is too large
+      // Do not send messages, if the chat is disabled or the length of the message is too large
       if (!this.chatEnabled || this.messageToSend.length > 9999) {
         return;
       }
-      // check message with removed linebreaks and trimmed whitespaces to be empty
+      // Check, whether the message is empty, when removing linebreaks and trimming whitespaces
       if (this.messageToSend.replace(/(\r\n|\n|\r)/gm, '').trimEnd() === '') {
         this.messageToSend = '';
         return;
       }
-      // do not send messages, if the chat button is disabled (empty enter commands are returned before)
+      // Do not send messages, if the chat button is disabled (empty enter commands are returned before)
       if (this.sendChatDisabled) {
         return;
       }
-      // prepare message to be sent
+      // Prepare message to be sent
       const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
-      // check if message starts with @group and a group was formed previously -> group message
-      // in this case, this.groups has to be used to find only active groups
-      // TODO: Remove, if not used anymore
-      if (this.messageToSend.trimStart().startsWith('@group') && this.groups.length > 0) {
-        const groupToInform = this.groups[0];
-        messageToSend.aId = groupToInform.aId;
-        messageToSend.aoId = groupToInform.aoId;
-        let remainingMessage = this.messageToSend.trimStart();
-        // remove leading @group[:] prefix
-        remainingMessage = this.messageToSend.trimStart().startsWith('@group:')
-          ? this.messageToSend.replace('@group:', '')
-          : this.messageToSend.replace('@group', '');
-        // remove possible leading whitespaces
-        remainingMessage = remainingMessage.trimStart();
-        messageToSend.parameters = [new AssistanceParameter('message_response', remainingMessage)];
-      } else if (
-        this.groups.length > 0 &&
-        (this.messageToSend === 'TERMINATE' || this.messageToSend === 'TERMINATE\n')
-      ) {
-        const groupToTerminate = this.groups[0];
-        messageToSend.aId = groupToTerminate.aId;
-        messageToSend.aoId = groupToTerminate.aoId;
-        messageToSend.parameters = [new AssistanceParameter('state_update_response', { status: 'completed' })];
+      // Find last item in the history with an aId and related_users as key: https://stackoverflow.com/a/46822472
+      const lastItemWithAssistanceIdAndRelatedUsers = this.messageExchange
+        .slice()
+        .reverse()
+        .find((ao) => !!ao.aId && checkForKeyPresence(ao, 'related_users'));
+      if (lastItemWithAssistanceIdAndRelatedUsers) {
+        messageToSend.aId = lastItemWithAssistanceIdAndRelatedUsers.aId;
+        // Remove newlines (and all trailing whitespaces): https://stackoverflow.com/a/48080903
+        messageToSend.parameters = [new AssistanceParameter('message_response', this.messageToSend.trim())];
       } else {
-        // Find last item in the history with an aId and related_users as key: https://stackoverflow.com/a/46822472
-        const lastItemWithAssistanceIdAndRelatedUsers = this.messageExchange.slice().reverse().find(ao => !!ao.aId && checkForKeyPresence(ao, 'related_users'));
-        if (lastItemWithAssistanceIdAndRelatedUsers) {
-          messageToSend.aId = lastItemWithAssistanceIdAndRelatedUsers.aId;
-          // Remove newlines (and all other whitespace) at the end: https://stackoverflow.com/a/48080903
-          messageToSend.parameters = [new AssistanceParameter('message_response', this.messageToSend.trim())];
-        } else {
-          // Return, if no aId does exist as a target
-          return;
-        }
+        // Return, if no aId does exist as a target
+        return;
       }
+      // Disable sending chat
       this.sendChatDisabled = true;
+      // Emitting the assistance object
       this.emitAssistanceObject(messageToSend);
-      // Reset message input
       setTimeout(() => {
+        // Reset the message input
         this.messageToSend = '';
-        // Reset send chat disable
         setTimeout(() => {
+          // Reset disabling the chat sending
           this.sendChatDisabled = false;
         }, 1500);
       }, 50);
     },
+    /**
+     * Handle the acknowledgement of the peer solution by emitting an according assistance object.
+     * @param {boolean} acknowledge
+     */
     acknowledgePeerSolution(acknowledge: boolean) {
       if (acknowledge) {
         const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
         // TODO: This might not work, if the user logs in again and "welcome back" is sent as last message
         // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
-        const lastItemWithAssistanceId = this.messageExchange.slice().reverse().find(ao => !!ao.aId);
+        const lastItemWithAssistanceId = this.messageExchange
+          .slice()
+          .reverse()
+          .find((ao) => !!ao.aId);
         if (lastItemWithAssistanceId) {
           messageToSend.aId = lastItemWithAssistanceId.aId;
           messageToSend.parameters = [new AssistanceParameter('state_update_response', 'standby')];
@@ -223,56 +255,86 @@ export default {
         }
       }
     },
+    /**
+     * Handle the sending of the solution by emitting an according assistance object.
+     * @param {string} solution
+     */
     sendSolution(solution: string) {
       const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
       // TODO: This might not work, if the user logs in again and "welcome back" is sent as last message
       // Find last item in the history with an aId: https://stackoverflow.com/a/46822472
-      const lastItemWithAssistanceId = this.messageExchange.slice().reverse().find(ao => !!ao.aId);
+      const lastItemWithAssistanceId = this.messageExchange
+        .slice()
+        .reverse()
+        .find((ao) => !!ao.aId);
       if (lastItemWithAssistanceId) {
         messageToSend.aId = lastItemWithAssistanceId.aId;
         messageToSend.parameters = [new AssistanceParameter('solution_response', solution)];
         this.emitAssistanceObject(messageToSend);
       }
     },
+    /**
+     * Emitting a given assistance object.
+     * @param {AssistanceObjectCommunication} assistanceObject
+     */
     emitAssistanceObject(assistanceObject: AssistanceObjectCommunication) {
-      // TODO: Remove, if this causes problems
-      // add timestamp to messages that are sent to the backend
+      // Add timestamp to messages that are sent to the backend
       if (!assistanceObject.timestamp) {
         assistanceObject.timestamp = new Date().toISOString();
       }
       this.$emit('sendAssistanceObject', assistanceObject);
     },
+    /**
+     * Handle the reconnection of the WebSocket by emitting an according event.
+     * @param {boolean} reconnect
+     */
     reconnectWebSocket(reconnect: boolean) {
       if (reconnect) {
         this.$emit('reconnectWebSocket', true);
       }
     },
+    /**
+     * Find a related item in the history for a given assistance object and a given key.
+     * @param {AssistanceObjectCommunication} assistanceObject
+     * @param {string} key
+     */
     findRelatedItem(assistanceObject: AssistanceObjectCommunication, key: string) {
-      // as findLast is currently not well supported (https://github.com/microsoft/TypeScript/issues/48829),
-      // implement it as custom function
+      // As findLast is currently not well-supported (https://github.com/microsoft/TypeScript/issues/48829),
+      // implement it as custom function.
       const length = this.messageExchange?.length ?? 0;
       for (let i = length - 1; i >= 0; i--) {
         const message = this.messageExchange[i];
-        // comparing the aId is sufficient in this case
+        // Comparing the aId is sufficient in this case
         if (message.aId === assistanceObject.aId && this.checkForKeyPresence(message, key)) {
           return message;
         }
       }
       return undefined;
     },
+    /**
+     * Find a related state update in the history for a given assistance object.
+     * @param {AssistanceObjectCommunication} assistanceObject
+     */
     findRelatedStateUpdate(assistanceObject: AssistanceObjectCommunication) {
-      // as findLast is currently not well supported (https://github.com/microsoft/TypeScript/issues/48829),
-      // implement it as custom function
+      // As findLast is currently not well-supported (https://github.com/microsoft/TypeScript/issues/48829),
+      // implement it as custom function.
       const length = this.messageExchange?.length ?? 0;
       for (let i = length - 1; i >= 0; i--) {
         const message = this.messageExchange[i];
-        // comparing the aId is sufficient in this case
-        if (message.aId === assistanceObject.aId && (this.parameterValue(message, 'state_update')?.status === 'completed' || this.parameterValue(message, 'state_update')?.status === 'aborted')) {
+        // Comparing the aId is sufficient in this case
+        if (
+          message.aId === assistanceObject.aId &&
+          (this.parameterValue(message, 'state_update')?.status === 'completed' ||
+            this.parameterValue(message, 'state_update')?.status === 'aborted')
+        ) {
           return message;
         }
       }
       return undefined;
     },
+    /**
+     * Handle the canceling of the peer exchange.
+     */
     abortExchange() {
       // @ts-ignore
       this.dialog = createConfirmDialog(ModalDialog, {
@@ -285,8 +347,11 @@ export default {
       this.dialog.onConfirm(() => {
         this.abortingInProgress = true;
         const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
-        // Find last item in the history with an aId and related_users as key: https://stackoverflow.com/a/46822472
-        const lastItemWithAssistanceIdAndRelatedUsers = this.messageExchange.slice().reverse().find(ao => !!ao.aId && checkForKeyPresence(ao, 'related_users'));
+        // Find the last item in the history with an aId and related_users as key: https://stackoverflow.com/a/46822472
+        const lastItemWithAssistanceIdAndRelatedUsers = this.messageExchange
+          .slice()
+          .reverse()
+          .find((ao) => !!ao.aId && checkForKeyPresence(ao, 'related_users'));
         if (lastItemWithAssistanceIdAndRelatedUsers) {
           messageToSend.aId = lastItemWithAssistanceIdAndRelatedUsers.aId;
           messageToSend.parameters = [new AssistanceParameter('state_update_response', 'completed')];
@@ -301,9 +366,10 @@ export default {
         this.abortingInProgress = false;
       });
     },
-    // Retrieved from https://stackoverflow.com/a/18614545
+    /**
+     * Check, whether the dialog container was scrolled automatically or not.
+     */
     updateScroll() {
-      // console.log('updateScroll');
       if (!this.hasScrolled) {
         setTimeout(() => {
           const element = document.getElementById('dialogContainer');
@@ -319,18 +385,27 @@ export default {
         this.messageUpdate = true;
       }
     },
+    /**
+     * Scroll down the view.
+     */
     scrollDown() {
       this.hasScrolled = false;
       this.messageUpdate = false;
       this.updateScroll();
     },
+    /**
+     * Fade in the chatbot dialog from the right.
+     */
     fadeIn() {
       document.getElementById('chatbotDialog')?.classList.add('animate__fadeInRight');
-      // after fade in, scroll down the view
+      // After fading in, scroll down the view
       setTimeout(() => {
         this.scrollDown();
       }, 50);
     },
+    /**
+     * Fade out the chatbot dialog to the right.
+     */
     fadeOut() {
       document.getElementById('chatbotDialog')?.classList.add('animate__fadeOutRight');
     }
@@ -369,10 +444,7 @@ export default {
       <div class="scrolledButNewMessages" v-if="hasScrolledButReceivedNewMessages" @click="scrollDown">
         Neue Nachrichten verfügbar!
       </div>
-      <div
-        id="messageExchange"
-        v-if="messageExchange.length > 0"
-      >
+      <div id="messageExchange" v-if="messageExchange.length > 0">
         <div v-for="(message, messageIndex) in messageExchange" :key="'message' + messageIndex">
           <div
             class="message messageIncoming animate__animated animate__fadeInLeft"
@@ -410,7 +482,11 @@ export default {
               :incoming="true"
               :key-to-display="'message'"
               :link-value="parameterValue(message, 'uri')"
-              :require-click-notification="parameterValue(message, 'require_click_notification') !== '' ? parameterValue(message, 'require_click_notification') : 0"
+              :require-click-notification="
+                parameterValue(message, 'require_click_notification') !== ''
+                  ? parameterValue(message, 'require_click_notification')
+                  : 0
+              "
               @click-notification-response="emitAssistanceObject"
               v-else-if="message.type === 'require_click_notification' || message.type === 'uri'"
             />
@@ -447,19 +523,31 @@ export default {
       </div>
     </div>
     <div id="dialogInput">
-      <div class="inputContainer" :class="{ abortBtnIncluded: abortExchangeCommandEnabled, sendBtnIsVisible: chatEnabled }">
+      <div
+        class="inputContainer"
+        :class="{ abortBtnIncluded: abortExchangeCommandEnabled, sendBtnIsVisible: chatEnabled }"
+      >
         <form @submit="sendMessage($event)">
           <textarea
             id="messageInput"
             v-model="messageToSend"
-            :placeholder="chatEnabled ? 'Geben Sie Ihre Nachricht ein' : 'Der Chat wird aktiviert, wenn Interaktion möglich ist.'"
+            :placeholder="
+              chatEnabled ? 'Geben Sie Ihre Nachricht ein' : 'Der Chat wird aktiviert, wenn Interaktion möglich ist.'
+            "
             @keydown.enter.exact.prevent="sendMessage(null)"
             :maxlength="9999"
             :disabled="!chatEnabled"
           ></textarea>
           <button type="submit" class="sendBtn" v-if="chatEnabled" :disabled="sendChatDisabled">Senden</button>
         </form>
-        <button class="abortBtn" v-if="abortExchangeCommandEnabled" :disabled="abortingInProgress" @click="abortExchange()">Beenden</button>
+        <button
+          class="abortBtn"
+          v-if="abortExchangeCommandEnabled"
+          :disabled="abortingInProgress"
+          @click="abortExchange()"
+        >
+          Beenden
+        </button>
       </div>
     </div>
   </div>
@@ -557,7 +645,7 @@ export default {
           border-radius: 12px;
 
           span {
-            /* These are technically the same, but use both */
+            // These are technically the same, but use both
             overflow-wrap: break-word;
             word-wrap: break-word;
 
@@ -639,7 +727,8 @@ export default {
         border: none;
         resize: none;
 
-        &:disabled, &[disabled] {
+        &:disabled,
+        &[disabled] {
           cursor: not-allowed;
         }
       }
@@ -651,7 +740,8 @@ export default {
         right: 14px;
         padding: 5px 10px;
 
-        &:disabled, &[disabled] {
+        &:disabled,
+        &[disabled] {
           cursor: not-allowed;
         }
       }
@@ -659,7 +749,8 @@ export default {
       &.abortBtnIncluded {
         padding-right: 110px;
 
-        .sendBtn, .abortBtn {
+        .sendBtn,
+        .abortBtn {
           width: 85px;
           padding: 0 10px;
         }

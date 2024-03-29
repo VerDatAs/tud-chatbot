@@ -5,5 +5,4 @@ end_of_line = lf
 indent_style = space
 indent_size = 2
 max_line_length = 120
-# Caveat: Prettier won’t trim trailing whitespace inside template strings, but your editor might.
 trim_trailing_whitespace = true

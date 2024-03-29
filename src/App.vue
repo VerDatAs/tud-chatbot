@@ -1,3 +1,20 @@
+<!--
+Chatbot for the assistance system developed as part of the VerDatAs project
+Copyright (C) 2023-2024 TU Dresden (Tommy Kubica)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
 <script lang="ts">
 import ChatbotDialog from '@/components/ChatbotDialog.vue';
 import ChatbotWidget from '@/components/ChatbotWidget.vue';
@@ -6,19 +23,13 @@ import { AssistanceObjectQueueItem } from '@/components/types/assistance-object-
 import { AssistanceParameter } from '@/components/types/assistance-parameter';
 import { useChatbotDataStore } from '@/stores/chatbotData';
 import { useDisplayStore } from '@/stores/display';
-import { useNotesAndPeerSolutionStore } from '@/stores/notesAndPeerSolution';
 import { useMessageExchangeStore } from '@/stores/messageExchange';
+import { useNotesAndPeerSolutionStore } from '@/stores/notesAndPeerSolution';
 import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelper';
 
-// Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/utils.js#L27
-// Define constants for bytes used throughout the code.
-const BYTES = {
-  // LINEFEED byte (octet 10)
-  LF: '\x0A',
-  // NULL byte (octet 0)
-  NULL: '\x00'
-};
-
+// The escaped hexadecimal line feed and equivalent of \n (https://stackoverflow.com/a/9021756/3623608)
+const lineFeedByte = '\x0A';
+// The destination of the WebSocket connection
 const webSocketDestination = '/user/queue/chat';
 
 export default {
@@ -29,24 +40,35 @@ export default {
     backendUrl: '' as string,
     pluginPath: '' as string,
     isRunLocally: false as boolean,
-    // WebSocket connection and message sending
     pseudoId: '' as string,
     userToken: '' as string,
-    // TODO: Fix type
     webSocket: null as any,
     chatbotDataStore: useChatbotDataStore(),
     displayStore: useDisplayStore(),
-    notesAndPeerSolutionStore: useNotesAndPeerSolutionStore(),
     messageToSend: '' as string,
     messageExchangeStore: useMessageExchangeStore(),
-    incomingMessageTypes: ['message', 'options', 'related_users', 'require_click_notification', 'state_update', 'system_message', 'uri', 'user_message'],
-    outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
-    pongInterval: 0 as number,
+    notesAndPeerSolutionStore: useNotesAndPeerSolutionStore(),
+    incomingMessageTypes: [
+      'message',
+      'options',
+      'related_users',
+      'require_click_notification',
+      'state_update',
+      'system_message',
+      'uri',
+      'user_message'
+    ],
+    outgoingMessageTypes: [
+      'message_response',
+      'options_response',
+      'state_update_response'
+    ],
     pingTimeout: 0 as number,
+    pongInterval: 0 as number,
     forceDisconnect: false as boolean,
     reconnectAttempted: false as boolean,
     sendWebSocketReconnectAttempted: false as boolean,
-    // use triggerVariable to update changed webSocket: https://stackoverflow.com/a/64009199
+    // Use a trigger variable to update the changed WebSocket state: https://stackoverflow.com/a/64009199
     triggerVariable: 0
   }),
   components: {
@@ -54,9 +76,15 @@ export default {
     ChatbotWidget
   },
   computed: {
+    /**
+     * Retrieves the path of the chatbot image.
+     */
     botImagePath() {
       return this.pluginPath + (!this.isRunLocally ? '/templates' : '') + '/veri.png';
     },
+    /**
+     * Return, whether the WebSocket is still connected.
+     */
     isWebSocketConnected() {
       return this.triggerVariable > 0 && this.webSocket?.readyState === 1;
     }
@@ -69,6 +97,11 @@ export default {
     this.webSocket.close();
   },
   methods: {
+    /**
+     * Initialize the chatbot app by defining the values of the variables depending on the chatbot data provided,
+     * prepare and handle the message exchange,
+     * and define several listeners and initial style adjustments.
+     */
     async initChatbotApp() {
       this.isRunLocally = this.chatbotDataStore.data?.isRunLocally ?? false;
       this.pluginPath = this.chatbotDataStore.data.pluginPath;
@@ -76,36 +109,30 @@ export default {
       this.pseudoId = this.chatbotDataStore.data.pseudoId;
       this.userToken = this.chatbotDataStore.data.token;
       this.hasJustLoggedIn = this.chatbotDataStore.data.hasJustLoggedIn;
-      await this.retrieveTokenAndHandleMessageExchange();
-      // add listener for visibility changes
-      // additionally delay creation of the listener to avoid conflicts with the initialization of the chatbot
+      await this.prepareAndHandleMessageExchange();
+      // Add a listener for detecting visibility changes
+      // Additionally, delay the creation of the listener to avoid conflicts with the initialization of the chatbot
       setTimeout(() => {
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') {
-            // console.log('The tab gets visible again.', this.webSocket?.readyState);
             this.reconnectWebSocket();
           }
         });
       }, 500);
-      // initially check for style adjustments and the adjustment of the content container
+      // Initially check for style adjustments and the adjustment of the content container
       this.checkForStyleAdjustments();
       this.adjustContentContainer(this.displayStore.dialogOpen);
-      // TODO: This is a hardcoded way to change the default CSS of the statistics tab of ILIAS
-      const tabStatistics = document.getElementById('tab_statistics');
-      if (tabStatistics && this.displayStore.showStatisticsTab) {
-        tabStatistics.style.display = 'block';
-      }
-      // after a minor timeout, add handlers to detect both resizing and scrolling (further style adjustments might be necessary)
+      // After a minor timeout, add handlers for both resizing and scrolling (further style adjustments are necessary)
       setTimeout(() => {
         const body = document.getElementsByTagName('body')?.[0];
         if (body) {
-          // add resize observer to adjust the height of the chatbot on resize
+          // Add a resize observer to adjust the height of the chatbot when resizing the window
           new ResizeObserver(() => {
             this.checkForStyleAdjustments();
-            // on resize, additionally check for adjusting the content container
+            // On resize, additionally check for adjusting the content container
             this.adjustContentContainer(this.displayStore.dialogOpen);
           }).observe(body);
-          // add scroll detector for devices smaller equal 768px (adjust the height of the chatbot)
+          // Add a scroll detector for devices smaller equal 768px (adjust the height of the chatbot, if necessary)
           window.addEventListener('scroll', () => {
             const bodyWidth = body?.offsetWidth || 1000;
             if (bodyWidth <= 768) {
@@ -115,65 +142,74 @@ export default {
         }
       }, 100);
     },
+    /**
+     * Check for style adjustments in order to fit the chatbot into the current view.
+     */
     checkForStyleAdjustments() {
-      // calculate the height of the ILIAS header
+      // Calculate the height of the ILIAS header
       let headerHeight = 0;
       const headerElement = document.querySelector<HTMLElement>('.il-layout-page header');
       if (headerElement) {
         headerHeight = headerElement.offsetHeight;
       }
-      // retrieve the elements of interest that might be adjusted
+      // Retrieve the elements of interest that might be adjusted
       const chatbotApp = document.getElementById('chatbotApp');
       const chatbotDialog = document.getElementById('chatbotDialog');
-      // calculate the height of the page overlay
+      // Calculate the height of the page overlay
       let pageOverlayHeight = 0;
       const pageOverlay = document.querySelector<HTMLElement>('.il-page-overlay');
-      // check, if the toolcheck header is present
+      // Check, whether the toolcheck header is present
       const isToolcheck = document.getElementsByClassName('toolcheck_header')?.length > 0 ?? false;
       if (isToolcheck && pageOverlay) {
         pageOverlayHeight = pageOverlay.offsetHeight;
       }
-      // in the following, the width of the body has to be taken into account
+      // In the following, the width of the body has to be taken into account
       const bodyWidth = document.querySelector<HTMLElement>('body')?.offsetWidth || 1000;
-      // default height of the "footer"
+      // Define a default height of the footer
       let footerHeight = 0;
-      // if the page is smaller equal 768px, the ILIAS navbar is displayed on the bottom
+      // If the page is smaller equal 768px, the ILIAS navbar is displayed on the bottom
       if (bodyWidth <= 768) {
-        // the page overlay gets invisible when being scrolled over
+        // The page overlay gets invisible when being scrolled over
         const htmlElementScrollTop = document.getElementsByTagName('html')?.[0]?.scrollTop;
         if (htmlElementScrollTop) {
-          // the height cannot be smaller than 0
-          if ((pageOverlayHeight - htmlElementScrollTop) < 0) {
+          // The height cannot be smaller than 0
+          if (pageOverlayHeight - htmlElementScrollTop < 0) {
             pageOverlayHeight = 0;
           } else {
             pageOverlayHeight -= htmlElementScrollTop;
           }
         }
-        // remove the border-top due to the none-removable margin-bottom of the header
+        // Remove the border-top due to the none-removable margin-bottom of the header
         if (chatbotDialog) {
           chatbotDialog.style.borderTop = 'none';
         }
-        // calculate the footer height based on the height of the main controls (navbar)
+        // Calculate the footer height based on the height of the main controls (navbar)
         const navbar = document.querySelector<HTMLElement>('.nav.il-maincontrols');
         if (navbar) {
           footerHeight = navbar.offsetHeight;
         }
       }
-      // otherwise, the footer height is the difference between the body padding-bottom and the height of the toolcheck header
+      // Otherwise, the footer height is the difference between the body padding-bottom and the height of the toolcheck header
       else {
         const bodyElement = document.getElementsByTagName('body')?.[0];
-        // get the element padding: https://stackoverflow.com/questions/5227909/how-to-get-an-elements-padding-value-using-javascript#comment69593352_5240819
-        if (isToolcheck && bodyElement && parseFloat(window.getComputedStyle(bodyElement, null)?.getPropertyValue('padding-bottom'))) {
-          footerHeight = parseFloat(window.getComputedStyle(bodyElement, null).getPropertyValue('padding-bottom')) - pageOverlayHeight;
+        // Get the element padding: https://stackoverflow.com/questions/5227909/how-to-get-an-elements-padding-value-using-javascript#comment69593352_5240819
+        if (
+          isToolcheck &&
+          bodyElement &&
+          parseFloat(window.getComputedStyle(bodyElement, null)?.getPropertyValue('padding-bottom'))
+        ) {
+          footerHeight =
+            parseFloat(window.getComputedStyle(bodyElement, null).getPropertyValue('padding-bottom')) -
+            pageOverlayHeight;
         }
-        // add back the removed border-top
+        // Add back the removed border-top
         if (chatbotDialog) {
           chatbotDialog.style.borderTop = '1px solid #ddd';
         }
       }
-      // calculate the height that has to be subtracted from the view height
+      // Calculate the height that has to be subtracted from the view height
       const heightToReduce = headerHeight + pageOverlayHeight + footerHeight;
-      // depending on the state of the chatbot, adjustments of different elements are necessary
+      // Depending on the state of the chatbot, adjustments of different elements are necessary
       if (chatbotApp) {
         chatbotApp.style.bottom = footerHeight + 'px';
       }
@@ -181,29 +217,36 @@ export default {
         chatbotDialog.style.height = 'calc(100vh - ' + heightToReduce + 'px)';
       }
     },
+    /**
+     * If the window width is large enough, adjust the ILIAS content container to make sure that the chatbot is visible.
+     * @param {boolean} dialogVisible
+     */
     adjustContentContainer(dialogVisible: boolean) {
-      // adjust the padding-right of the #fixed_content div of ILIAS to make space for the chatbot
+      // Adjust the padding-right of the #fixed_content div of ILIAS to make space for the chatbot
       const fixedContent = document.getElementById('fixed_content');
       if (!fixedContent) {
         return;
       }
       const bodyWidth = document.querySelector<HTMLElement>('body')?.offsetWidth || 1000;
-      // check, if the chatbot dialog is visible and the body width is larger than the breakpoint for mobile devices
+      // Check, whether the chatbot dialog is visible and the body width is larger than the breakpoint for mobile devices
       if (dialogVisible && bodyWidth > 768) {
         fixedContent.style.paddingRight = '360px';
       } else if (parseFloat(window.getComputedStyle(fixedContent, null)?.getPropertyValue('padding-right')) > 0) {
         fixedContent.style.paddingRight = '0';
       }
     },
-    async retrieveTokenAndHandleMessageExchange() {
+    /**
+     * Prepare and handle the message exchange by resetting the values on login and connecting the WebSocket.
+     */
+    async prepareAndHandleMessageExchange() {
       if (this.hasJustLoggedIn) {
-        // On login, set the last logged in user
+        // On login, set the last logged-in user
         this.chatbotDataStore.lastLoggedInUser = this.pseudoId;
         // On login, reset potentially send messages
         this.messageExchangeStore.clearItems();
         // Also reset the displaying parameters
         this.displayStore.resetValues();
-        // Hold variable to hide new items number
+        // Hold variable to hide the new items number
         this.initialLoadAfterLogin = true;
         setTimeout(() => {
           this.initialLoadAfterLogin = false;
@@ -211,34 +254,36 @@ export default {
       }
       await this.handleWebSocketConnection(true);
     },
+    /**
+     * Handle the entire WebSocket connection depending on whether the page was switched or not.
+     * @param {boolean} switchedPage
+     */
     async handleWebSocketConnection(switchedPage: boolean) {
-      // console.log('handleWebSocketConnection');
       if (this.webSocket?.readyState !== 1) {
         const backendUrlProtocol = this.backendUrl.includes('https://') ? 'https://' : 'http://';
         const webSocketPrefix = backendUrlProtocol === 'https://' ? 'wss://' : 'ws://';
         const webSocketURL = webSocketPrefix + this.backendUrl.split(backendUrlProtocol)?.[1] + '/api/v1/websocket';
-        // TODO: "Vue: This expression is not constructable."
         this.webSocket = new WebSocket(webSocketURL);
 
-        // Use code provided by Robert Peine from verdatas-backend README
+        // On WebSocket opening, send CONNECT and SUBSCRIBE messages and handle the wake-up message sending
         this.webSocket.onopen = () => {
           this.webSocket.send('CONNECT\ntoken:' + this.userToken + '\naccept-version:1.2\nheart-beat:3000,3000\n\n\0');
-          // there is only one destination that needs to be subscribed: /user/queue/chat
-          // dirty workaround to not send SUBSCRIBE before CONNECTED was received
+          // There is only one destination that needs to be subscribed: /user/queue/chat
+          // TODO: Workaround to not send SUBSCRIBE before CONNECTED was received
           setTimeout(() => {
             this.webSocket.send('SUBSCRIBE\nid:sub-0\ndestination:' + webSocketDestination + '\n\n\0');
-            // reset potentially set values
+            // Reset potentially set values
             this.forceDisconnect = false;
-            // potentially send wake-up message
-            // check whether the logged in user is set correctly
+            // Potentially send wake-up message
+            // Check, whether the logged-in user is set correctly
             if (this.chatbotDataStore.lastLoggedInUser !== this.pseudoId) {
               this.messageExchangeStore.clearItems();
-              // temporary set the hasJustLoggedIn value to true to request the prior_messages again
+              // Temporary set the hasJustLoggedIn value to true to request the prior_messages again
               this.hasJustLoggedIn = true;
               this.handleWakeUpMessageSending(true);
-              // reset the last logged in user
+              // Reset the last logged-in user
               this.chatbotDataStore.lastLoggedInUser = this.pseudoId;
-              // reset the hasJustLoggedIn value back to its existing value (false)
+              // Reset the hasJustLoggedIn value back to its existing value (false)
               setTimeout(() => {
                 this.hasJustLoggedIn = false;
               }, 250);
@@ -248,66 +293,67 @@ export default {
           }, 50);
         };
 
+        // On WebSocket message retrieval, process the received message
         this.webSocket.onmessage = (event: any) => {
           this.triggerVariable += 1;
-          // console.log('incoming message event', event);
-          // extract content between \n\n and \0
+          // Extract content between \n\n and \0
           const message: string = event.data.substring(event.data.indexOf('\n\n') + 2, event.data.lastIndexOf('\0'));
-          // verdatas-backend sends JSON data in body of STOMP messages that can be deserialized
-          // If no message ('') is received, it is the connect message
+          // tud-tas-backend sends JSON data in the body of the STOMP messages that can be deserialized
+          // If no message ('') is received, this could be either a CONNECTED or ERROR message
           if (!message) {
             if (event.data?.startsWith('CONNECTED')) {
-              // console.log('Connected message. Initialize pong message interval.');
               this.initializePongMessageInterval();
-              // reset potentially set values for the case that the connection was successful
+              // Reset potentially set values for the case that the connection was successful
               this.reconnectAttempted = false;
               this.sendWebSocketReconnectAttempted = false;
             } else if (event.data?.startsWith('ERROR')) {
               console.error(event);
             }
           }
-          // If BYTES.LF is received, it is a ping message
-          // Retrieved from: https://github.com/JSteunou/webstomp-client/blob/master/src/client.js#L74
-          else if (message === BYTES.LF) {
-            // console.log('Ping message received.');
-            // the first ping message also starts the reset ping timeout
+          // If a line feed byte is received, it is a ping message
+          else if (message === lineFeedByte) {
+            // The first ping message also starts to reset the ping timeout
             this.clearAndResetPingTimeout();
           }
           // Other, "real" messages
           else {
-            // normal messages will also reset the ping timeout
+            // Normal messages will also reset the ping timeout
             this.clearAndResetPingTimeout();
-            // it is necessary to parse the message
-            // hint: even though this might be huge objects (tested with 8000 messages), this takes like 30ms to execute
+            // It is necessary to parse the message
+            // Hint: Even though this might be huge objects (tested with 8000 messages), this only takes like 30ms to execute
             const receivedMessageParsed: AssistanceObjectCommunication = JSON.parse(message);
-            // console.time('messageDelivering');
-            // if "previous_messages" or "unacknowledged_messages" do exist in the parameter keys, the value will be an Array of AssistanceObjectCommunications
-            // else, it is a single AssistanceObjectCommunication
-            // idea, use a queue of AssistanceObjectQueueItems containing correctly parsed AssistanceObjectCommunication objects
+            // If "previous_messages" or "unacknowledged_messages" do exist in the parameter keys, the value will be an Array of AssistanceObjectCommunications
+            // Else, it is a single AssistanceObjectCommunication
+            // Idea: Use a queue of AssistanceObjectQueueItems containing correctly parsed AssistanceObjectCommunication objects
             // as well as the information, whether it must be acknowledged or not
             const messagesQueue: AssistanceObjectQueueItem[] = [];
-            // either previous_messages or unacknowledged_messages are retrieved when sending a wake-up message
+            // Either previous_messages or unacknowledged_messages are retrieved when sending a wake-up message
             // previous_messages might include "old" unacknowledged messages, whose are acknowledged automatically now
             if (this.checkForKeyPresence(receivedMessageParsed, 'previous_messages')) {
               parameterValue(receivedMessageParsed, 'previous_messages')?.forEach((message: any) => {
                 messagesQueue.push(new AssistanceObjectQueueItem(message, false));
               });
-              // the retrieval of the message including the previous_messages itself has to be acknowledged
+              // The retrieval of the message including the previous_messages itself has to be acknowledged
               this.acknowledgeMessage(receivedMessageParsed);
             }
-            // handles the retrieval of unacknowledged_messages (just_logged_in: false)
+            // Handle the retrieval of unacknowledged_messages (just_logged_in: false)
             else if (this.checkForKeyPresence(receivedMessageParsed, 'unacknowledged_messages')) {
               const unacknowledgedMessages = parameterValue(receivedMessageParsed, 'unacknowledged_messages');
-              // at least one unacknowledged message has to exist, otherwise, the handling will be skipped
+              // At least one unacknowledged message has to exist, otherwise, the handling will be skipped
               if (unacknowledgedMessages?.length > 0) {
                 const existingMessages = this.messageExchangeStore.items;
                 const emptyExistingMessages = !existingMessages?.length;
-                const lastExistingMessageTimestamp = !emptyExistingMessages && existingMessages[existingMessages.length - 1].timestamp;
+                const lastExistingMessageTimestamp =
+                  !emptyExistingMessages && existingMessages[existingMessages.length - 1].timestamp;
                 const firstUnacknowledgedMessageTimestamp = unacknowledgedMessages[0].timestamp;
-                const timestampsExistAndExistingMessagesAreOlder = lastExistingMessageTimestamp && firstUnacknowledgedMessageTimestamp && new Date(lastExistingMessageTimestamp)?.getTime() < new Date(firstUnacknowledgedMessageTimestamp)?.getTime();
-                // either the existing messages are empty or the existing messages are older than the unacknowledged ones
+                const timestampsExistAndExistingMessagesAreOlder =
+                  lastExistingMessageTimestamp &&
+                  firstUnacknowledgedMessageTimestamp &&
+                  new Date(lastExistingMessageTimestamp)?.getTime() <
+                    new Date(firstUnacknowledgedMessageTimestamp)?.getTime();
+                // Either the existing messages are empty or the existing messages are older than the unacknowledged ones
                 if (emptyExistingMessages || timestampsExistAndExistingMessagesAreOlder) {
-                  // push the unacknowledged messages to the queue (add to existing messages + acknowledge them)
+                  // Push the unacknowledged_messages to the queue (add to existing messages and acknowledge them)
                   unacknowledgedMessages.forEach((msg: AssistanceObjectCommunication) => {
                     // unacknowledged_messages might include previous_messages
                     if (this.checkForKeyPresence(msg, 'previous_messages')) {
@@ -315,31 +361,30 @@ export default {
                       unacknowledgedPreviousMessages?.forEach((previousMsg: AssistanceObjectCommunication) => {
                         messagesQueue.push(new AssistanceObjectQueueItem(previousMsg, false));
                       });
-                      // acknowledge the msg containing previous_messages
+                      // Acknowledge the message containing previous_messages
                       this.acknowledgeMessage(msg);
                     } else {
                       messagesQueue.push(new AssistanceObjectQueueItem(msg, true));
                     }
-                  })
+                  });
                 }
-                // otherwise, clear the chatbot history and request the prior_messages again by sending a wake-up message
+                // Otherwise, clear the chatbot history and request the prior_messages again by sending a wake-up message
                 else {
                   this.messageExchangeStore.clearItems();
-                  // temporary set the hasJustLoggedIn value to true to request the prior_messages again
+                  // Temporary set the hasJustLoggedIn value to true to request the prior_messages again
                   this.hasJustLoggedIn = true;
                   this.handleWakeUpMessageSending(true);
-                  // reset the hasJustLoggedIn value back to its existing value (false)
+                  // Reset the hasJustLoggedIn value back to its existing value (false)
                   setTimeout(() => {
                     this.hasJustLoggedIn = false;
                   }, 250);
                 }
               }
-            }
-            else {
+            } else {
               messagesQueue.push(new AssistanceObjectQueueItem(receivedMessageParsed, true));
             }
 
-            // iterate messages (array of AssistanceObjectQueueItems)
+            // Iterate messages (array of AssistanceObjectQueueItems)
             messagesQueue.forEach((queueItem: AssistanceObjectQueueItem, index: number) => {
               const receivedMessage: AssistanceObjectCommunication = queueItem.assistanceObject;
               if (!receivedMessage?.parameters) {
@@ -347,18 +392,20 @@ export default {
               }
               // It is assumed that the message received is valid
               // TODO: Find a better solution for this workaround (https://stackoverflow.com/a/41256353)
-              // check, if the type casting was done properly
-              // console.log(receivedMessage instanceof AssistanceObjectCommunication);
               this.messageExchangeStore.addItem(Object.assign(new AssistanceObjectCommunication(), receivedMessage));
 
-              // if the message was not part of previous_messages, acknowledge it
+              // If the message was not part of previous_messages, acknowledge it
               if (queueItem.requiresAcknowledgement) {
                 this.acknowledgeMessage(receivedMessage);
               }
-              // next, check, if it requires an additional action
-              this.checkIncomingMessageForAction(receivedMessage, queueItem.requiresAcknowledgement, messagesQueue.length === (index - 1));
+              // Next, check, if it requires an additional action
+              this.checkIncomingMessageForAction(
+                receivedMessage,
+                queueItem.requiresAcknowledgement,
+                messagesQueue.length === index - 1
+              );
             });
-            // if the user has just logged in, automatically display the chatbot dialog
+            // If the user has just logged in, automatically display the chatbot dialog
             // TODO: the chatbot might be invisible some time when the view is rendered
             if (this.hasJustLoggedIn && !this.wasOpenedAutomaticallyOnce) {
               this.updateChatbotDialogVisible(true);
@@ -367,45 +414,51 @@ export default {
             if (this.displayStore.dialogOpen) {
               this.updateDialogScroll();
             }
-            // console.timeEnd('messageDelivering');
           }
         };
 
+        // On WebSocket closing, clear the ping timeout and pong interval
         this.webSocket.onclose = () => {
           this.triggerVariable += 1;
-          // console.log('WebSocket closed. Clear pong interval and ping timeout.', this.pongInterval);
           window.clearInterval(this.pongInterval);
           if (this.pingTimeout) {
             window.clearTimeout(this.pingTimeout);
             this.pingTimeout = 0;
           }
-          // reset value, as it is not done automatically: https://stackoverflow.com/a/5978560/3623608
+          // Reset value, as it is not done automatically: https://stackoverflow.com/a/5978560/3623608
           this.pongInterval = 0;
-          // attempt reconnecting the WebSocket (if disconnect was not forced or the reconnect was not already attempted)
+          // Attempt reconnecting the WebSocket (if disconnect was not forced or the reconnect was not already attempted)
           if (!this.forceDisconnect && !this.reconnectAttempted) {
             this.attemptReconnect();
           }
         };
       } else {
         // WebSocket connection is still established
-        // potentially send wake-up message
+        // Potentially send wake-up message
         this.handleWakeUpMessageSending(switchedPage);
       }
     },
+    /**
+     * Attempt to reconnect the WebSocket.
+     */
     attemptReconnect() {
-      // console.log('Attempt reconnecting WebSocket.');
       this.reconnectAttempted = true;
       this.reconnectWebSocket();
     },
+    /**
+     * Handle the reconnection of the WebSocket.
+     */
     async reconnectWebSocket() {
       await this.handleWebSocketConnection(false);
     },
-    // https://stackoverflow.com/a/60617142
     checkForKeyPresence,
     parameterValue,
-    // When switching the page, send information about having just logged in or not
+    /**
+     * When switching the page, send information about having just logged in or not.
+     * @param {boolean} switchedPage
+     */
     handleWakeUpMessageSending(switchedPage: boolean) {
-      // Delay message until the WebSocket is connected
+      // Delay message sending until the WebSocket is connected
       // TODO: Find a more reliable method, e.g., listening for the CONNECTED message
       setTimeout(() => {
         if (switchedPage) {
@@ -425,34 +478,36 @@ export default {
         }
       }, 250);
     },
-    // handle message sending over the WebSocket
+    /**
+     * Handle the message sending over the WebSocket.
+     * @param {AssistanceObjectCommunication} messageToSend
+     */
     async sendWebSocketMessage(messageToSend: AssistanceObjectCommunication) {
       const messageAsJson = JSON.stringify(messageToSend);
       if (this.isWebSocketConnected) {
         this.webSocket.send(
           'MESSAGE\ndestination:' +
-          webSocketDestination +
-          '\ncontent-length:' +
-          this.countBytes(messageAsJson) +
-          '\n\n' +
-          messageAsJson +
-          '\0'
+            webSocketDestination +
+            '\ncontent-length:' +
+            this.countBytesOfMessage(messageAsJson) +
+            '\n\n' +
+            messageAsJson +
+            '\0'
         );
 
-        // add any valid outgoing message to the messageExchangeStore
+        // Add any valid outgoing message to the messageExchangeStore
         if (messageToSend?.parameters?.find((param) => this.outgoingMessageTypes.includes(param.key))) {
           this.messageExchangeStore.addItem(messageToSend);
           this.updateDialogScroll();
         }
 
-        // reset WebSocket reconnection value
+        // Reset WebSocket reconnection value
         this.sendWebSocketReconnectAttempted = false;
-      }
-      else {
-        // attempt reconnecting once, if the sending of a message failed
+      } else {
+        // Attempt reconnecting once, if the sending of a message failed
         if (!this.sendWebSocketReconnectAttempted) {
-          // console.log('Sending message failed. Attempt reconnecting WebSocket and send again after 0.5 seconds.');
           await this.reconnectWebSocket();
+          // Send again after 0.5 seconds
           setTimeout(() => {
             this.sendWebSocketMessage(messageToSend);
             this.sendWebSocketReconnectAttempted = true;
@@ -460,16 +515,27 @@ export default {
         }
       }
     },
-    // check incoming message for an action to execute
-    checkIncomingMessageForAction(receivedMessage: AssistanceObjectCommunication, isLiveMessage: boolean, isLastItem: boolean) {
-      // actions that are executed when the message is retrieved in real-time
+    /**
+     * Check an incoming message for an action to execute.
+     * @param {AssistanceObjectCommunication} receivedMessage
+     * @param {boolean} isLiveMessage
+     * @param {boolean} isLastItem
+     */
+    checkIncomingMessageForAction(
+      receivedMessage: AssistanceObjectCommunication,
+      isLiveMessage: boolean,
+      isLastItem: boolean
+    ) {
+      // Actions that are executed when the message is retrieved in real-time
       if (isLiveMessage) {
-        // it is requested to automatically send the solution
+        // It is requested to automatically send the solution
         if (parameterValue(receivedMessage, 'operation') === 'send_solution') {
           const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
           // Use aId of the received message to answer it
           messageToSend.aId = receivedMessage.aId;
-          messageToSend.parameters = [new AssistanceParameter('solution_response', this.notesAndPeerSolutionStore.notes)];
+          messageToSend.parameters = [
+            new AssistanceParameter('solution_response', this.notesAndPeerSolutionStore.notes)
+          ];
           this.sendWebSocketMessage(messageToSend);
         }
         // disable_chat will automatically reset the input field
@@ -481,7 +547,7 @@ export default {
           this.notesAndPeerSolutionStore.resetNotes();
         }
       }
-      // the solution might also need to be sent, if it is the last message in previous_messages
+      // The solution might also need to be sent, if it is the last message in the previous_messages
       else if (isLastItem && parameterValue(receivedMessage, 'operation') === 'send_solution') {
         const messageToSend: AssistanceObjectCommunication = new AssistanceObjectCommunication();
         // Use aId of the received message to answer it
@@ -489,30 +555,33 @@ export default {
         messageToSend.parameters = [new AssistanceParameter('solution_response', this.notesAndPeerSolutionStore.notes)];
         this.sendWebSocketMessage(messageToSend);
       }
-      // actions that are executed in any case
-      // operations have to be processed
+      // Actions that are executed in any case
+      // Operations have to be processed
       if (checkForKeyPresence(receivedMessage, 'operation')) {
-        // process every operation message
+        // Process every operation message
         this.displayStore.processOperation(receivedMessage);
-        // enable_notes will automatically open the notes and peer solution
+        // enable_notes will automatically open the view for the notes and peer solution
         if (parameterValue(receivedMessage, 'operation') === 'enable_notes') {
           this.displayStore.changeNotesAndPeerSolutionOpen(true);
         }
       }
-      // the template for the solution is provided
+      // The template for the solution is provided
       else if (checkForKeyPresence(receivedMessage, 'solution_template')) {
         this.notesAndPeerSolutionStore.setTemplate(parameterValue(receivedMessage, 'solution_template'));
       }
-      // the solution_response is provided
+      // The solution response is provided
       else if (checkForKeyPresence(receivedMessage, 'solution_response')) {
-        this.notesAndPeerSolutionStore.setSolutionResponse(parameterValue(receivedMessage, 'solution_response'))
+        this.notesAndPeerSolutionStore.setSolutionResponse(parameterValue(receivedMessage, 'solution_response'));
       }
-      // the peer solution is provided
+      // The peer solution is provided
       else if (checkForKeyPresence(receivedMessage, 'peer_solution')) {
         this.notesAndPeerSolutionStore.setPeerSolution(parameterValue(receivedMessage, 'peer_solution'));
       }
     },
-    // acknowledge the reception of the message
+    /**
+     * Acknowledge the reception of the message.
+     * @param {AssistanceObjectCommunication} receivedMessage
+     */
     acknowledgeMessage(receivedMessage: AssistanceObjectCommunication) {
       if (receivedMessage?.messageId) {
         const acknowledgeMessage: AssistanceObjectCommunication = {
@@ -521,28 +590,40 @@ export default {
         this.sendWebSocketMessage(acknowledgeMessage);
       }
     },
+    /**
+     * Initialize the interval for sending pong messages.
+     */
     initializePongMessageInterval() {
-      // Send pong every 3 seconds, as it is done in the stomp-websocket library
+      // Send pong every 3 seconds
       this.pongInterval = window.setInterval(() => {
-        this.webSocket.send(BYTES.LF);
-        // console.log('Pong message sent.');
+        this.webSocket.send(lineFeedByte);
       }, 3000);
     },
+    /**
+     * Clear and reset the ping timeout.
+     */
     clearAndResetPingTimeout() {
       if (this.pingTimeout) {
         window.clearTimeout(this.pingTimeout);
         this.pingTimeout = 0;
       }
-      // If no ping message is received within 20 seconds, force disconnection of the WebSocket
+      // If no ping message is received within 20 seconds, force the disconnection of the WebSocket
       this.pingTimeout = window.setTimeout(() => {
         this.forceDisconnect = true;
         this.webSocket.close();
       }, 20000);
     },
+    /**
+     * Update the dialog scroll.
+     */
     updateDialogScroll() {
       // https://stackoverflow.com/a/76297364/3623608
       (this.$refs.chatbotDialog as typeof ChatbotDialog)?.updateScroll();
     },
+    /**
+     * Change the visibility state of the dialog into a given value.
+     * @param {boolean} dialogVisible
+     */
     updateChatbotDialogVisible(dialogVisible: boolean) {
       if (dialogVisible) {
         (this.$refs.chatbotWidget as typeof ChatbotWidget)?.fadeOut();
@@ -568,18 +649,28 @@ export default {
         }, 300);
       }
     },
+    /**
+     * Overwrite the message to send by a given message string.
+     * @param {string} messageToSend
+     */
     updateMessageToSend(messageToSend: string) {
       this.messageExchangeStore.messageToSend = messageToSend;
     },
-    // Solution retrieved from https://github.com/rabbitmq/rabbitmq-web-stomp-examples/issues/2
-    countBytes(message: string) {
-      const escapedStr = encodeURI(message);
-      if (escapedStr.indexOf('%') != -1) {
-        let count = escapedStr.split('%').length - 1;
-        if (count == 0) count++;
-        const tmp = escapedStr.length - count * 3;
-        return count + tmp;
-      } else return escapedStr.length;
+    /**
+     * Count the bytes of a given message.
+     * @param {string} message
+     */
+    countBytesOfMessage(message: string) {
+      const escapedMsg = encodeURI(message);
+      if (escapedMsg.includes('%')) {
+        let byteCount = escapedMsg.split('%').length - 1;
+        if (byteCount === 0) {
+          byteCount++;
+        }
+        const tmp = escapedMsg.length - byteCount * 3;
+        return byteCount + tmp;
+      }
+      return escapedMsg.length;
     }
   }
 };

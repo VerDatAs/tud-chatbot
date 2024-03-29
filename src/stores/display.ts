@@ -1,7 +1,28 @@
-import { defineStore, acceptHMRUpdate } from 'pinia';
+/**
+ * Chatbot for the assistance system developed as part of the VerDatAs project
+ * Copyright (C) 2023-2024 TU Dresden (Tommy Kubica)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 import type { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
 import { parameterValue } from '@/util/assistanceObjectHelper';
+import { defineStore, acceptHMRUpdate } from 'pinia';
 
+/**
+ * Pinia store for all display related information.
+ */
 export const useDisplayStore = defineStore({
   id: 'display',
   state: () => ({
@@ -14,16 +35,12 @@ export const useDisplayStore = defineStore({
     notesCommandEnabled: false as boolean,
     optionsEnabled: false as boolean,
     peerSolutionEnabled: false as boolean,
-    peerSolutionCommandEnabled: false as boolean,
-    showStatisticsTab: false as boolean
+    peerSolutionCommandEnabled: false as boolean
   }),
   actions: {
-    changeDialogOpen(dialogOpen: boolean) {
-      this.dialogOpen = dialogOpen;
-    },
-    changeNotesAndPeerSolutionOpen(notesAndPeerSolutionOpen: boolean) {
-      this.notesAndPeerSolutionOpen = notesAndPeerSolutionOpen;
-    },
+    /**
+     * Reset the variables of the entire store to their default values.
+     */
     resetValues() {
       this.dialogOpen = false;
       this.notesAndPeerSolutionOpen = false;
@@ -35,8 +52,25 @@ export const useDisplayStore = defineStore({
       this.optionsEnabled = false;
       this.peerSolutionEnabled = false;
       this.peerSolutionCommandEnabled = false;
-      this.showStatisticsTab = false;
     },
+    /**
+     * Change the opening state of the dialog into a given value.
+     * @param {boolean} dialogOpen
+     */
+    changeDialogOpen(dialogOpen: boolean) {
+      this.dialogOpen = dialogOpen;
+    },
+    /**
+     * Change the opening state of the view for the notes and peer solution into a given value.
+     * @param {boolean} notesAndPeerSolutionOpen
+     */
+    changeNotesAndPeerSolutionOpen(notesAndPeerSolutionOpen: boolean) {
+      this.notesAndPeerSolutionOpen = notesAndPeerSolutionOpen;
+    },
+    /**
+     * Process a given assistance object containing a specific operation.
+     * @param {AssistanceObjectCommunication} assistanceObject
+     */
     processOperation(assistanceObject: AssistanceObjectCommunication) {
       switch (parameterValue(assistanceObject, 'operation')) {
         case 'enable_abort_exchange_command':

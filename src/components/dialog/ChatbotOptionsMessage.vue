@@ -1,3 +1,20 @@
+<!--
+Chatbot for the assistance system developed as part of the VerDatAs project
+Copyright (C) 2023-2024 TU Dresden (Tommy Kubica)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
 <script lang="ts">
 import ChatbotIcon from '@/components/shared/ChatbotIcon.vue';
 import { AssistanceObjectCommunication } from '@/components/types/assistance-object-communication';
@@ -30,19 +47,29 @@ export default {
       default: false
     }
   },
-  emits: ['selectOption'],
+  emits: [
+    'selectOption'
+  ],
   computed: {
+    /**
+     * Check, whether the options need to be disabled.
+     */
     disableOptions() {
       return !this.optionsEnabled || this.relatedResponseExists || this.relatedStateUpdateExists;
     },
+    /**
+     * Check, whether the timestamp provided by the assistance object is valid.
+     */
     validTimestamp() {
       return this.assistanceObject.timestamp && formatDate(this.assistanceObject.timestamp) !== 'Invalid date';
     }
   },
   methods: {
-    // https://stackoverflow.com/a/60617142
     formatDate,
     parameterValue,
+    /**
+     * Handle the selection of an option.
+     */
     selectOption(option: Option) {
       const responseOption: Option = new Option('options_response', option.key);
       const responseObject: AssistanceObjectCommunication = new AssistanceObjectCommunication();
@@ -73,12 +100,11 @@ export default {
 </template>
 
 <style lang="scss" scoped>
-  .option-btn {
-    display: block;
-    margin-bottom: 5px;
-    width: 100%;
-    max-width: 100%;
-    // wrap text in button: https://stackoverflow.com/a/1194680
-    white-space: normal;
-  }
+.option-btn {
+  display: block;
+  margin-bottom: 5px;
+  width: 100%;
+  max-width: 100%;
+  white-space: normal;
+}
 </style>
