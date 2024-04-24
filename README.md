@@ -48,7 +48,7 @@ npm run type-check
 ### Local development with ILIAS
 
 * The folder of the `tud-chatbot` should be located within the same folder such as [tud-chatbot-plugin](https://github.com/VerDatAs/tud-chatbot-plugin).
-* If you use the ILIAS docker setup described [here](https://github.com/VerDatAs/all-ilias), run the following command to reload your changes made:
+* In order to build the application and move it into the plugin, run the following command:
 
 ```sh
 npm run build-move ilias
