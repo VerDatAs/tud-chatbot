@@ -64,10 +64,7 @@ export default {
       return this.notesAndPeerSolutionStore.template;
     }
   },
-  emits: [
-    'acknowledgePeerSolution',
-    'sendSolution'
-  ],
+  emits: ['acknowledgePeerSolution', 'sendSolution'],
   methods: {
     /**
      * Change the opening state of the notes and peer solution into a given value.

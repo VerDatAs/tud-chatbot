@@ -55,7 +55,7 @@ checker.init(
       });
       fs.mkdirSync('dist', { recursive: true });
       fs.writeFileSync(
-        'dist/THIRD-PARTY-tud-chatbot.md',
+        'dist/THIRD-PARTY-' + repositoryName + '.md',
         markdownResult
       );
       console.log(markdownResult);

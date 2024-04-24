@@ -64,9 +64,7 @@ export default {
       default: 0
     }
   },
-  emits: [
-    'clickNotificationResponse'
-  ],
+  emits: ['clickNotificationResponse'],
   computed: {
     /**
      * Check, whether the text message is a message from a user.

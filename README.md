@@ -11,7 +11,17 @@ nvm use
 npm install
 ```
 
-### Compile and hot-reload for development
+### Local development
+
+Create a `.env.development` file in order to specify values for the following variables:
+
+```
+VITE_BACKEND_URL=TAS_BACKEND_URL # the URL of the tud-tas-backend
+VITE_PSEUDO_ID=LMS_PSEUDO_ID # the user identification specified by the LMS that is used by the tud-chatbot
+VITE_ALTERNATIVE_PSEUDO_ID=ALTERNATIVE_LMS_PSEUDO_ID # the user identification specified by the LMS that is used by the tud-chatbot when connecting via Safari (this allows simulating a cooperation locally)
+```
+
+Start compile and hot-reload for development:
 
 ```sh
 npm run dev

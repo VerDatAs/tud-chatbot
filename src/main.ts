@@ -33,6 +33,7 @@ function isDevelopmentBuild(): boolean {
 
 /**
  * Initialize the chatbot with the provided data.
+ *
  * @param {ChatbotData} initChatbotData
  */
 function initChatbot(initChatbotData: ChatbotData) {
@@ -74,6 +75,8 @@ if (isDevelopmentBuild()) {
 
 /**
  * Init function that is called from an external system (e.g., ILIAS).
+ *
+ * @param initChatbotData
  */
 export function init(initChatbotData: ChatbotData) {
   initChatbot(initChatbotData);

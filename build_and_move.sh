@@ -29,8 +29,6 @@ elif [ "$1" = "ilias" ]; then
     cp dist/assets/main.js ../verdatasbot/templates/main.js
     cp dist/THIRD-PARTY-tud-chatbot.md ../verdatasbot/templates/THIRD-PARTY-tud-chatbot.md
     cp dist/veri.png ../verdatasbot/templates/veri.png
-    cd ../ilias-dev || return
-    sh reload_directories.sh
 else
     echo "Invalid argument. Please provide 'moodle' or 'ilias' as an argument."
 fi

@@ -58,11 +58,7 @@ export default {
       'uri',
       'user_message'
     ],
-    outgoingMessageTypes: [
-      'message_response',
-      'options_response',
-      'state_update_response'
-    ],
+    outgoingMessageTypes: ['message_response', 'options_response', 'state_update_response'],
     pingTimeout: 0 as number,
     pongInterval: 0 as number,
     forceDisconnect: false as boolean,

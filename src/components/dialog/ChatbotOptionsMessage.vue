@@ -47,9 +47,7 @@ export default {
       default: false
     }
   },
-  emits: [
-    'selectOption'
-  ],
+  emits: ['selectOption'],
   computed: {
     /**
      * Check, whether the options need to be disabled.

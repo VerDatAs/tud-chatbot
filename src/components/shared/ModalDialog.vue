@@ -18,16 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 <script lang="ts">
 export default {
   name: 'ModalDialog',
-  props: [
-    'title',
-    'question',
-    'confirmTxt',
-    'cancelTxt'
-  ],
-  emits: [
-    'cancel',
-    'confirm'
-  ]
+  props: ['title', 'question', 'confirmTxt', 'cancelTxt'],
+  emits: ['cancel', 'confirm']
 };
 </script>
 

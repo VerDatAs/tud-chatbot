@@ -23,9 +23,7 @@ export default {
       default: false
     }
   },
-  emits: [
-    'reconnectWebSocket'
-  ],
+  emits: ['reconnectWebSocket'],
   methods: {
     /**
      * Request that the WebSocket should be reconnected.

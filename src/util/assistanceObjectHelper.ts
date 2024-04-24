@@ -20,6 +20,7 @@ import { AssistanceObjectCommunication } from '@/components/types/assistance-obj
 
 /**
  * Check, whether a given key exists in the parameters of a given assistance object.
+ *
  * @param {AssistanceObjectCommunication} assistanceObject
  * @param {string} key
  */
@@ -29,6 +30,7 @@ export const checkForKeyPresence = (assistanceObject: AssistanceObjectCommunicat
 
 /**
  * Return the value of a given parameter key within a given assistance object.
+ *
  * @param {AssistanceObjectCommunication} assistanceObject
  * @param {string} key
  */
@@ -39,6 +41,7 @@ export const parameterValue = (assistanceObject: AssistanceObjectCommunication, 
 
 /**
  * Format a given date time into a readable string.
+ *
  * @param dateTime
  */
 export const formatDate = (dateTime: any) => {

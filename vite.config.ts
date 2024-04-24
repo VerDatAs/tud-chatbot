@@ -50,7 +50,7 @@ export default defineConfig({
     lib: {
       entry: fileURLToPath(new URL('./src/main.ts', import.meta.url)),
       name: 'VerDatAsChatbot',
-      formats: ['umd'],
+      formats: ['umd']
     },
     rollupOptions: {
       // Avoid having varying names with hashes: https://github.com/vitejs/vite/issues/378#issuecomment-768816653
@@ -61,7 +61,7 @@ export default defineConfig({
         entryFileNames: `assets/[name].js`,
         chunkFileNames: `assets/[name].js`,
         assetFileNames: `assets/[name].[ext]`,
-        manualChunks: undefined,
+        manualChunks: undefined
       }
     }
   },
@@ -78,4 +78,3 @@ export default defineConfig({
     open: '/index.html'
   }
 })
-
