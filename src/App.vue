@@ -30,7 +30,7 @@ import { checkForKeyPresence, parameterValue } from '@/util/assistanceObjectHelp
 // The escaped hexadecimal line feed and equivalent of \n (https://stackoverflow.com/a/9021756/3623608)
 const lineFeedByte = '\x0A';
 // The destination of the WebSocket connection
-const webSocketDestination = '/user/queue/chat';
+const webSocketDestination = '/user/queue/chat/0';
 
 export default {
   data: () => ({
