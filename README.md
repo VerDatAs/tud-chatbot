@@ -87,13 +87,13 @@ After that the list of libraries used can be found in `dist/THIRD-PARTY-tud-chat
 | @vueuse/shared | 7.7.1 | MIT | https://github.com/vueuse/vueuse |
 | animate.css | 4.1.1 | MIT | https://github.com/animate-css/animate.css |
 | asynckit | 0.4.0 | MIT | https://github.com/alexindigo/asynckit |
-| axios | 1.6.0 | MIT | https://github.com/axios/axios |
+| axios | 1.7.4 | MIT | https://github.com/axios/axios |
 | combined-stream | 1.0.8 | MIT | https://github.com/felixge/node-combined-stream |
 | csstype | 3.1.2 | MIT | https://github.com/frenic/csstype |
 | de-indent | 1.0.2 | MIT | https://github.com/yyx990803/de-indent |
 | delayed-stream | 1.0.0 | MIT | https://github.com/felixge/node-delayed-stream |
 | estree-walker | 2.0.2 | MIT | https://github.com/Rich-Harris/estree-walker |
-| follow-redirects | 1.15.3 | MIT | https://github.com/follow-redirects/follow-redirects |
+| follow-redirects | 1.15.6 | MIT | https://github.com/follow-redirects/follow-redirects |
 | form-data | 4.0.0 | MIT | https://github.com/form-data/form-data |
 | he | 1.2.0 | MIT | https://github.com/mathiasbynens/he |
 | magic-string | 0.30.5 | MIT | https://github.com/rich-harris/magic-string |
