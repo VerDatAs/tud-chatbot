@@ -155,7 +155,7 @@ export default {
       let pageOverlayHeight = 0;
       const pageOverlay = document.querySelector<HTMLElement>('.il-page-overlay');
       // Check, whether the toolcheck header is present
-      const isToolcheck = document.getElementsByClassName('toolcheck_header')?.length > 0 ?? false;
+      const isToolcheck = document.getElementsByClassName('toolcheck_header')?.length > 0 || false;
       if (isToolcheck && pageOverlay) {
         pageOverlayHeight = pageOverlay.offsetHeight;
       }
