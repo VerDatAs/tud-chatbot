@@ -35,6 +35,27 @@ export const useChatbotDataStore = defineStore({
      */
     setChatbotData(chatbotData: ChatbotData) {
       this.data = chatbotData;
+    },
+    /**
+     * Update the lmsId in the chatbot data
+     * @param {String} lmsId
+     */
+    updateLmsId(lmsId: string) {
+      this.data.lmsId = lmsId;
+    },
+    /**
+     * Update the otp in the chatbot data
+     * @param {String} otp
+     */
+    updateOtp(otp: string) {
+      this.data.otp = otp;
+    },
+    /**
+     * Update the token in the chatbot data
+     * @param {String} token
+     */
+    updateToken(token: string) {
+      this.data.token = token;
     }
   },
   persist: true

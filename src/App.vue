@@ -83,6 +83,18 @@ export default {
      */
     isWebSocketConnected() {
       return this.triggerVariable > 0 && this.webSocket?.readyState === 1;
+    },
+    /**
+     * Dynamically set the otp from the chatbot lmsId.
+     */
+    lmsId() {
+      return this.chatbotDataStore.data.lmsId ?? '';
+    },
+    /**
+     * Dynamically set the otp from the chatbot data.
+     */
+    otp() {
+      return this.chatbotDataStore.data.otp ?? '';
     }
   },
   created() {
@@ -137,6 +149,12 @@ export default {
           });
         }
       }, 100);
+      setTimeout(() => {
+        if (this.lmsId !== '' && this.otp !== '') {
+          console.log('both lmsId and otp set', this.lmsId, this.otp);
+          this.displayStore.changeDialogOpen(true);
+        }
+      }, 250);
     },
     /**
      * Check for style adjustments in order to fit the chatbot into the current view.
@@ -690,6 +708,7 @@ export default {
       :groups="messageExchangeStore.groups"
       :incoming-message-types="incomingMessageTypes"
       :is-web-socket-connected="isWebSocketConnected"
+      :lms-id="lmsId"
       :message-exchange="messageExchangeStore.items"
       :notes="notesAndPeerSolutionStore.notes"
       :notes-and-peer-solution-visible="displayStore.notesAndPeerSolutionOpen && displayStore.notesEnabled"
@@ -697,6 +716,7 @@ export default {
       :notes-command-enabled="displayStore.notesCommandEnabled"
       :notes-input-enabled="displayStore.notesInputEnabled"
       :options-enabled="displayStore.optionsEnabled"
+      :otp="otp"
       :outgoing-message-types="outgoingMessageTypes"
       :peer-solution="notesAndPeerSolutionStore.peerSolution"
       :peer-solution-enabled="displayStore.peerSolutionEnabled"

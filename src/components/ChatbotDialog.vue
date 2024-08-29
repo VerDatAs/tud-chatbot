@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 <script lang="ts">
 import ChatbotGroupStatusMessage from '@/components/dialog/ChatbotGroupStatusMessage.vue';
+import ChatbotLoginForm from '@/components/dialog/ChatbotLoginForm.vue';
 import ChatbotNotesAndPeerSolution from '@/components/dialog/ChatbotNotesAndPeerSolution.vue';
 import ChatbotOptionsMessage from '@/components/dialog/ChatbotOptionsMessage.vue';
 import ChatbotStateUpdate from '@/components/dialog/ChatbotStateUpdate.vue';
@@ -43,6 +44,7 @@ export default {
   components: {
     ChatbotIcon,
     ChatbotGroupStatusMessage,
+    ChatbotLoginForm,
     ChatbotNotesAndPeerSolution,
     ChatbotOnlineIndicator,
     ChatbotOptionsMessage,
@@ -68,6 +70,10 @@ export default {
       type: Boolean,
       default: false
     },
+    lmsId: {
+      type: String,
+      default: ''
+    },
     messageExchange: {
       type: Array<AssistanceObjectCommunication>,
       default: []
@@ -89,6 +95,10 @@ export default {
     optionsEnabled: {
       type: Boolean,
       default: false
+    },
+    otp: {
+      type: String,
+      default: ''
     },
     peerSolution: String,
     peerSolutionEnabled: {
@@ -415,6 +425,10 @@ export default {
 
 <template>
   <div id="chatbotDialog" class="animate__animated">
+    <ChatbotLoginForm
+      :otp="otp"
+      v-if="lmsId !== '' && otp !== ''"
+    />
     <ChatbotNotesAndPeerSolution
       :notes="notes"
       :notes-and-peer-solution-visible="notesAndPeerSolutionVisible"

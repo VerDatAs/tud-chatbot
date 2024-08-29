@@ -21,13 +21,21 @@ export class ChatbotData {
   pseudoId: string;
   token: string;
   hasJustLoggedIn: boolean;
+  lmsId?: string;
+  otp?: string;
   isRunLocally?: boolean;
 
-  constructor(pluginPath: string, backendUrl: string, pseudoId: string, token: string, hasJustLoggedIn: boolean) {
+  constructor(pluginPath: string, backendUrl: string, pseudoId: string, token: string, hasJustLoggedIn: boolean, lmsId?: string, otp?: string) {
     this.pluginPath = pluginPath;
     this.backendUrl = backendUrl;
     this.pseudoId = pseudoId;
     this.token = token;
     this.hasJustLoggedIn = hasJustLoggedIn;
+    if (lmsId) {
+      this.lmsId = '';
+    }
+    if (otp) {
+      this.otp = '';
+    }
   }
 }
